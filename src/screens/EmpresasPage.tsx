@@ -17,7 +17,11 @@ export default function EmpresasPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {mockEmpresas.map((empresa) => (
-          <div key={empresa.id} className="bg-card border border-border/50 rounded-xl p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <div
+            key={empresa.id}
+            className="bg-card border border-border/50 rounded-xl p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+            style={{ boxShadow: 'var(--shadow-sm)' }}
+          >
             <div className="flex items-start justify-between mb-4">
               <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-primary-foreground" />
@@ -52,3 +56,4 @@ export default function EmpresasPage() {
     </div>
   );
 }
+

@@ -1,17 +1,18 @@
 import { useState } from 'react';
-import { Search, Filter, Plus, MoreHorizontal, Download, Upload } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Download, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { mockLeads } from '@/data/mockData';
-import { LeadStatus, LEAD_STATUS_LABELS, PRIORITY_LABELS, LeadPriority } from '@/types/crm';
+import { LeadStatus, LEAD_STATUS_LABELS, PRIORITY_LABELS } from '@/types/crm';
 
 export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
 
   const filteredLeads = mockLeads.filter((lead) => {
-    const matchesSearch = lead.nome.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      lead.nome.toLowerCase().includes(search.toLowerCase()) ||
       lead.cidade?.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'todos' || lead.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -103,7 +104,9 @@ export default function LeadsPage() {
                       {PRIORITY_LABELS[lead.prioridade]}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">{lead.vendedor || <span className="text-destructive text-xs">Sem responsável</span>}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground">
+                    {lead.vendedor || <span className="text-destructive text-xs">Sem responsável</span>}
+                  </td>
                   <td className="py-3 px-4 text-sm font-medium text-foreground">
                     {lead.valor_estimado ? `R$ ${(lead.valor_estimado / 1000).toFixed(0)}k` : '-'}
                   </td>
@@ -123,3 +126,4 @@ export default function LeadsPage() {
     </div>
   );
 }
+

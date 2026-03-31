@@ -1,3 +1,5 @@
+ "use client";
+
 import { useState, createContext, useContext, ReactNode } from 'react';
 import { User, UserRole } from '@/types/crm';
 import { mockCurrentUser } from '@/data/mockData';

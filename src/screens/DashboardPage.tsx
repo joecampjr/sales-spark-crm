@@ -1,8 +1,8 @@
-import { Target, Users, TrendingUp, DollarSign, Phone, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Target, TrendingUp, DollarSign, Phone, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { KPICard } from '@/components/crm/KPICard';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { mockKPIs, mockLeads, mockChartData, mockVendedores } from '@/data/mockData';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area } from 'recharts';
+import { CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis } from 'recharts';
 import { LeadStatus } from '@/types/crm';
 
 const CHART_COLORS = ['hsl(221, 83%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(199, 89%, 48%)'];
@@ -177,7 +177,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3 p-3 rounded-lg bg-success/5 border border-success/20">
             <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
             <div>
-              <p className="text-sm font-medium text-foreground">Meta 68% atingida</p>
+              <p className="text-sm font-medium text-foreground">Meta {progressPercent}% atingida</p>
               <p className="text-xs text-muted-foreground">R$ 342k de R$ 500k</p>
             </div>
           </div>
@@ -186,3 +186,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

@@ -1,4 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, Target, BarChart3,
   Settings, FileText, MapPin, UserCheck, LogOut, ChevronLeft,
@@ -44,7 +47,7 @@ const navSections = [
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const location = useLocation();
+  const pathname = usePathname();
   const { logout, user } = useAuth();
 
   return (
@@ -94,12 +97,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             )}
             <div className="space-y-1">
               {section.items.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = pathname === item.path;
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.path}
-                    to={item.path}
+                    href={item.path}
                     className={cn('sidebar-item', isActive && 'active')}
                     title={collapsed ? item.label : undefined}
                   >

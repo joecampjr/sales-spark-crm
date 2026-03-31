@@ -1,5 +1,4 @@
-import { mockVendedores } from '@/data/mockData';
-import { Plus, Users } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function UsuariosPage() {
@@ -64,3 +63,4 @@ export default function UsuariosPage() {
     </div>
   );
 }
+

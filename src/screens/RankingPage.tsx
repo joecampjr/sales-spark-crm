@@ -15,7 +15,11 @@ export default function RankingPage() {
         {sorted.map((v, i) => {
           const medals = ['🥇', '🥈', '🥉'];
           return (
-            <div key={v.id} className={`bg-card border rounded-xl p-6 transition-all duration-200 ${i === 0 ? 'border-warning/30 ring-1 ring-warning/20' : 'border-border/50'}`} style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div
+              key={v.id}
+              className={`bg-card border rounded-xl p-6 transition-all duration-200 ${i === 0 ? 'border-warning/30 ring-1 ring-warning/20' : 'border-border/50'}`}
+              style={{ boxShadow: 'var(--shadow-sm)' }}
+            >
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">{medals[i] || `#${i + 1}`}</span>
                 <div>
@@ -72,3 +76,4 @@ export default function RankingPage() {
     </div>
   );
 }
+

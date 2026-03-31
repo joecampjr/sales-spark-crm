@@ -17,7 +17,11 @@ export default function FiliaisPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {mockFiliais.map((filial) => (
-          <div key={filial.id} className="bg-card border border-border/50 rounded-xl p-6 hover:shadow-lg transition-all duration-200" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <div
+            key={filial.id}
+            className="bg-card border border-border/50 rounded-xl p-6 hover:shadow-lg transition-all duration-200"
+            style={{ boxShadow: 'var(--shadow-sm)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <MapPin className="w-5 h-5 text-primary" />
@@ -49,3 +53,4 @@ export default function FiliaisPage() {
     </div>
   );
 }
+
