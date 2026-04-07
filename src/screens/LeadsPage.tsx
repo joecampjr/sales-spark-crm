@@ -197,7 +197,7 @@ export default function LeadsPage() {
                       <option value="Site">Site</option>
                       <option value="Redes Sociais">Redes Sociais</option>
                       <option value="WhatsApp">WhatsApp</option>
-                      <option value="Suri">Suri</option>
+                      <option value="Outros">Outros</option>
                     </select>
                   </div>
                 </div>
