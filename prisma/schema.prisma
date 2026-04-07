@@ -1,0 +1,41 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Seller {
+  id             String   @id @default(uuid())
+  name           String
+  region         String
+  salesCount     Int      @default(0)
+  conversionRate Float    @default(0.0)
+  activeLeads    Int      @default(0)
+  contactsToday  Int      @default(0)
+  contactsTarget Int      @default(10)
+  monthlyGoal    Float    @default(0.0)
+  leads          Lead[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Lead {
+  id             String   @id @default(uuid())
+  name           String
+  phone          String   @unique
+  city           String
+  state          String
+  status         String
+  priority       String
+  estimatedValue Float?
+  source         String
+  sellerId       String?
+  seller         Seller?  @relation(fields: [sellerId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
