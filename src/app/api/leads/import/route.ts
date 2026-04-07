@@ -46,7 +46,16 @@ export async function POST(request: Request) {
           updated++;
         } else {
           await tx.lead.create({
-            data: lead
+            data: {
+              name: lead.name,
+              phone: lead.phone,
+              city: lead.city,
+              state: lead.state,
+              status: lead.status,
+              priority: lead.priority,
+              estimatedValue: lead.estimatedValue,
+              source: lead.source
+            }
           });
           imported++;
         }
