@@ -139,7 +139,23 @@ export default function LeadsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Telefone</Label>
-                    <Input name="phone" required placeholder="(11) 99999-9999" />
+                    <Input 
+                      name="phone" 
+                      required 
+                      placeholder="(DD) 99999-9999" 
+                      onChange={(e) => {
+                        let v = e.target.value.replace(/\D/g, "");
+                        if (v.length > 11) v = v.slice(0, 11);
+                        if (v.length > 7) {
+                          v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+                        } else if (v.length > 2) {
+                          v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                        } else if (v.length > 0) {
+                          v = `(${v.slice(0, 2)}`;
+                        }
+                        e.target.value = v;
+                      }}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Cidade</Label>
@@ -174,7 +190,15 @@ export default function LeadsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Origem</Label>
-                    <Input name="source" required placeholder="Site, Indicação..." />
+                    <select name="source" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="Loja Física">Loja Física</option>
+                      <option value="Visita Externa">Visita Externa</option>
+                      <option value="Indicação">Indicação</option>
+                      <option value="Site">Site</option>
+                      <option value="Redes Sociais">Redes Sociais</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Suri">Suri</option>
+                    </select>
                   </div>
                 </div>
                 <div className="flex w-full justify-end pt-4">
