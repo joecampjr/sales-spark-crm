@@ -29,6 +29,21 @@ model Branch {
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sellers   Seller[]
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   // Hash da senha
+  role      String   @default("VENDEDOR") // ADMIN, SUPERVISOR, GERENTE, VENDEDOR
+  
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -100,7 +115,7 @@ model Visit {
   leadId         String
   lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   sellerId       String
-  seller         Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   address        String
   visitDate      DateTime
   status         String
