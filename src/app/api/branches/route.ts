@@ -15,6 +15,9 @@ export async function GET() {
   try {
     const branches = await prisma.branch.findMany({
       include: {
+        sellers: {
+          select: { id: true, name: true, status: true }
+        },
         _count: {
           select: { sellers: true }
         }

@@ -10,6 +10,7 @@ const SellerSchema = z.object({
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
   commissionRate: z.number().optional().default(0),
+  branchId: z.string().optional().nullable(),
   status: z.string().optional().default('ativo'),
 });
 
@@ -18,6 +19,7 @@ export async function GET() {
     const sellers = await prisma.seller.findMany({
       orderBy: { salesCount: 'desc' },
       include: {
+        branch: true,
         _count: {
           select: { leads: true, visits: true }
         }
@@ -52,6 +54,7 @@ export async function POST(request: Request) {
         monthlyGoal: data.monthlyGoal,
         contactsTarget: data.contactsTarget,
         commissionRate: data.commissionRate,
+        branchId: data.branchId || null,
         status: data.status,
         salesCount: 0,
         conversionRate: 0,

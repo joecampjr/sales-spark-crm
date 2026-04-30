@@ -230,12 +230,22 @@ export default function FiliaisPage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-border/30 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+            <div className="pt-3 border-t border-border/30">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground mb-2">
                 <Users className="w-3.5 h-3.5 text-primary" />
-                <span>{branch._count?.sellers || 0} Vendedores</span>
+                <span>Equipe ({branch._count?.sellers || 0})</span>
               </div>
-              <Badge variant="outline" className="text-[10px] bg-muted/50">Ativa</Badge>
+              <div className="flex flex-wrap gap-1.5">
+                {branch.sellers?.length > 0 ? (
+                  branch.sellers.map((s: any) => (
+                    <Badge key={s.id} variant="outline" className="text-[9px] font-normal py-0 px-1.5 bg-muted/30">
+                      {s.name}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-muted-foreground italic">Nenhum vendedor vinculado</span>
+                )}
+              </div>
             </div>
           </div>
         ))}

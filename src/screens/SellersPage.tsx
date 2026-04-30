@@ -61,6 +61,15 @@ export default function SellersPage() {
     }
   });
 
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const res = await fetch('/api/branches');
+      if (!res.ok) return [];
+      return res.json();
+    }
+  });
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (newData: any) => {
@@ -119,8 +128,9 @@ export default function SellersPage() {
       phone: fd.get('phone'),
       region: fd.get('region'),
       monthlyGoal: Number(fd.get('monthlyGoal')),
-      contactsTarget: Number(fd.get('contactsTarget')),
-      commissionRate: Number(fd.get('commissionRate')),
+      contactsTarget: Number(fd.get('contactsTarget')) || 10,
+      commissionRate: Number(fd.get('commissionRate')) || 0,
+      branchId: fd.get('branchId') || null,
       status: fd.get('status'),
     };
 
@@ -182,8 +192,17 @@ export default function SellersPage() {
                   <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos</p>
                 </div>
                 <div className="space-y-2">
+                  <Label>Filial / Unidade</Label>
+                  <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="">Selecione uma filial...</option>
+                    {branches.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
                   <Label>Região de Atuação</Label>
-                  <Input name="region" required placeholder="Ex: São Paulo - ZS" />
+                  <Input name="region" required placeholder="Ex: São Paulo - Capital" />
                 </div>
                 <div className="space-y-2">
                   <Label>Status Inicial</Label>
@@ -253,11 +272,11 @@ export default function SellersPage() {
                       </div>
                       <div className="flex flex-col">
                         <span className="font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelectedSeller(seller); setIsSheetOpen(true); }}>
-                          {seller.name}
+                          <h3 className="text-sm font-semibold text-foreground">{seller.name}</h3>
                         </span>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-2.5 h-2.5" /> {seller.region}
-                        </span>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-2.5 h-2.5" /> {seller.branch?.name || seller.region}
+                        </p>
                       </div>
                     </div>
                   </td>
@@ -318,7 +337,7 @@ export default function SellersPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-bold">{selectedSeller.name}</h2>
-                  <p className="text-sm text-muted-foreground">{selectedSeller.region}</p>
+                  <p className="text-sm text-muted-foreground">{selectedSeller.branch?.name || selectedSeller.region}</p>
                 </div>
                 {getStatusBadge(selectedSeller.status)}
               </div>
@@ -398,8 +417,21 @@ export default function SellersPage() {
                   />
                 </div>
                 <div className="space-y-2">
+                  <Label>Filial</Label>
+                  <select 
+                    name="branchId" 
+                    defaultValue={editingSeller.branchId || ''} 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Nenhuma</option>
+                    {branches.map((b: any) => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
                   <Label>Região</Label>
-                  <Input name="region" defaultValue={editingSeller.region} required />
+                  <Input name="region" defaultValue={editingSeller.region} />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>

@@ -10,6 +10,7 @@ const UpdateSellerSchema = z.object({
   monthlyGoal: z.number().optional(),
   contactsTarget: z.number().optional(),
   commissionRate: z.number().optional(),
+  branchId: z.string().optional().nullable(),
   status: z.string().optional(),
 });
 
@@ -38,6 +39,7 @@ export async function PATCH(
         monthlyGoal: data.monthlyGoal,
         contactsTarget: data.contactsTarget,
         commissionRate: data.commissionRate,
+        branchId: data.branchId === '' ? null : data.branchId || undefined,
         status: data.status,
       },
     });
