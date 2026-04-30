@@ -191,24 +191,24 @@ export default function SalesActionsPage() {
                   <div className="space-y-2 col-span-2">
                     <Label className="text-sm font-semibold">Equipe (Vendedores)</Label>
                     <div className="grid grid-cols-2 gap-2 mt-1 border rounded-md p-3 max-h-[120px] overflow-y-auto">
-                      {sellers.map((s: any) => (
+                      {Array.isArray(sellers) ? sellers.map((s: any) => (
                         <div key={s.id} className="flex items-center gap-2">
                           <input type="checkbox" name="staffIds" value={s.id} id={`s-${s.id}`} className="w-4 h-4" />
                           <label htmlFor={`s-${s.id}`} className="text-xs truncate">{s.name}</label>
                         </div>
-                      ))}
+                      )) : <p className="text-xs text-muted-foreground">Nenhum vendedor encontrado</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2 col-span-2">
                     <Label className="text-sm font-semibold">Leads Alvo</Label>
                     <div className="grid grid-cols-2 gap-2 mt-1 border rounded-md p-3 max-h-[120px] overflow-y-auto">
-                      {leads.map((l: any) => (
+                      {Array.isArray(leads) ? leads.map((l: any) => (
                         <div key={l.id} className="flex items-center gap-2">
                           <input type="checkbox" name="leadIds" value={l.id} id={`l-${l.id}`} className="w-4 h-4" />
                           <label htmlFor={`l-${l.id}`} className="text-xs truncate">{l.name}</label>
                         </div>
-                      ))}
+                      )) : <p className="text-xs text-muted-foreground">Nenhum lead encontrado</p>}
                     </div>
                   </div>
 
@@ -229,8 +229,17 @@ export default function SalesActionsPage() {
       </div>
 
       {/* Actions List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {actions.map((action: any) => (
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground italic">
+          Carregando ações de venda...
+        </div>
+      ) : !Array.isArray(actions) || actions.length === 0 ? (
+        <div className="flex items-center justify-center py-20 text-muted-foreground italic">
+          Nenhuma ação de venda registrada.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {actions.map((action: any) => (
           <div key={action.id} className="bg-card border border-border/50 rounded-xl p-5 space-y-4 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div>
