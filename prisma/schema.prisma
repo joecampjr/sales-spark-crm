@@ -9,6 +9,30 @@ datasource db {
   provider = "postgresql"
 }
 
+model Company {
+  id        String   @id @default(uuid())
+  name      String
+  cnpj      String   @unique
+  branches  Branch[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  city      String
+  state     String
+  address   String?
+  phone     String?
+  email     String?
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sellers   Seller[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Seller {
   id             String   @id @default(uuid())
   name           String
@@ -16,8 +40,11 @@ model Seller {
   phone          String?
   avatar         String?
   region         String
-  status         String   @default("ativo") // ativo, ferias, inativo
-  commissionRate Float    @default(0.0)    // % de comissão
+  status         String   @default("ativo")
+  commissionRate Float    @default(0.0)
+  
+  branchId       String?
+  branch         Branch?  @relation(fields: [branchId], references: [id])
   
   salesCount     Int      @default(0)
   conversionRate Float    @default(0.0)
@@ -60,10 +87,10 @@ model Interaction {
   lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
   sellerId     String
   seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  type         String    // ligacao, whatsapp, email, visita
-  result       String    // interessado, sem resposta, venda_fechada, etc
+  type         String
+  result       String
   notes        String?
-  scheduledFor DateTime? // Data de retorno agendada
+  scheduledFor DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 }
@@ -76,7 +103,7 @@ model Visit {
   seller         Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   address        String
   visitDate      DateTime
-  status         String    // aguardando_autorizacao, autorizada, realizada, cancelada, recusada
+  status         String
   notes          String?
   authorizedById String?
   authorizedAt   DateTime?
@@ -91,17 +118,15 @@ model SalesAction {
   startDate       DateTime
   endDate         DateTime
   salesTarget     Float     @default(0)
-  status          String    // rascunho, aguardando_autorizacao, autorizada, em_andamento, concluida, recusada
+  status          String
   observations    String?
   
-  // Planejamento
   staffCount      Int       @default(0)
   staff           SalesActionStaff[]
   targetLeads     SalesActionLead[]
   
-  // Relatório (Pós-Ação)
   reportContent   String?
-  reportResult    String?   // Ex: Sucesso, Parcial, Fracasso
+  reportResult    String?
   reportSubmittedAt DateTime?
   
   authorizedById  String?
@@ -126,8 +151,6 @@ model SalesActionLead {
   salesAction   SalesAction @relation(fields: [salesActionId], references: [id], onDelete: Cascade)
   leadId        String
   lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  
-  // Resultado específico para este lead na ação
-  result        String?     // Vendido, Sem Interesse, Reagendado, etc
+  result        String?
   feedback      String?
 }

@@ -1,4 +1,5 @@
-"use client";
+import FiliaisPage from "@/screens/FiliaisPage";
 
-export { default } from "@/screens/FiliaisPage";
-
+export default function Page() {
+  return <FiliaisPage />;
+}
