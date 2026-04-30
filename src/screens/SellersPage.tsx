@@ -167,12 +167,13 @@ export default function SellersPage() {
                   <Input name="name" required placeholder="João Silva" />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail Corporativo</Label>
+                  <Label>E-mail Corporativo (Opcional)</Label>
                   <Input name="email" type="email" placeholder="joao@empresa.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp/Celular</Label>
-                  <Input name="phone" placeholder="(11) 99999-9999" />
+                  <Input name="phone" required placeholder="Ex: 11999998888 (Só números)" />
+                  <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Região de Atuação</Label>

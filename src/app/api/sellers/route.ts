@@ -4,8 +4,8 @@ import { z } from 'zod';
 
 const SellerSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal('')).nullable(),
+  phone: z.string().regex(/^\d{2}9?\d{8}$/, 'Formato de telefone inválido (DDD + 8 ou 9 dígitos)').optional().or(z.literal('')),
   region: z.string(),
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
@@ -39,8 +39,9 @@ export async function POST(request: Request) {
     const newSeller = await prisma.seller.create({
       data: {
         name: data.name,
-        email: data.email || null,
-        phone: data.phone,
+        // Converte string vazia para null para não quebrar o @unique do Prisma
+        email: data.email && data.email !== '' ? data.email : null,
+        phone: data.phone || null,
         region: data.region,
         monthlyGoal: data.monthlyGoal,
         contactsTarget: data.contactsTarget,
@@ -57,10 +58,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Error creating seller:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Erro de Validação', 
+        details: error.errors.map(e => e.message).join(', ') 
+      }, { status: 400 });
     }
     if ((error as any).code === 'P2002') {
-      return NextResponse.json({ error: 'Email já cadastrado' }, { status: 400 });
+      return NextResponse.json({ error: 'E-mail ou Telefone já cadastrado' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
