@@ -25,6 +25,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Papa from 'papaparse';
+import { maskPhone } from '@/lib/utils';
 
 export default function LeadsPage() {
   const queryClient = useQueryClient();
@@ -222,18 +223,7 @@ export default function LeadsPage() {
                       name="phone" 
                       required 
                       placeholder="(DD) 99999-9999" 
-                      onChange={(e) => {
-                        let v = e.target.value.replace(/\D/g, "");
-                        if (v.length > 11) v = v.slice(0, 11);
-                        if (v.length > 7) {
-                          v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-                        } else if (v.length > 2) {
-                          v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-                        } else if (v.length > 0) {
-                          v = `(${v.slice(0, 2)}`;
-                        }
-                        e.target.value = v;
-                      }}
+                      onChange={(e) => e.target.value = maskPhone(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -417,24 +407,13 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input 
-                    name="phone" 
-                    required 
-                    defaultValue={editingLead.phone}
-                    placeholder="(DD) 99999-9999" 
-                    onChange={(e) => {
-                      let v = e.target.value.replace(/\D/g, "");
-                      if (v.length > 11) v = v.slice(0, 11);
-                      if (v.length > 7) {
-                        v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
-                      } else if (v.length > 2) {
-                        v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-                      } else if (v.length > 0) {
-                        v = `(${v.slice(0, 2)}`;
-                      }
-                      e.target.value = v;
-                    }}
-                  />
+                    <Input 
+                      name="phone" 
+                      required 
+                      defaultValue={editingLead.phone ? maskPhone(editingLead.phone) : ''}
+                      placeholder="(DD) 99999-9999" 
+                      onChange={(e) => e.target.value = maskPhone(e.target.value)}
+                    />
                 </div>
                 <div className="space-y-2">
                   <Label>Cidade</Label>

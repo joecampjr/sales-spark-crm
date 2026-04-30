@@ -21,6 +21,12 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+
+    // Limpa a formatação do telefone antes de salvar
+    if (body.phone) {
+      body.phone = body.phone.replace(/\D/g, '');
+    }
+
     const data = UpdateLeadSchema.parse(body);
 
     const updatedLead = await prisma.lead.update({

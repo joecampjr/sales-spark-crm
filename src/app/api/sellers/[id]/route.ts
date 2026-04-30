@@ -20,6 +20,12 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
+
+    // Limpa a formatação do telefone antes de validar
+    if (body.phone) {
+      body.phone = body.phone.replace(/\D/g, '');
+    }
+
     const data = UpdateSellerSchema.parse(body);
 
     const updated = await prisma.seller.update({

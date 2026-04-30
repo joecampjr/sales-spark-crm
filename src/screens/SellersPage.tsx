@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { maskPhone } from '@/lib/utils';
 
 export default function SellersPage() {
   const queryClient = useQueryClient();
@@ -175,11 +176,10 @@ export default function SellersPage() {
                   <Input 
                     name="phone" 
                     required 
-                    maxLength={11}
-                    placeholder="Ex: 11999998888" 
-                    onChange={(e) => e.target.value = e.target.value.replace(/\D/g, '')}
+                    placeholder="(11) 99999-9999" 
+                    onChange={(e) => e.target.value = maskPhone(e.target.value)}
                   />
-                  <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos (Apenas números)</p>
+                  <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Região de Atuação</Label>
@@ -393,9 +393,8 @@ export default function SellersPage() {
                   <Label>WhatsApp</Label>
                   <Input 
                     name="phone" 
-                    defaultValue={editingSeller.phone || ''} 
-                    maxLength={11}
-                    onChange={(e) => e.target.value = e.target.value.replace(/\D/g, '')}
+                    defaultValue={editingSeller.phone ? maskPhone(editingSeller.phone) : ''} 
+                    onChange={(e) => e.target.value = maskPhone(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">

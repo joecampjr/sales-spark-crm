@@ -49,6 +49,12 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Limpa a formatação do telefone antes de salvar
+    if (body.phone) {
+      body.phone = body.phone.replace(/\D/g, '');
+    }
+
     const data = CreateLeadSchema.parse(body);
 
     const newLead = await prisma.lead.create({

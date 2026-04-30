@@ -34,6 +34,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    
+    // Limpa a formatação do telefone antes de validar
+    if (body.phone) {
+      body.phone = body.phone.replace(/\D/g, '');
+    }
+
     const data = SellerSchema.parse(body);
 
     const newSeller = await prisma.seller.create({
