@@ -22,6 +22,7 @@ model Seller {
   leads          Lead[]
   interactions   Interaction[]
   visits         Visit[]
+  salesActions   SalesActionStaff[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -40,6 +41,7 @@ model Lead {
   seller         Seller?  @relation(fields: [sellerId], references: [id])
   interactions   Interaction[]
   visits         Visit[]
+  actionLeads    SalesActionLead[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -72,4 +74,52 @@ model Visit {
   authorizedAt   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+}
+
+model SalesAction {
+  id              String    @id @default(uuid())
+  title           String
+  region          String
+  startDate       DateTime
+  endDate         DateTime
+  salesTarget     Float     @default(0)
+  status          String    // rascunho, aguardando_autorizacao, autorizada, em_andamento, concluida, recusada
+  observations    String?
+  
+  // Planejamento
+  staffCount      Int       @default(0)
+  staff           SalesActionStaff[]
+  targetLeads     SalesActionLead[]
+  
+  // Relatório (Pós-Ação)
+  reportContent   String?
+  reportResult    String?   // Ex: Sucesso, Parcial, Fracasso
+  reportSubmittedAt DateTime?
+  
+  authorizedById  String?
+  authorizedAt    DateTime?
+  
+  createdById     String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model SalesActionStaff {
+  id            String      @id @default(uuid())
+  salesActionId String
+  salesAction   SalesAction @relation(fields: [salesActionId], references: [id], onDelete: Cascade)
+  sellerId      String
+  seller        Seller      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+}
+
+model SalesActionLead {
+  id            String      @id @default(uuid())
+  salesActionId String
+  salesAction   SalesAction @relation(fields: [salesActionId], references: [id], onDelete: Cascade)
+  leadId        String
+  lead          Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  // Resultado específico para este lead na ação
+  result        String?     // Vendido, Sem Interesse, Reagendado, etc
+  feedback      String?
 }

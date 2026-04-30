@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, Target, BarChart3,
   Settings, FileText, MapPin, UserCheck, LogOut, ChevronLeft,
-  Briefcase, Phone, Calendar, Award, Shield, ChevronDown
+  Briefcase, Phone, Calendar, Award, Shield, ChevronDown, Zap
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,7 @@ const navSections = [
       { label: 'Leads', path: '/leads', icon: Target },
       { label: 'Contatos', path: '/contatos', icon: Phone },
       { label: 'Visitas', path: '/visitas', icon: Calendar },
+      { label: 'Ações de Venda', path: '/acoes-venda', icon: Zap },
     ],
   },
   {

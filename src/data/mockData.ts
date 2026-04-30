@@ -7,7 +7,7 @@ export const mockCurrentUser: User = {
   filial_id: '1',
   nome: 'Carlos Silva',
   email: 'carlos@empresa.com',
-  perfil: 'supervisor',
+  perfil: 'gerente',
   ativo: true,
   avatar_url: undefined,
   created_at: '2024-01-01',

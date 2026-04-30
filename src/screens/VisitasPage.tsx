@@ -43,7 +43,7 @@ export default function VisitasPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Perfil permissions
-  const canAuthorize = user?.perfil === 'admin' || user?.perfil === 'supervisor' || user?.perfil === 'gerente';
+  const canAuthorize = user?.perfil === 'admin' || user?.perfil === 'supervisor';
 
   // Queries
   const { data: visits = [], isLoading } = useQuery({
