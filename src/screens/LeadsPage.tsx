@@ -1,11 +1,27 @@
 import { useState, useRef } from 'react';
-import { Search, Plus, MoreHorizontal, Download, Upload } from 'lucide-react';
+import { Search, Plus, MoreHorizontal, Download, Upload, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { LeadStatus, LEAD_STATUS_LABELS, PRIORITY_LABELS } from '@/types/crm';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Papa from 'papaparse';
@@ -15,6 +31,10 @@ export default function LeadsPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [leadToDelete, setLeadToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: leads = [], isLoading } = useQuery({
@@ -45,6 +65,42 @@ export default function LeadsPage() {
       toast.success('Lead criado com sucesso!');
     },
     onError: () => toast.error('Falha ao criar o lead.')
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (updatedLead: any) => {
+      const res = await fetch(`/api/leads/${updatedLead.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedLead)
+      });
+      if (!res.ok) throw new Error('Erro ao atualizar lead');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setIsEditModalOpen(false);
+      setEditingLead(null);
+      toast.success('Lead atualizado com sucesso!');
+    },
+    onError: () => toast.error('Falha ao atualizar o lead.')
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/leads/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Erro ao deletar lead');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setIsDeleteDialogOpen(false);
+      setLeadToDelete(null);
+      toast.success('Lead deletado com sucesso!');
+    },
+    onError: () => toast.error('Falha ao deletar o lead.')
   });
 
   const importMutation = useMutation({
@@ -103,6 +159,29 @@ export default function LeadsPage() {
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
       source: fd.get('source')
     });
+  };
+
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingLead) return;
+    const fd = new FormData(e.currentTarget);
+    updateMutation.mutate({
+      id: editingLead.id,
+      name: fd.get('name'),
+      phone: fd.get('phone'),
+      city: fd.get('city'),
+      state: fd.get('state'),
+      status: fd.get('status'),
+      priority: fd.get('priority'),
+      estimatedValue: Number(fd.get('estimatedValue')) || 0,
+      source: fd.get('source')
+    });
+  };
+
+  const handleDelete = () => {
+    if (leadToDelete) {
+      deleteMutation.mutate(leadToDelete.id);
+    }
   };
 
   return (
@@ -291,9 +370,30 @@ export default function LeadsPage() {
                   <td className="py-3 px-4 text-xs text-muted-foreground">{lead.source}</td>
                   <td className="py-3 px-4 text-xs text-muted-foreground">{new Date(lead.createdAt).toLocaleDateString('pt-BR')}</td>
                   <td className="py-3 px-4">
-                    <button className="p-1 rounded hover:bg-muted">
-                      <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                    </button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-1 rounded hover:bg-muted">
+                          <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setEditingLead(lead);
+                          setIsEditModalOpen(true);
+                        }}>
+                          <Pencil className="w-4 h-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            setLeadToDelete(lead);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" /> Deletar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -301,6 +401,117 @@ export default function LeadsPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Lead</DialogTitle>
+          </DialogHeader>
+          {editingLead && (
+            <form onSubmit={handleEditSubmit} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input name="name" required defaultValue={editingLead.name} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telefone</Label>
+                  <Input 
+                    name="phone" 
+                    required 
+                    defaultValue={editingLead.phone}
+                    placeholder="(DD) 99999-9999" 
+                    onChange={(e) => {
+                      let v = e.target.value.replace(/\D/g, "");
+                      if (v.length > 11) v = v.slice(0, 11);
+                      if (v.length > 7) {
+                        v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+                      } else if (v.length > 2) {
+                        v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+                      } else if (v.length > 0) {
+                        v = `(${v.slice(0, 2)}`;
+                      }
+                      e.target.value = v;
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Cidade</Label>
+                  <Input name="city" required defaultValue={editingLead.city} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Estado (UF)</Label>
+                  <Input name="state" required defaultValue={editingLead.state} maxLength={2} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status</Label>
+                  <select name="status" defaultValue={editingLead.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="novo">Novo</option>
+                    <option value="em_negociacao">Em Negociação</option>
+                    <option value="contato_realizado">Contato Realizado</option>
+                    <option value="vendido">Vendido</option>
+                    <option value="perdido">Perdido</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prioridade</Label>
+                  <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                    <option value="urgente">Urgente</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor Estimado</Label>
+                  <Input type="number" name="estimatedValue" defaultValue={editingLead.estimatedValue} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Origem</Label>
+                  <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="Loja Física">Loja Física</option>
+                    <option value="Visita Externa">Visita Externa</option>
+                    <option value="Indicação">Indicação</option>
+                    <option value="Site">Site</option>
+                    <option value="Redes Sociais">Redes Sociais</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex w-full justify-end pt-4">
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o lead
+              <span className="font-semibold text-foreground"> {leadToDelete?.name} </span>
+              e todos os dados associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? 'Deletando...' : 'Confirmar Exclusão'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
