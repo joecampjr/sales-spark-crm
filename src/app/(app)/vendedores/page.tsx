@@ -1,4 +1,4 @@
 "use client";
 
-export { default } from "@/screens/RankingPage";
+export { default } from "@/screens/SellersPage";
 
