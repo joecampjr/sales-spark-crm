@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
-const secretKey = "secret-key-sales-spark";
+const secretKey = process.env.JWT_SECRET || "fallback-secret-key-for-dev-only";
 const key = new TextEncoder().encode(secretKey);
 
 export async function middleware(request: NextRequest) {
