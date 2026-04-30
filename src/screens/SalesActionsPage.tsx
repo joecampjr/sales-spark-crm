@@ -327,6 +327,7 @@ export default function SalesActionsPage() {
           </div>
         ))}
       </div>
+    )}
 
       {/* Report Modal */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
