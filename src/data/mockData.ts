@@ -3,14 +3,10 @@ import { User, UserRole } from '@/types/crm';
 // Mock current user for demo
 export const mockCurrentUser: User = {
   id: '1',
-  empresa_id: '1',
-  filial_id: '1',
-  nome: 'Carlos Silva',
-  email: 'carlos@empresa.com',
-  perfil: 'gerente',
-  ativo: true,
-  avatar_url: undefined,
-  created_at: '2024-01-01',
+  name: 'Administrador Spark',
+  email: 'admin@admin.com',
+  role: 'ADMIN',
+  createdAt: new Date().toISOString()
 };
 
 // Mock data for demonstration

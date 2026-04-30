@@ -33,8 +33,8 @@ export default function SalesActionsPage() {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
   // Permissions
-  const canCreate = user?.perfil === 'admin' || user?.perfil === 'gerente';
-  const canAuthorize = user?.perfil === 'admin' || user?.perfil === 'supervisor';
+  const canCreate = user?.role === 'ADMIN' || user?.role === 'GERENTE';
+  const canAuthorize = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
   // Queries
   const { data: actions = [], isLoading } = useQuery({

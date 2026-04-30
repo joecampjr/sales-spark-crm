@@ -42,8 +42,8 @@ export default function VisitasPage() {
   const [visitToDelete, setVisitToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  // Perfil permissions
-  const canAuthorize = user?.perfil === 'admin' || user?.perfil === 'supervisor';
+  // Permissions
+  const canAuthorize = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
   // Queries
   const { data: visits = [], isLoading } = useQuery({

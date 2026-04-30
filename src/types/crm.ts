@@ -22,15 +22,11 @@ export type ContactType = 'ligacao' | 'whatsapp' | 'visita' | 'email' | 'outro';
 
 export interface User {
   id: string;
-  empresa_id: string;
-  filial_id?: string;
-  nome: string;
+  name: string;
   email: string;
-  perfil: UserRole;
-  ativo: boolean;
-  ultimo_acesso?: string;
-  avatar_url?: string;
-  created_at: string;
+  role: string;
+  branchId?: string;
+  createdAt: string;
 }
 
 export interface Empresa {

@@ -122,18 +122,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
           <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
             <span className="text-xs font-semibold text-primary-foreground">
-              {user?.nome?.charAt(0) || 'U'}
+              {user?.name?.charAt(0) || 'U'}
             </span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0 animate-fade-in">
               <p className="text-sm font-medium truncate" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>
-                {user?.nome || 'Usuário'}
+                {user?.name || 'Usuário'}
               </p>
               <p className="text-[10px] truncate" style={{ color: 'hsl(var(--sidebar-section))' }}>
-                {user?.perfil === 'admin' ? 'Administrador' : 
-                 user?.perfil === 'gerente' ? 'Gerente' :
-                 user?.perfil === 'supervisor' ? 'Supervisor' : 'Vendedor'}
+                {user?.role === 'ADMIN' ? 'Administrador' : 
+                 user?.role === 'GERENTE' ? 'Gerente' :
+                 user?.role === 'SUPERVISOR' ? 'Supervisor' : 'Vendedor'}
               </p>
             </div>
           )}
