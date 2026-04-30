@@ -1,4 +1,4 @@
 "use client";
 
-export { default } from "@/screens/DashboardPage";
+export { default } from "@/screens/VisitasPage";
 
