@@ -1,46 +1,217 @@
 import { useState } from 'react';
-import { Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, Calendar } from 'lucide-react';
+import { Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, Calendar, Trash2, Pencil, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useQuery } from '@tanstack/react-query';
+import { Label } from '@/components/ui/label';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-
-// Mock de interações (Contatos) já que ainda não temos API específica
-const mockContatos = [
-  { id: '1', leadName: 'João Pereira', vendedor: 'Maria Santos', tipo: 'ligacao', resultado: 'Interessado', data: '2024-03-20T14:30:00Z', obs: 'Solicitou proposta por e-mail.' },
-  { id: '2', leadName: 'Ana Costa', vendedor: 'Pedro Lima', tipo: 'whatsapp', resultado: 'Em negociação', data: '2024-03-20T11:15:00Z', obs: 'Enviou catálogo de produtos.' },
-  { id: '3', leadName: 'Roberto Alves', vendedor: 'Lucas Oliveira', tipo: 'email', resultado: 'Sem resposta', data: '2024-03-19T16:45:00Z', obs: 'Primeiro contato enviado.' },
-  { id: '4', leadName: 'Fernanda Lima', vendedor: 'Maria Santos', tipo: 'ligacao', resultado: 'Visita agendada', data: '2024-03-19T09:00:00Z', obs: 'Agendado para próxima terça.' },
-  { id: '5', leadName: 'Marcelo Souza', vendedor: 'Pedro Lima', tipo: 'whatsapp', resultado: 'Venda fechada', data: '2024-03-18T15:20:00Z', obs: 'Contrato assinado via Zap.' },
-];
-
-const getIcon = (tipo: string) => {
-  switch (tipo) {
-    case 'ligacao': return <Phone className="w-4 h-4 text-blue-500" />;
-    case 'whatsapp': return <MessageSquare className="w-4 h-4 text-green-500" />;
-    case 'email': return <Mail className="w-4 h-4 text-orange-500" />;
-    default: return <UserPlus className="w-4 h-4 text-gray-500" />;
-  }
-};
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ContatosPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  
+  // Modals state
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [editingContato, setEditingContato] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [contatoToDelete, setContatoToDelete] = useState<any>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Queries
+  const { data: contatos = [], isLoading } = useQuery({
+    queryKey: ['interactions'],
+    queryFn: async () => {
+      const res = await fetch('/api/interactions');
+      if (!res.ok) throw new Error('Falha ao carregar contatos');
+      return res.json();
+    }
+  });
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await fetch('/api/leads');
+      return res.json();
+    }
+  });
+
+  const { data: sellers = [] } = useQuery({
+    queryKey: ['sellers'],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers');
+      return res.json();
+    }
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: async (newData: any) => {
+      const res = await fetch('/api/interactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newData)
+      });
+      if (!res.ok) throw new Error('Erro ao criar contato');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interactions'] });
+      setIsNewModalOpen(false);
+      toast.success('Contato registrado/agendado com sucesso!');
+    },
+    onError: () => toast.error('Falha ao registrar contato.')
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (updatedData: any) => {
+      const res = await fetch(`/api/interactions/${updatedData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error('Erro ao atualizar contato');
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interactions'] });
+      setIsEditModalOpen(false);
+      setEditingContato(null);
+      toast.success('Contato atualizado!');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await fetch(`/api/interactions/${id}`, { method: 'DELETE' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interactions'] });
+      setIsDeleteDialogOpen(false);
+      toast.success('Registro removido.');
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const data = {
+      leadId: fd.get('leadId'),
+      sellerId: fd.get('sellerId'),
+      type: fd.get('type'),
+      result: fd.get('result'),
+      notes: fd.get('notes'),
+      scheduledFor: fd.get('scheduledFor') || null,
+    };
+
+    if (isEdit && editingContato) {
+      updateMutation.mutate({ ...data, id: editingContato.id });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const getIcon = (tipo: string) => {
+    switch (tipo) {
+      case 'ligacao': return <Phone className="w-4 h-4 text-blue-500" />;
+      case 'whatsapp': return <MessageSquare className="w-4 h-4 text-green-500" />;
+      case 'email': return <Mail className="w-4 h-4 text-orange-500" />;
+      default: return <UserPlus className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  const filteredContatos = contatos.filter((c: any) => 
+    c.lead?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.seller?.name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Histórico de Contatos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Acompanhe as últimas interações com seus leads</p>
+          <h1 className="text-2xl font-bold text-foreground">Contatos e Agendamentos</h1>
+          <p className="text-muted-foreground text-sm mt-1">Gestão de interações e retornos</p>
         </div>
-        <Button size="sm" className="gradient-primary text-primary-foreground">
-          <Calendar className="w-3.5 h-3.5 mr-1.5" /> Agendar Retorno
-        </Button>
+        <div className="flex items-center gap-2">
+          <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gradient-primary text-primary-foreground">
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar Contato
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Registrar Nova Interação</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Lead</Label>
+                    <select name="leadId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <option value="">Selecione...</option>
+                      {leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Vendedor</Label>
+                    <select name="sellerId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <option value="">Selecione...</option>
+                      {sellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Meio de Contato</Label>
+                    <select name="type" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <option value="ligacao">Ligação</option>
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="email">E-mail</option>
+                      <option value="visita">Visita</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Resultado</Label>
+                    <Input name="result" required placeholder="Ex: Interessado" />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Agendar Retorno (Opcional)</Label>
+                    <Input name="scheduledFor" type="datetime-local" className="bg-background" />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Observações</Label>
+                    <Input name="notes" placeholder="Detalhes da conversa..." />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-4">
+                  <Button type="submit" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? 'Salvando...' : 'Salvar Registro'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -54,79 +225,70 @@ export default function ContatosPage() {
             className="pl-9 bg-card border-border h-10 text-sm"
           />
         </div>
-        <Button variant="outline" className="h-10">
-          <Filter className="w-4 h-4 mr-2" /> Filtros Avançados
-        </Button>
       </div>
 
-      {/* Contacts List/Table */}
-      <div className="bg-card border border-border/50 rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
+      {/* Table */}
+      <div className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50 bg-muted/30">
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resultado</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Data/Hora</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Observações</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Lead</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Canal</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Vendedor</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Resultado</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Data</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Próximo Contato</th>
                 <th className="w-10 py-4 px-6"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {mockContatos.map((contato) => (
+              {isLoading ? (
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Carregando interações...</td></tr>
+              ) : filteredContatos.length === 0 ? (
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum registro encontrado.</td></tr>
+              ) : filteredContatos.map((contato: any) => (
                 <tr key={contato.id} className="table-row-hover">
-                  <td className="py-4 px-6">
-                    <p className="text-sm font-semibold text-foreground">{contato.leadName}</p>
-                  </td>
+                  <td className="py-4 px-6 font-medium">{contato.lead?.name}</td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-muted/50">
-                        {getIcon(contato.tipo)}
-                      </div>
-                      <span className="text-xs capitalize text-muted-foreground">{contato.tipo}</span>
+                      <div className="p-1.5 rounded-lg bg-muted/50">{getIcon(contato.type)}</div>
+                      <span className="text-xs capitalize">{contato.type}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-[10px] font-bold text-primary">{contato.vendedor.charAt(0)}</span>
-                      </div>
-                      <span className="text-sm text-foreground">{contato.vendedor}</span>
-                    </div>
+                  <td className="py-4 px-6 text-sm">{contato.seller?.name}</td>
+                  <td className="py-4 px-6 text-sm">{contato.result}</td>
+                  <td className="py-4 px-6 text-xs">
+                    {new Date(contato.createdAt).toLocaleString('pt-BR')}
                   </td>
                   <td className="py-4 px-6">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                      {contato.resultado}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex flex-col">
-                      <span className="text-sm text-foreground">
-                        {new Date(contato.data).toLocaleDateString('pt-BR')}
+                    {contato.scheduledFor ? (
+                      <span className="flex items-center gap-1.5 text-xs text-warning font-medium">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(contato.scheduledFor).toLocaleString('pt-BR')}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(contato.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground italic">Não agendado</span>
+                    )}
                   </td>
-                  <td className="py-4 px-6 max-w-xs">
-                    <p className="text-xs text-muted-foreground truncate" title={contato.obs}>
-                      {contato.obs}
-                    </p>
-                  </td>
-                  <td className="py-4 px-6 text-right">
+                  <td className="py-4 px-6">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                        <DropdownMenuItem>Editar Registro</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => {
+                          setEditingContato(contato);
+                          setIsEditModalOpen(true);
+                        }}>
+                          <Pencil className="w-4 h-4 mr-2" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => {
+                          setContatoToDelete(contato);
+                          setIsDeleteDialogOpen(true);
+                        }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -136,6 +298,63 @@ export default function ContatosPage() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Registro</DialogTitle>
+          </DialogHeader>
+          {editingContato && (
+            <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label>Meio de Contato</Label>
+                  <select name="type" defaultValue={editingContato.type} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="ligacao">Ligação</option>
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="email">E-mail</option>
+                    <option value="visita">Visita</option>
+                  </select>
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Resultado</Label>
+                  <Input name="result" defaultValue={editingContato.result} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Agendar Retorno</Label>
+                  <Input name="scheduledFor" type="datetime-local" defaultValue={editingContato.scheduledFor ? new Date(editingContato.scheduledFor).toISOString().slice(0, 16) : ''} />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Observações</Label>
+                  <Input name="notes" defaultValue={editingContato.notes || ''} />
+                </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button type="submit" disabled={updateMutation.isPending}>
+                  {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Alert */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
+            <AlertDialogDescription>Esta ação removerá permanentemente este contato do histórico do lead.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white" onClick={() => deleteMutation.mutate(contatoToDelete?.id)}>
+              Confirmar Exclusão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

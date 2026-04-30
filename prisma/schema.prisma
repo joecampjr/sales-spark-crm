@@ -20,6 +20,7 @@ model Seller {
   contactsTarget Int      @default(10)
   monthlyGoal    Float    @default(0.0)
   leads          Lead[]
+  interactions   Interaction[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
@@ -36,6 +37,21 @@ model Lead {
   source         String
   sellerId       String?
   seller         Seller?  @relation(fields: [sellerId], references: [id])
+  interactions   Interaction[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Interaction {
+  id           String    @id @default(uuid())
+  leadId       String
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sellerId     String
+  seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  type         String    // ligacao, whatsapp, email, visita
+  result       String    // interessado, sem resposta, venda_fechada, etc
+  notes        String?
+  scheduledFor DateTime? // Data de retorno agendada
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
