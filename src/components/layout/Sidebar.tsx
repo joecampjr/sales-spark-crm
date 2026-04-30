@@ -130,7 +130,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {user?.nome || 'Usuário'}
               </p>
               <p className="text-[10px] truncate" style={{ color: 'hsl(var(--sidebar-section))' }}>
-                {user?.perfil === 'admin_empresa' ? 'Admin' : user?.perfil || 'Perfil'}
+                {user?.perfil === 'admin' ? 'Administrador' : 
+                 user?.perfil === 'gerente' ? 'Gerente' :
+                 user?.perfil === 'supervisor' ? 'Supervisor' : 'Vendedor'}
               </p>
             </div>
           )}

@@ -1,6 +1,6 @@
 // Types for the CRM system
 
-export type UserRole = 'super_admin' | 'admin_empresa' | 'supervisor' | 'vendedor';
+export type UserRole = 'admin' | 'supervisor' | 'gerente' | 'vendedor';
 
 export type LeadStatus =
   | 'novo'

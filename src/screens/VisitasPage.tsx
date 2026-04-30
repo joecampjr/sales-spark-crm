@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Search, MapPin, Calendar, MoreHorizontal, Pencil, Trash2, Plus, Clock, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, MapPin, Calendar, MoreHorizontal, Pencil, Trash2, Plus, Clock, CheckCircle2, XCircle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -31,6 +32,7 @@ import {
 
 export default function VisitasPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   
   // Modals state
@@ -39,6 +41,9 @@ export default function VisitasPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [visitToDelete, setVisitToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Perfil permissions
+  const canAuthorize = user?.perfil === 'admin' || user?.perfil === 'supervisor' || user?.perfil === 'gerente';
 
   // Queries
   const { data: visits = [], isLoading } = useQuery({
@@ -67,7 +72,7 @@ export default function VisitasPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       setIsNewModalOpen(false);
-      toast.success('Visita agendada com sucesso!');
+      toast.success('Visita solicitada/agendada com sucesso!');
     }
   });
 
@@ -85,6 +90,24 @@ export default function VisitasPage() {
       setIsEditModalOpen(false);
       setEditingVisit(null);
       toast.success('Visita atualizada!');
+    }
+  });
+
+  const authorizeMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string, status: 'autorizada' | 'recusada' }) => {
+      const res = await fetch(`/api/visits/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          status,
+          authorizedById: user?.id 
+        })
+      });
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['visits'] });
+      toast.success(variables.status === 'autorizada' ? 'Visita autorizada!' : 'Visita recusada.');
     }
   });
 
@@ -118,9 +141,12 @@ export default function VisitasPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'aguardando_autorizacao': return <span className="bg-warning/10 text-warning px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Pendente Autorização</span>;
+      case 'autorizada': return <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> Autorizada</span>;
       case 'realizada': return <span className="bg-success/10 text-success px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Realizada</span>;
+      case 'recusada': return <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><XCircle className="w-3 h-3" /> Recusada</span>;
       case 'cancelada': return <span className="bg-destructive/10 text-destructive px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><XCircle className="w-3 h-3" /> Cancelada</span>;
-      default: return <span className="bg-warning/10 text-warning px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><Clock className="w-3 h-3" /> Agendada</span>;
+      default: return <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-[10px] font-bold uppercase flex items-center gap-1"><Clock className="w-3 h-3" /> {status}</span>;
     }
   };
 
@@ -134,16 +160,16 @@ export default function VisitasPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Visitas Técnicas</h1>
-          <p className="text-muted-foreground text-sm mt-1">Cronograma de visitas e vistorias externas</p>
+          <p className="text-muted-foreground text-sm mt-1">Gestão de solicitações e autorizações de saída</p>
         </div>
         <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-primary text-primary-foreground">
-              <Plus className="w-3.5 h-3.5 mr-1.5" /> Agendar Visita
+              <Plus className="w-3.5 h-3.5 mr-1.5" /> Solicitar Visita
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader><DialogTitle>Agendar Nova Visita</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>Nova Solicitação de Visita</DialogTitle></DialogHeader>
             <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -171,19 +197,23 @@ export default function VisitasPage() {
                 <div className="space-y-2">
                   <Label>Status Inicial</Label>
                   <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="agendada">Agendada</option>
-                    <option value="realizada">Realizada</option>
-                    <option value="cancelada">Cancelada</option>
+                    <option value="aguardando_autorizacao">Aguardando Autorização</option>
+                    {canAuthorize && (
+                      <>
+                        <option value="autorizada">Autorizada</option>
+                        <option value="realizada">Realizada</option>
+                      </>
+                    )}
                   </select>
                 </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>Observações</Label>
-                  <Input name="notes" placeholder="Detalhes ou requisitos da visita..." />
+                  <Label>Observações/Motivo</Label>
+                  <Input name="notes" placeholder="Descreva o motivo da visita..." />
                 </div>
               </div>
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Salvando...' : 'Salvar Visita'}
+                  {createMutation.isPending ? 'Enviar Solicitação' : 'Enviar Solicitação'}
                 </Button>
               </div>
             </form>
@@ -215,7 +245,7 @@ export default function VisitasPage() {
                 <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Técnico</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Data/Hora</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Status</th>
-                <th className="w-10 py-4 px-6"></th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
@@ -243,19 +273,42 @@ export default function VisitasPage() {
                     {getStatusBadge(visit.status)}
                   </td>
                   <td className="py-4 px-6">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setEditingVisit(visit); setIsEditModalOpen(true); }}>
-                          <Pencil className="w-4 h-4 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => { setVisitToDelete(visit); setIsDeleteDialogOpen(true); }}>
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                      {canAuthorize && visit.status === 'aguardando_autorizacao' && (
+                        <>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-7 text-[10px] border-primary text-primary hover:bg-primary/5"
+                            onClick={() => authorizeMutation.mutate({ id: visit.id, status: 'autorizada' })}
+                          >
+                            Autorizar
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-7 text-[10px] border-destructive text-destructive hover:bg-destructive/5"
+                            onClick={() => authorizeMutation.mutate({ id: visit.id, status: 'recusada' })}
+                          >
+                            Recusar
+                          </Button>
+                        </>
+                      )}
+                      
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setEditingVisit(visit); setIsEditModalOpen(true); }}>
+                            <Pencil className="w-4 h-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => { setVisitToDelete(visit); setIsDeleteDialogOpen(true); }}>
+                            <Trash2 className="w-4 h-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -282,8 +335,10 @@ export default function VisitasPage() {
                 <div className="space-y-2">
                   <Label>Status</Label>
                   <select name="status" defaultValue={editingVisit.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="agendada">Agendada</option>
+                    <option value="aguardando_autorizacao">Aguardando Autorização</option>
+                    <option value="autorizada">Autorizada</option>
                     <option value="realizada">Realizada</option>
+                    <option value="recusada">Recusada</option>
                     <option value="cancelada">Cancelada</option>
                   </select>
                 </div>

@@ -59,15 +59,17 @@ model Interaction {
 }
 
 model Visit {
-  id          String   @id @default(uuid())
-  leadId      String
-  lead        Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  sellerId    String
-  seller      Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  address     String
-  visitDate   DateTime
-  status      String   // agendada, realizada, cancelada, remarcada
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String    @id @default(uuid())
+  leadId         String
+  lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sellerId       String
+  seller         Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  address        String
+  visitDate      DateTime
+  status         String    // aguardando_autorizacao, autorizada, realizada, cancelada, recusada
+  notes          String?
+  authorizedById String?
+  authorizedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

@@ -25,6 +25,8 @@ export async function PATCH(
         visitDate: data.visitDate ? new Date(data.visitDate) : undefined,
         status: data.status,
         notes: data.notes,
+        authorizedById: body.authorizedById,
+        authorizedAt: body.authorizedById ? new Date() : undefined,
       },
     });
 
