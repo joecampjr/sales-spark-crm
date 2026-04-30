@@ -4,9 +4,13 @@ import { z } from 'zod';
 
 const UpdateSellerSchema = z.object({
   name: z.string().min(2).optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional(),
   region: z.string().optional(),
   monthlyGoal: z.number().optional(),
   contactsTarget: z.number().optional(),
+  commissionRate: z.number().optional(),
+  status: z.string().optional(),
 });
 
 export async function PATCH(
@@ -22,9 +26,13 @@ export async function PATCH(
       where: { id },
       data: {
         name: data.name,
+        email: data.email || undefined,
+        phone: data.phone,
         region: data.region,
         monthlyGoal: data.monthlyGoal,
         contactsTarget: data.contactsTarget,
+        commissionRate: data.commissionRate,
+        status: data.status,
       },
     });
 
@@ -44,11 +52,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-
-    await prisma.seller.delete({
-      where: { id },
-    });
-
+    await prisma.seller.delete({ where: { id } });
     return NextResponse.json({ message: 'Vendedor removido com sucesso' });
   } catch (error) {
     console.error('Error deleting seller:', error);

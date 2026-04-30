@@ -4,9 +4,13 @@ import { z } from 'zod';
 
 const SellerSchema = z.object({
   name: z.string().min(2),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().optional(),
   region: z.string(),
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
+  commissionRate: z.number().optional().default(0),
+  status: z.string().optional().default('ativo'),
 });
 
 export async function GET() {
@@ -35,9 +39,13 @@ export async function POST(request: Request) {
     const newSeller = await prisma.seller.create({
       data: {
         name: data.name,
+        email: data.email || null,
+        phone: data.phone,
         region: data.region,
         monthlyGoal: data.monthlyGoal,
         contactsTarget: data.contactsTarget,
+        commissionRate: data.commissionRate,
+        status: data.status,
         salesCount: 0,
         conversionRate: 0,
         activeLeads: 0,
@@ -50,6 +58,9 @@ export async function POST(request: Request) {
     console.error('Error creating seller:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
+    }
+    if ((error as any).code === 'P2002') {
+      return NextResponse.json({ error: 'Email já cadastrado' }, { status: 400 });
     }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

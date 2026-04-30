@@ -12,17 +12,25 @@ datasource db {
 model Seller {
   id             String   @id @default(uuid())
   name           String
+  email          String?  @unique
+  phone          String?
+  avatar         String?
   region         String
+  status         String   @default("ativo") // ativo, ferias, inativo
+  commissionRate Float    @default(0.0)    // % de comissão
+  
   salesCount     Int      @default(0)
   conversionRate Float    @default(0.0)
   activeLeads    Int      @default(0)
   contactsToday  Int      @default(0)
   contactsTarget Int      @default(10)
   monthlyGoal    Float    @default(0.0)
+  
   leads          Lead[]
   interactions   Interaction[]
   visits         Visit[]
   salesActions   SalesActionStaff[]
+  
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
