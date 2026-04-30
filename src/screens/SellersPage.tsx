@@ -172,8 +172,14 @@ export default function SellersPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp/Celular</Label>
-                  <Input name="phone" required placeholder="Ex: 11999998888 (Só números)" />
-                  <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos</p>
+                  <Input 
+                    name="phone" 
+                    required 
+                    maxLength={11}
+                    placeholder="Ex: 11999998888" 
+                    onChange={(e) => e.target.value = e.target.value.replace(/\D/g, '')}
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos (Apenas números)</p>
                 </div>
                 <div className="space-y-2">
                   <Label>Região de Atuação</Label>
@@ -385,7 +391,12 @@ export default function SellersPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp</Label>
-                  <Input name="phone" defaultValue={editingSeller.phone || ''} />
+                  <Input 
+                    name="phone" 
+                    defaultValue={editingSeller.phone || ''} 
+                    maxLength={11}
+                    onChange={(e) => e.target.value = e.target.value.replace(/\D/g, '')}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Região</Label>
