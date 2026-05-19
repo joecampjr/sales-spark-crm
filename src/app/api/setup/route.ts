@@ -7,11 +7,6 @@ export async function GET() {
     const email = 'contato@cobusiness.com.br';
     const password = 'Eg2100@@';
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
-      return NextResponse.json({ message: 'Superadmin já existe!', email });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
     let company = await prisma.company.findFirst();
@@ -23,6 +18,19 @@ export async function GET() {
           status: 'ACTIVE'
         }
       });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      await prisma.user.update({
+        where: { email },
+        data: {
+          password: hashedPassword,
+          role: 'SUPERADMIN',
+          companyId: existing.companyId || company.id
+        }
+      });
+      return NextResponse.json({ message: 'Superadmin atualizado com sucesso! A senha foi resetada.', email });
     }
 
     const superadmin = await prisma.user.create({
