@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, Target, BarChart3,
   Settings, FileText, MapPin, UserCheck, LogOut, ChevronLeft,
-  Briefcase, Phone, Calendar, Award, Shield, ChevronDown, Zap
+  Briefcase, Phone, Calendar, Award, Shield, ChevronDown, Zap, Coins
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,18 @@ interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
 }
+
+const saasNavSections = [
+  {
+    label: 'Plataforma SaaS',
+    items: [
+      { label: 'Dashboard Global', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Empresas (Tenants)', path: '/empresas', icon: Building2 },
+      { label: 'Financeiro SaaS', path: '/financeiro-saas', icon: Coins },
+      { label: 'Auditoria Global', path: '/auditoria', icon: Shield },
+    ],
+  }
+];
 
 const navSections = [
   {
@@ -51,6 +63,9 @@ const navSections = [
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const { logout, user } = useAuth();
+  
+  const currentSections = user?.role === 'SUPERADMIN' ? saasNavSections : navSections;
+
 
   return (
     <aside
@@ -87,8 +102,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-        {navSections.map((section) => {
+        {currentSections.map((section) => {
           if ((section as any).roles && user && !(section as any).roles.includes(user.role)) return null;
+
 
           return (
             <div key={section.label}>

@@ -1,15 +1,174 @@
-import { Target, TrendingUp, DollarSign, Phone, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+"use client";
+
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { 
+  Target, TrendingUp, DollarSign, Phone, AlertTriangle, 
+  CheckCircle, Clock, Building2, Users2, ShieldAlert, 
+  Coins, ArrowUpRight, Ban
+} from 'lucide-react';
 import { KPICard } from '@/components/crm/KPICard';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { mockKPIs, mockLeads, mockChartData, mockVendedores } from '@/data/mockData';
-import { CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis } from 'recharts';
+import { CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, BarChart, Bar } from 'recharts';
 import { LeadStatus } from '@/types/crm';
 
 const CHART_COLORS = ['hsl(221, 83%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(199, 89%, 48%)'];
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+
+  // Query de Métricas do Super Admin (rodada condicionalmente)
+  const { data: saasMetrics, isLoading: isSaasLoading } = useQuery({
+    queryKey: ['saas-metrics'],
+    queryFn: async () => {
+      const res = await fetch('/api/saas/metrics');
+      if (!res.ok) throw new Error('Falha ao carregar métricas do SaaS');
+      return res.json();
+    },
+    enabled: user?.role === 'SUPERADMIN'
+  });
+
   const progressPercent = ((mockKPIs.vendasMes / mockKPIs.metaMes) * 100).toFixed(0);
 
+  // RENDER DO SUPER ADMIN (PAINEL GLOBAL DO SAAS)
+  if (user?.role === 'SUPERADMIN') {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-6 h-6 text-primary" />
+            Painel de Controle SaaS (CoBusiness)
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">Visão geral do faturamento, saúde e escala do seu ecossistema</p>
+        </div>
+
+        {/* KPIs SaaS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <KPICard 
+            title="Receita Recorrente (MRR)" 
+            value={isSaasLoading ? "..." : `R$ ${saasMetrics?.mrr?.toLocaleString('pt-BR') || 0},00`} 
+            change={15.4} 
+            icon={Coins} 
+            variant="success" 
+          />
+          <KPICard 
+            title="Total de Empresas" 
+            value={isSaasLoading ? "..." : saasMetrics?.totalCompanies?.toString() || "0"} 
+            change={8.7} 
+            icon={Building2} 
+            variant="primary" 
+          />
+          <KPICard 
+            title="Usuários Ativos" 
+            value={isSaasLoading ? "..." : saasMetrics?.totalUsers?.toLocaleString('pt-BR') || "0"} 
+            change={12.1} 
+            icon={Users2} 
+            variant="warning" 
+          />
+          <KPICard 
+            title="Leads Gerenciados" 
+            value={isSaasLoading ? "..." : saasMetrics?.totalLeads?.toLocaleString('pt-BR') || "0"} 
+            change={18.3} 
+            icon={Target} 
+          />
+        </div>
+
+        {/* Gráficos SaaS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Faturamento e Crescimento de Tenants */}
+          <div className="lg:col-span-2 bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-foreground">Evolução do Faturamento & Clientes</h3>
+              <span className="text-xs text-muted-foreground">Previsão baseada em assinatura mensal de R$ 499,00</span>
+            </div>
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={saasMetrics?.chartData || []}>
+                <defs>
+                  <linearGradient id="saasMrrColor" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
+                <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
+                <Tooltip
+                  contentStyle={{
+                    background: 'hsl(0, 0%, 100%)',
+                    border: '1px solid hsl(220, 13%, 91%)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                  formatter={(value: any, name: string) => [
+                    name === 'mrr' ? `R$ ${value.toLocaleString('pt-BR')},00` : `${value} empresas`,
+                    name === 'mrr' ? 'MRR' : 'Empresas Ativas'
+                  ]}
+                />
+                <Area type="monotone" dataKey="mrr" stroke="hsl(142, 71%, 45%)" fill="url(#saasMrrColor)" strokeWidth={2.5} name="mrr" />
+                <Area type="monotone" dataKey="empresas" stroke="hsl(221, 83%, 53%)" fill="none" strokeWidth={2} name="empresas" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Distribuição de Usuários por Cliente */}
+          <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+            <h3 className="text-sm font-semibold text-foreground mb-4">Engajamento (Usuários por Empresa)</h3>
+            {isSaasLoading ? (
+              <p className="text-sm text-muted-foreground">Carregando dados...</p>
+            ) : saasMetrics?.usersByCompany?.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma empresa para listar.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={saasMetrics?.usersByCompany || []} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 11 }} width={80} />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(221, 83%, 53%)" radius={[0, 4, 4, 0]}>
+                    {(saasMetrics?.usersByCompany || []).map((_: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+            <p className="text-[10px] text-muted-foreground text-center mt-2">Principais empresas com maior volume de colaboradores</p>
+          </div>
+        </div>
+
+        {/* Resumo da Infraestrutura */}
+        <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Painel Operacional & Infraestrutura</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+              <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Empresas Ativas: {saasMetrics?.activeCompanies || 0}</p>
+                <p className="text-xs text-muted-foreground">Clientes operando em ambiente isolado</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/5 border border-amber-500/10">
+              <Ban className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Acessos Suspensos: {saasMetrics?.suspendedCompanies || 0}</p>
+                <p className="text-xs text-muted-foreground">Inadimplentes ou contas congeladas</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/10">
+              <Users2 className="w-5 h-5 text-primary flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-foreground">Total Equipe de Venda: {saasMetrics?.totalSellers || 0}</p>
+                <p className="text-xs text-muted-foreground">Sellers em todas as filiais cadastradas</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RENDER DO CLIENTE / OPERAÇÃO NORMAL
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -175,7 +334,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 rounded-lg bg-success/5 border border-success/20">
-            <CheckCircle className="w-5 h-5 text-success flex-shrink-0" />
+            <Clock className="w-5 h-5 text-success flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-foreground">Meta {progressPercent}% atingida</p>
               <p className="text-xs text-muted-foreground">R$ 342k de R$ 500k</p>
@@ -186,4 +345,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
