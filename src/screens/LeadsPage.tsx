@@ -43,8 +43,8 @@ export default function LeadsPage() {
     const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem'];
     const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site'];
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
-      + headers.join(",") + "\n" 
-      + example.join(",");
+      + headers.join(";") + "\n" 
+      + example.join(";");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
