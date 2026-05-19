@@ -22,11 +22,13 @@ const saasNavSections = [
     items: [
       { label: 'Dashboard Global', path: '/dashboard', icon: LayoutDashboard },
       { label: 'Empresas (Tenants)', path: '/empresas', icon: Building2 },
+      { label: 'Usuários Globais', path: '/usuarios-globais', icon: Users },
       { label: 'Financeiro SaaS', path: '/financeiro-saas', icon: Coins },
       { label: 'Auditoria Global', path: '/auditoria', icon: Shield },
     ],
   }
 ];
+
 
 const navSections = [
   {
