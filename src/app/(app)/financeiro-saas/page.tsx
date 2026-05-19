@@ -1,14 +1,32 @@
 "use client";
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Coins, Search, DollarSign, Calendar, CheckCircle2, AlertCircle, Clock, CreditCard, ArrowUpRight } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Coins, Search, DollarSign, Calendar, CheckCircle2, AlertCircle, Clock, CreditCard, ArrowUpRight, Pencil } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function FinanceiroSaasPage() {
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  
+  // States do Modal de Edição
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [selectedBilling, setSelectedBilling] = useState<any>(null);
+  const [planName, setPlanName] = useState('');
+  const [planValue, setPlanValue] = useState('');
+  const [nextDueDate, setNextDueDate] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState('PAID');
 
   const { data: billingList = [], isLoading } = useQuery({
     queryKey: ['billing-data'],
@@ -18,6 +36,61 @@ export default function FinanceiroSaasPage() {
       return res.json();
     }
   });
+
+  const updateBillingMutation = useMutation({
+    mutationFn: async (updatedData: any) => {
+      const res = await fetch(`/api/saas/billing/${updatedData.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planName: updatedData.planName,
+          planValue: updatedData.planValue,
+          nextDueDate: updatedData.nextDueDate,
+          paymentStatus: updatedData.paymentStatus
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao atualizar faturamento');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['billing-data'] });
+      queryClient.invalidateQueries({ queryKey: ['saas-metrics'] });
+      setIsEditOpen(false);
+      setSelectedBilling(null);
+      toast.success('Dados de faturamento atualizados com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Falha ao atualizar faturamento.');
+    }
+  });
+
+  const handleEditClick = (bill: any) => {
+    setSelectedBilling(bill);
+    setPlanName(bill.plan);
+    setPlanValue(bill.value.toString());
+    setNextDueDate(new Date(bill.nextDueDate).toISOString().split('T')[0]);
+    setPaymentStatus(bill.paymentStatus);
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!planName || !planValue || !nextDueDate) {
+      toast.error('Por favor, preencha todos os campos.');
+      return;
+    }
+
+    updateBillingMutation.mutate({
+      id: selectedBilling.id,
+      planName,
+      planValue: parseFloat(planValue),
+      nextDueDate,
+      paymentStatus
+    });
+  };
 
   const filteredBilling = billingList.filter((b: any) =>
     b.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -39,7 +112,7 @@ export default function FinanceiroSaasPage() {
 
   const totalOverdue = billingList
     .filter((b: any) => b.paymentStatus === 'OVERDUE')
-    .reduce((acc: number, curr: any) => acc + (curr.value || 499.00), 0); // fallback se zerado por estar suspenso
+    .reduce((acc: number, curr: any) => acc + (curr.value || 499.00), 0);
 
   const handleSendReminder = (companyName: string) => {
     toast.success(`Notificação de lembrete de pagamento enviada para ${companyName}!`);
@@ -53,7 +126,7 @@ export default function FinanceiroSaasPage() {
           Financeiro SaaS (Faturamento)
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Acompanhe os recebimentos, mensalidades e status financeiro de todas as licenças ativas.
+          Acompanhe, edite e gerencie as mensalidades e planos de todas as licenças ativas na plataforma.
         </p>
       </div>
 
@@ -180,7 +253,7 @@ export default function FinanceiroSaasPage() {
                     {/* Valor */}
                     <td className="px-6 py-4">
                       <span className="font-bold text-foreground">
-                        R$ {(bill.value || 499.00).toLocaleString('pt-BR')},00
+                        R$ {(bill.value || 0).toLocaleString('pt-BR')},00
                       </span>
                     </td>
 
@@ -215,19 +288,31 @@ export default function FinanceiroSaasPage() {
 
                     {/* Ações */}
                     <td className="px-6 py-4 text-right">
-                      {bill.paymentStatus !== 'PAID' ? (
+                      <div className="flex items-center justify-end gap-2">
                         <Button
-                          size="sm"
-                          onClick={() => handleSendReminder(bill.name)}
-                          className="bg-primary hover:bg-primary/90 text-white font-medium text-xs px-3 py-1.5 h-auto rounded-lg"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditClick(bill)}
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
+                          title="Editar Faturamento"
                         >
-                          Cobrar Cliente
+                          <Pencil className="w-4 h-4" />
                         </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground italic font-medium pr-3">
-                          Tudo em dia
-                        </span>
-                      )}
+                        
+                        {bill.paymentStatus !== 'PAID' ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleSendReminder(bill.name)}
+                            className="bg-primary hover:bg-primary/90 text-white font-medium text-xs px-3 py-1.5 h-auto rounded-lg"
+                          >
+                            Cobrar
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic font-medium pr-2">
+                            Tudo em dia
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -236,6 +321,86 @@ export default function FinanceiroSaasPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal / Dialog de Edição de Faturamento */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="w-5 h-5 text-primary" />
+              Editar Faturamento do Cliente
+            </DialogTitle>
+            <DialogDescription>
+              Ajuste as definições de assinatura e cobrança de <strong className="text-foreground">&quot;{selectedBilling?.name}&quot;</strong>.
+            </DialogDescription>
+
+          </DialogHeader>
+
+          <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
+            <div className="grid gap-2">
+              <Label htmlFor="planName">Nome do Plano <span className="text-destructive">*</span></Label>
+              <Input
+                id="planName"
+                placeholder="Ex: Plano Premium"
+                value={planName}
+                onChange={(e) => setPlanName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="planValue">Valor Mensal (R$) <span className="text-destructive">*</span></Label>
+              <Input
+                id="planValue"
+                type="number"
+                step="0.01"
+                placeholder="499.00"
+                value={planValue}
+                onChange={(e) => setPlanValue(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="nextDueDate">Próximo Vencimento <span className="text-destructive">*</span></Label>
+              <Input
+                id="nextDueDate"
+                type="date"
+                value={nextDueDate}
+                onChange={(e) => setNextDueDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="paymentStatus">Status do Pagamento <span className="text-destructive">*</span></Label>
+              <select
+                id="paymentStatus"
+                value={paymentStatus}
+                onChange={(e) => setPaymentStatus(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="PAID">Pago (Tudo em dia)</option>
+                <option value="PENDING">Pendente (Aguardando vencimento)</option>
+                <option value="OVERDUE">Atrasado (Requer atenção)</option>
+              </select>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border mt-4">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateBillingMutation.isPending}
+                className="bg-primary hover:bg-primary/95 text-white"
+              >
+                {updateBillingMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -15,6 +15,11 @@ model Company {
   cnpj        String    @unique
   status      String    @default("ACTIVE") // ACTIVE, SUSPENDED
   suspendedAt DateTime?
+  
+  planName      String?   @default("Plano Premium")
+  planValue     Float?    @default(499.00)
+  nextDueDate   DateTime?
+  paymentStatus String?   @default("PAID") // PAID, PENDING, OVERDUE
 
   branches     Branch[]
   users        User[]

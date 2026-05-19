@@ -18,34 +18,29 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Enriquecer dados de empresa com faturamento simulado/determinístico baseado no ID
-    const billingData = companies.map((c, index) => {
-      // Determinando dados financeiros fixos para os mesmos IDs
-      const value = c.status === 'ACTIVE' ? 499.00 : 0.00;
-      const plan = index % 2 === 0 ? 'Plano Premium' : 'Plano Standard';
+    const billingData = companies.map((c) => {
+      // Default dinâmico caso os campos recém-criados estejam nulos no banco
+      const planName = c.planName || 'Plano Premium';
+      const planValue = c.planValue !== null && c.planValue !== undefined ? c.planValue : 499.00;
+      const paymentStatus = c.paymentStatus || (c.status === 'SUSPENDED' ? 'OVERDUE' : 'PAID');
       
-      // Criar status de pagamento determinístico
-      let paymentStatus = 'PAID';
-      if (c.status === 'SUSPENDED') {
-        paymentStatus = 'OVERDUE';
-      } else if (index === 1) {
-        paymentStatus = 'PENDING';
+      let nextDueDate = c.nextDueDate;
+      if (!nextDueDate) {
+        const nextDue = new Date();
+        nextDue.setDate(10);
+        nextDue.setMonth(nextDue.getMonth() + 1);
+        nextDueDate = nextDue;
       }
-
-      // Vencimento determinístico (ex: dia 10 do próximo mês)
-      const nextDue = new Date();
-      nextDue.setDate(10);
-      nextDue.setMonth(nextDue.getMonth() + 1);
 
       return {
         id: c.id,
         name: c.name,
         cnpj: c.cnpj,
         status: c.status,
-        plan,
-        value,
+        plan: planName,
+        value: planValue,
         paymentStatus,
-        nextDueDate: nextDue.toISOString(),
+        nextDueDate: nextDueDate.toISOString(),
         usersCount: c._count.users
       };
     });
