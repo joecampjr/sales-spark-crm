@@ -9,7 +9,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rotas públicas
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/auth/login')) {
+  if (pathname.startsWith('/login') || pathname.startsWith('/api/auth/login') || pathname.startsWith('/api/setup')) {
     if (session) {
       try {
         await jwtVerify(session, key);
