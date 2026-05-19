@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const UpdateBranchSchema = z.object({
@@ -16,6 +17,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     
@@ -23,8 +29,13 @@ export async function PATCH(
     
     const data = UpdateBranchSchema.parse(body);
 
-    const updated = await prisma.branch.update({
-      where: { id },
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const updated = await prisma.branch.updateMany({
+      where: whereClause,
       data: {
         name: data.name,
         city: data.city,
@@ -35,7 +46,11 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(updated);
+    if (updated.count === 0) {
+      return NextResponse.json({ error: 'Filial não encontrada ou não autorizada' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Filial atualizada com sucesso' });
   } catch (error) {
     console.error('Error updating branch:', error);
     if (error instanceof z.ZodError) {
@@ -50,8 +65,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
-    await prisma.branch.delete({ where: { id } });
+
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const deleted = await prisma.branch.deleteMany({ where: whereClause });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'Filial não encontrada ou não autorizada' }, { status: 404 });
+    }
     return NextResponse.json({ message: 'Filial removida com sucesso' });
   } catch (error) {
     console.error('Error deleting branch:', error);

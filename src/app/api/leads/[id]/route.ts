@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const UpdateLeadSchema = z.object({
@@ -19,6 +20,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
@@ -29,12 +35,21 @@ export async function PATCH(
 
     const data = UpdateLeadSchema.parse(body);
 
-    const updatedLead = await prisma.lead.update({
-      where: { id },
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const updatedLead = await prisma.lead.updateMany({
+      where: whereClause,
       data: {
         ...data,
       },
     });
+
+    if (updatedLead.count === 0) {
+      return NextResponse.json({ error: 'Lead não encontrado ou não autorizado' }, { status: 404 });
+    }
 
     return NextResponse.json(updatedLead);
   } catch (error) {
@@ -51,11 +66,25 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
 
-    await prisma.lead.delete({
-      where: { id },
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const deletedLead = await prisma.lead.deleteMany({
+      where: whereClause,
     });
+
+    if (deletedLead.count === 0) {
+      return NextResponse.json({ error: 'Lead não encontrado ou não autorizado' }, { status: 404 });
+    }
 
     return NextResponse.json({ message: 'Lead deletado com sucesso' });
   } catch (error) {

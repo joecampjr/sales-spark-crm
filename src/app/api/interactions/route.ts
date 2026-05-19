@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const InteractionSchema = z.object({
@@ -13,10 +14,16 @@ const InteractionSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const leadId = searchParams.get('leadId');
 
     const where: any = {};
+    if (session.companyId) where.companyId = session.companyId;
     if (leadId) where.leadId = leadId;
 
     const interactions = await prisma.interaction.findMany({
@@ -37,6 +44,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const data = InteractionSchema.parse(body);
 
@@ -48,6 +60,7 @@ export async function POST(request: Request) {
         result: data.result,
         notes: data.notes,
         scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
+        companyId: session.companyId || null,
       }
     });
 

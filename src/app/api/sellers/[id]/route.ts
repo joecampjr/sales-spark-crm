@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const UpdateSellerSchema = z.object({
@@ -19,6 +20,11 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const body = await request.json();
 
@@ -29,8 +35,13 @@ export async function PATCH(
 
     const data = UpdateSellerSchema.parse(body);
 
-    const updated = await prisma.seller.update({
-      where: { id },
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const updated = await prisma.seller.updateMany({
+      where: whereClause,
       data: {
         name: data.name,
         email: data.email === '' ? null : data.email || undefined,
@@ -44,7 +55,11 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(updated);
+    if (updated.count === 0) {
+      return NextResponse.json({ error: 'Vendedor não encontrado ou não autorizado' }, { status: 404 });
+    }
+
+    return NextResponse.json({ message: 'Vendedor atualizado com sucesso' });
   } catch (error) {
     console.error('Error updating seller:', error);
     if (error instanceof z.ZodError) {
@@ -62,8 +77,22 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
-    await prisma.seller.delete({ where: { id } });
+    
+    const whereClause: any = { id };
+    if (session.companyId) {
+      whereClause.companyId = session.companyId;
+    }
+
+    const deleted = await prisma.seller.deleteMany({ where: whereClause });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: 'Vendedor não encontrado ou não autorizado' }, { status: 404 });
+    }
     return NextResponse.json({ message: 'Vendedor removido com sucesso' });
   } catch (error) {
     console.error('Error deleting seller:', error);

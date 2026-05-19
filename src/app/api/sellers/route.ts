@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const SellerSchema = z.object({
@@ -16,7 +17,18 @@ const SellerSchema = z.object({
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
+
     const sellers = await prisma.seller.findMany({
+      where,
       orderBy: { salesCount: 'desc' },
       include: {
         branch: true,
@@ -35,6 +47,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     // Limpa a formatação do telefone antes de validar
@@ -60,6 +77,7 @@ export async function POST(request: Request) {
         conversionRate: 0,
         activeLeads: 0,
         contactsToday: 0,
+        companyId: session.companyId || null,
       }
     });
 

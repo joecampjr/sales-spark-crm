@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const VisitSchema = z.object({
@@ -13,7 +14,18 @@ const VisitSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
+
     const visits = await prisma.visit.findMany({
+      where,
       include: {
         lead: { select: { name: true } },
         seller: { select: { name: true } }
@@ -29,6 +41,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const data = VisitSchema.parse(body);
 
@@ -40,6 +57,7 @@ export async function POST(request: Request) {
         visitDate: new Date(data.visitDate),
         status: data.status,
         notes: data.notes,
+        companyId: session.companyId || null,
       }
     });
 
