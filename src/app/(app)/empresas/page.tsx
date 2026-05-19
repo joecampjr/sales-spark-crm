@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Search, Power, PowerOff, Plus, ShieldCheck } from 'lucide-react';
+import { Building2, Search, Power, PowerOff, Plus, ShieldCheck, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -15,6 +15,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function EmpresasPage() {
   const queryClient = useQueryClient();
@@ -27,6 +37,10 @@ export default function EmpresasPage() {
   const [adminName, setAdminName] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+
+  // State do Modal de Confirmação de Exclusão
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<any>(null);
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
@@ -81,6 +95,26 @@ export default function EmpresasPage() {
     }
   });
 
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/companies/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir empresa');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success(data.message || 'Empresa e todos os seus dados foram excluídos com sucesso!');
+      setIsDeleteOpen(false);
+      setCompanyToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Falha ao excluir empresa.');
+    }
+  });
+
   const handleCnpjChange = (value: string) => {
     const clean = value.replace(/\D/g, "");
     let formatted = clean;
@@ -106,6 +140,12 @@ export default function EmpresasPage() {
       adminEmail,
       adminPassword
     });
+  };
+
+  const handleDeleteConfirm = () => {
+    if (companyToDelete) {
+      deleteCompanyMutation.mutate(companyToDelete.id);
+    }
   };
 
   const filteredCompanies = companies.filter((c: any) => 
@@ -173,21 +213,46 @@ export default function EmpresasPage() {
               </div>
             </div>
 
-            <Button 
-              variant={company.status === 'ACTIVE' ? 'outline' : 'default'} 
-              className={company.status === 'ACTIVE' ? 'border-destructive text-destructive hover:bg-destructive hover:text-white w-full' : 'w-full'}
-              onClick={() => toggleStatusMutation.mutate({ 
-                id: company.id, 
-                status: company.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' 
-              })}
-              disabled={toggleStatusMutation.isPending}
-            >
+            <div className="flex flex-col gap-2 w-full">
               {company.status === 'ACTIVE' ? (
-                <><PowerOff className="w-4 h-4 mr-2" /> Suspender Acesso</>
+                <Button 
+                  variant="outline"
+                  className="border-destructive text-destructive hover:bg-destructive hover:text-white w-full"
+                  onClick={() => toggleStatusMutation.mutate({ 
+                    id: company.id, 
+                    status: 'SUSPENDED' 
+                  })}
+                  disabled={toggleStatusMutation.isPending}
+                >
+                  <PowerOff className="w-4 h-4 mr-2" /> Suspender Acesso
+                </Button>
               ) : (
-                <><Power className="w-4 h-4 mr-2" /> Reativar Acesso</>
+                <>
+                  <Button 
+                    variant="default"
+                    className="w-full"
+                    onClick={() => toggleStatusMutation.mutate({ 
+                      id: company.id, 
+                      status: 'ACTIVE' 
+                    })}
+                    disabled={toggleStatusMutation.isPending}
+                  >
+                    <Power className="w-4 h-4 mr-2" /> Reativar Acesso
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="border-destructive text-destructive hover:bg-destructive hover:text-white w-full"
+                    onClick={() => {
+                      setCompanyToDelete(company);
+                      setIsDeleteOpen(true);
+                    }}
+                    disabled={toggleStatusMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" /> Excluir Empresa
+                  </Button>
+                </>
               )}
-            </Button>
+            </div>
           </div>
         ))}
         {filteredCompanies.length === 0 && !isLoading && (
@@ -292,6 +357,46 @@ export default function EmpresasPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de Confirmação de Exclusão */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent className="border border-destructive/20 bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Excluir Empresa Permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground mt-2">
+              Esta ação é **irreversível**. A exclusão da empresa <strong className="text-foreground">"{companyToDelete?.name}"</strong> removerá definitivamente:
+              
+              <ul className="list-disc pl-5 mt-2 space-y-1 text-xs">
+                <li>Todas as filiais vinculadas;</li>
+                <li>Todos os usuários e administradores da empresa;</li>
+                <li>Todos os vendedores, metas e comissões;</li>
+                <li>Todos os leads, histórico de contatos e interações;</li>
+                <li>Todas as visitas agendadas e ações de vendas ativas.</li>
+              </ul>
+              
+              <p className="mt-4 font-semibold text-destructive">Tem certeza absoluta de que deseja continuar?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCompanyMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteConfirm();
+              }}
+              disabled={deleteCompanyMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90 text-white border-none"
+            >
+              {deleteCompanyMutation.isPending ? 'Excluindo...' : 'Sim, Excluir Tudo'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
