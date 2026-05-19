@@ -367,7 +367,8 @@ export default function EmpresasPage() {
               Excluir Empresa Permanentemente?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-muted-foreground mt-2">
-              Esta ação é **irreversível**. A exclusão da empresa <strong className="text-foreground">"{companyToDelete?.name}"</strong> removerá definitivamente:
+              Esta ação é **irreversível**. A exclusão da empresa <strong className="text-foreground">&quot;{companyToDelete?.name}&quot;</strong> removerá definitivamente:
+
               
               <ul className="list-disc pl-5 mt-2 space-y-1 text-xs">
                 <li>Todas as filiais vinculadas;</li>
