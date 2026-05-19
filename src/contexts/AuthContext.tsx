@@ -14,7 +14,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -55,13 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
-        router.refresh(); // Atualiza rotas protegidas pelo middleware
-        return true;
+        router.refresh(); 
+        return { success: true };
       }
-      return false;
+      const err = await res.json();
+      return { success: false, message: err.error || 'Credenciais inválidas' };
     } catch (error) {
       console.error('Login error:', error);
-      return false;
+      return { success: false, message: 'Erro ao conectar ao servidor' };
     }
   };
 
