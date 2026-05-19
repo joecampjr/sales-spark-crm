@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Coins, Search, DollarSign, Calendar, CheckCircle2, AlertCircle, Clock, CreditCard, ArrowUpRight, Pencil } from 'lucide-react';
+import { 
+  Coins, Search, DollarSign, Calendar, CheckCircle2, AlertCircle, 
+  Clock, CreditCard, ArrowUpRight, Pencil, Trash2, ShieldAlert 
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,6 +18,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function FinanceiroSaasPage() {
   const queryClient = useQueryClient();
@@ -27,6 +40,10 @@ export default function FinanceiroSaasPage() {
   const [planValue, setPlanValue] = useState('');
   const [nextDueDate, setNextDueDate] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('PAID');
+
+  // States do Modal de Exclusão
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<any>(null);
 
   const { data: billingList = [], isLoading } = useQuery({
     queryKey: ['billing-data'],
@@ -58,12 +75,35 @@ export default function FinanceiroSaasPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['billing-data'] });
       queryClient.invalidateQueries({ queryKey: ['saas-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
       setIsEditOpen(false);
       setSelectedBilling(null);
       toast.success('Dados de faturamento atualizados com sucesso!');
     },
     onError: (err: any) => {
       toast.error(err.message || 'Falha ao atualizar faturamento.');
+    }
+  });
+
+  const deleteCompanyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/companies/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao excluir empresa');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['billing-data'] });
+      queryClient.invalidateQueries({ queryKey: ['saas-metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success(data.message || 'Empresa e todos os seus dados foram excluídos com sucesso!');
+      setIsDeleteOpen(false);
+      setCompanyToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Falha ao excluir empresa.');
     }
   });
 
@@ -74,6 +114,11 @@ export default function FinanceiroSaasPage() {
     setNextDueDate(new Date(bill.nextDueDate).toISOString().split('T')[0]);
     setPaymentStatus(bill.paymentStatus);
     setIsEditOpen(true);
+  };
+
+  const handleDeleteClick = (bill: any) => {
+    setCompanyToDelete(bill);
+    setIsDeleteOpen(true);
   };
 
   const handleEditSubmit = (e: React.FormEvent) => {
@@ -126,7 +171,7 @@ export default function FinanceiroSaasPage() {
           Financeiro SaaS (Faturamento)
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Acompanhe, edite e gerencie as mensalidades e planos de todas as licenças ativas na plataforma.
+          Acompanhe, edite, gerencie e exclua as mensalidades, planos e tenants ativos na plataforma.
         </p>
       </div>
 
@@ -288,7 +333,7 @@ export default function FinanceiroSaasPage() {
 
                     {/* Ações */}
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-1.5">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -298,17 +343,27 @@ export default function FinanceiroSaasPage() {
                         >
                           <Pencil className="w-4 h-4" />
                         </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteClick(bill)}
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          title="Excluir Empresa"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                         
                         {bill.paymentStatus !== 'PAID' ? (
                           <Button
                             size="sm"
                             onClick={() => handleSendReminder(bill.name)}
-                            className="bg-primary hover:bg-primary/90 text-white font-medium text-xs px-3 py-1.5 h-auto rounded-lg"
+                            className="bg-primary hover:bg-primary/90 text-white font-medium text-xs px-3 py-1.5 h-auto rounded-lg ml-1"
                           >
                             Cobrar
                           </Button>
                         ) : (
-                          <span className="text-xs text-muted-foreground italic font-medium pr-2">
+                          <span className="text-xs text-muted-foreground italic font-medium pr-2 ml-1">
                             Tudo em dia
                           </span>
                         )}
@@ -333,7 +388,6 @@ export default function FinanceiroSaasPage() {
             <DialogDescription>
               Ajuste as definições de assinatura e cobrança de <strong className="text-foreground">&quot;{selectedBilling?.name}&quot;</strong>.
             </DialogDescription>
-
           </DialogHeader>
 
           <form onSubmit={handleEditSubmit} className="space-y-4 py-2">
@@ -401,6 +455,38 @@ export default function FinanceiroSaasPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog - Confirmação Exclusão de Empresa */}
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <ShieldAlert className="w-5 h-5" />
+              Excluir Empresa Permanentemente?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Você está prestes a excluir permanentemente a empresa <strong className="text-foreground">&quot;{companyToDelete?.name}&quot;</strong> e **todos os dados** associados a ela (usuários, filiais, leads, relatórios, etc.) do sistema.
+              Esta ação é **irreversível**.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCompanyMutation.isPending}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (companyToDelete) {
+                  deleteCompanyMutation.mutate(companyToDelete.id);
+                }
+              }}
+              disabled={deleteCompanyMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90 text-white"
+            >
+              {deleteCompanyMutation.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
