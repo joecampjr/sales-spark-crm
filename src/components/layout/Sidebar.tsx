@@ -44,6 +44,7 @@ const navSections = [
       { label: 'Auditoria', path: '/auditoria', icon: Shield },
       { label: 'Relatórios', path: '/relatorios', icon: BarChart3 },
     ],
+    roles: ['SUPERADMIN']
   },
 ];
 
@@ -86,35 +87,39 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
-        {navSections.map((section) => (
-          <div key={section.label}>
-            {!collapsed && (
-              <p
-                className="text-[10px] font-semibold uppercase tracking-widest mb-2 px-3"
-                style={{ color: 'hsl(var(--sidebar-section))' }}
-              >
-                {section.label}
-              </p>
-            )}
-            <div className="space-y-1">
-              {section.items.map((item) => {
-                const isActive = pathname === item.path;
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    className={cn('sidebar-item', isActive && 'active')}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
-                  </Link>
-                );
-              })}
+        {navSections.map((section) => {
+          if ((section as any).roles && user && !(section as any).roles.includes(user.role)) return null;
+
+          return (
+            <div key={section.label}>
+              {!collapsed && (
+                <p
+                  className="text-[10px] font-semibold uppercase tracking-widest mb-2 px-3"
+                  style={{ color: 'hsl(var(--sidebar-section))' }}
+                >
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const isActive = pathname === item.path;
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className={cn('sidebar-item', isActive && 'active')}
+                      title={collapsed ? item.label : undefined}
+                    >
+                      <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+                      {!collapsed && <span>{item.label}</span>}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* User section */}
@@ -131,7 +136,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 {user?.name || 'Usuário'}
               </p>
               <p className="text-[10px] truncate" style={{ color: 'hsl(var(--sidebar-section))' }}>
-                {user?.role === 'ADMIN' ? 'Administrador' : 
+                {user?.role === 'SUPERADMIN' ? 'Super Admin' :
+                 user?.role === 'ADMIN' ? 'Administrador' : 
                  user?.role === 'GERENTE' ? 'Gerente' :
                  user?.role === 'SUPERVISOR' ? 'Supervisor' : 'Vendedor'}
               </p>
