@@ -36,7 +36,24 @@ export default function LeadsPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const downloadTemplate = () => {
+    const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem'];
+    const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site'];
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+      + headers.join(",") + "\n" 
+      + example.join(",");
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "template_leads.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const { data: leads = [], isLoading } = useQuery({
     queryKey: ['leads', search, statusFilter],
@@ -140,6 +157,7 @@ export default function LeadsPage() {
           source: row['Origem'] || row['source'] || 'CSV Import'
         }));
         importMutation.mutate(mapped);
+        setIsImportModalOpen(false);
       }
     });
 
@@ -194,7 +212,7 @@ export default function LeadsPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
+          <Button variant="outline" size="sm" className="text-xs" onClick={() => setIsImportModalOpen(true)} disabled={importMutation.isPending}>
             <Upload className="w-3.5 h-3.5 mr-1.5" /> {importMutation.isPending ? 'Importando...' : 'Importar CSV'}
           </Button>
           <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open('/api/leads/export', '_blank')}>
@@ -491,6 +509,40 @@ export default function LeadsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Import Modal */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar Leads via CSV</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="text-sm text-muted-foreground">
+              <p>Para importar leads corretamente, seu arquivo CSV deve conter os seguintes cabeçalhos exatos:</p>
+              <ul className="list-disc list-inside mt-2 mb-4 space-y-1 font-medium text-foreground">
+                <li>Nome</li>
+                <li>Telefone</li>
+                <li>Cidade</li>
+                <li>Estado</li>
+                <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido)</span></li>
+                <li>Prioridade <span className="text-muted-foreground font-normal">(baixa, media, alta, urgente)</span></li>
+                <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números)</span></li>
+                <li>Origem</li>
+              </ul>
+              <p>Recomendamos baixar nossa planilha modelo para evitar erros de formatação.</p>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={downloadTemplate}>
+                <Download className="w-4 h-4 mr-2" /> Baixar Modelo
+              </Button>
+              <Button className="flex-1" onClick={() => fileInputRef.current?.click()} disabled={importMutation.isPending}>
+                <Upload className="w-4 h-4 mr-2" /> {importMutation.isPending ? 'Importando...' : 'Selecionar Arquivo'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
