@@ -2,14 +2,31 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Search, Power, PowerOff } from 'lucide-react';
+import { Building2, Search, Power, PowerOff, Plus, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function EmpresasPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  
+  // State do Modal de Nova Empresa
+  const [isOpen, setIsOpen] = useState(false);
+  const [companyName, setCompanyName] = useState('');
+  const [companyCnpj, setCompanyCnpj] = useState('');
+  const [adminName, setAdminName] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
 
   const { data: companies = [], isLoading } = useQuery({
     queryKey: ['companies'],
@@ -37,6 +54,60 @@ export default function EmpresasPage() {
     onError: () => toast.error('Falha ao atualizar status.')
   });
 
+  const createCompanyMutation = useMutation({
+    mutationFn: async (newData: any) => {
+      const res = await fetch('/api/companies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newData)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Erro ao criar empresa');
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      toast.success(data.message || 'Empresa e administrador criados com sucesso!');
+      setIsOpen(false);
+      // Limpa os campos
+      setCompanyName('');
+      setCompanyCnpj('');
+      setAdminName('');
+      setAdminEmail('');
+      setAdminPassword('');
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Falha ao criar empresa.');
+    }
+  });
+
+  const handleCnpjChange = (value: string) => {
+    const clean = value.replace(/\D/g, "");
+    let formatted = clean;
+    if (clean.length > 2) formatted = `${clean.slice(0, 2)}.${clean.slice(2)}`;
+    if (clean.length > 5) formatted = `${formatted.slice(0, 6)}.${clean.slice(5)}`;
+    if (clean.length > 8) formatted = `${formatted.slice(0, 10)}/${clean.slice(8)}`;
+    if (clean.length > 12) formatted = `${formatted.slice(0, 15)}-${clean.slice(12, 14)}`;
+    setCompanyCnpj(formatted.slice(0, 18));
+  };
+
+  const handleCreateCompanySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!companyName || !companyCnpj || !adminName || !adminEmail || !adminPassword) {
+      toast.error('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    createCompanyMutation.mutate({
+      name: companyName,
+      cnpj: companyCnpj,
+      adminName,
+      adminEmail,
+      adminPassword
+    });
+  };
+
   const filteredCompanies = companies.filter((c: any) => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
     c.cnpj.includes(search)
@@ -52,6 +123,12 @@ export default function EmpresasPage() {
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Gerencie as assinaturas e acessos dos seus clientes.</p>
         </div>
+        <Button 
+          onClick={() => setIsOpen(true)} 
+          className="w-full sm:w-auto bg-primary text-white hover:bg-primary/95 flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" /> Nova Empresa
+        </Button>
       </div>
 
       <div className="flex gap-3">
@@ -88,17 +165,17 @@ export default function EmpresasPage() {
               
               <div className="flex gap-4 text-sm text-muted-foreground mb-6">
                 <div>
-                  <strong className="text-foreground">{company._count.users}</strong> Usuários
+                  <strong className="text-foreground">{company._count?.users || 0}</strong> Usuários
                 </div>
                 <div>
-                  <strong className="text-foreground">{company._count.leads}</strong> Leads
+                  <strong className="text-foreground">{company._count?.leads || 0}</strong> Leads
                 </div>
               </div>
             </div>
 
             <Button 
               variant={company.status === 'ACTIVE' ? 'outline' : 'default'} 
-              className={company.status === 'ACTIVE' ? 'border-destructive text-destructive hover:bg-destructive hover:text-white' : ''}
+              className={company.status === 'ACTIVE' ? 'border-destructive text-destructive hover:bg-destructive hover:text-white w-full' : 'w-full'}
               onClick={() => toggleStatusMutation.mutate({ 
                 id: company.id, 
                 status: company.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE' 
@@ -117,6 +194,104 @@ export default function EmpresasPage() {
           <p className="text-muted-foreground col-span-full">Nenhuma empresa encontrada.</p>
         )}
       </div>
+
+      {/* Modal / Dialog de Criação de Empresa */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-primary" />
+              Cadastrar Nova Empresa (Tenant)
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os dados da empresa e as credenciais do administrador inicial.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCreateCompanySubmit} className="space-y-6 py-2">
+            {/* Seção Empresa */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-border pb-1">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Dados da Empresa</span>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="companyName">Nome da Empresa <span className="text-destructive">*</span></Label>
+                <Input
+                  id="companyName"
+                  placeholder="Ex: Minha Empresa LTDA"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="companyCnpj">CNPJ <span className="text-destructive">*</span></Label>
+                <Input
+                  id="companyCnpj"
+                  placeholder="00.000.000/0001-00"
+                  value={companyCnpj}
+                  onChange={(e) => handleCnpjChange(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Seção Administrador */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-border pb-1">
+                <ShieldCheck className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Administrador Inicial</span>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="adminName">Nome Completo <span className="text-destructive">*</span></Label>
+                <Input
+                  id="adminName"
+                  placeholder="Ex: João Silva"
+                  value={adminName}
+                  onChange={(e) => setAdminName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="adminEmail">E-mail de Login <span className="text-destructive">*</span></Label>
+                <Input
+                  id="adminEmail"
+                  type="email"
+                  placeholder="Ex: admin@empresa.com"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="adminPassword">Senha de Acesso <span className="text-destructive">*</span></Label>
+                <Input
+                  id="adminPassword"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 border-t border-border mt-6">
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createCompanyMutation.isPending}
+                className="bg-primary hover:bg-primary/95 text-white"
+              >
+                {createCompanyMutation.isPending ? 'Cadastrando...' : 'Criar Empresa & Admin'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
