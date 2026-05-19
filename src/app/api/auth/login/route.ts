@@ -12,22 +12,37 @@ export async function POST(request: Request) {
     const userCount = await prisma.user.count();
     if (userCount === 0 && email === 'admin@admin.com') {
       const hashedPassword = await bcrypt.hash('admin123', 10);
+      
+      const defaultCompany = await prisma.company.create({
+        data: {
+          name: 'Empresa Principal',
+          cnpj: '00000000000000',
+          status: 'ACTIVE'
+        }
+      });
+
       await prisma.user.create({
         data: {
           name: 'Administrador Spark',
           email: 'admin@admin.com',
           password: hashedPassword,
-          role: 'ADMIN'
+          role: 'SUPERADMIN',
+          companyId: defaultCompany.id
         }
       });
     }
 
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      include: { company: true }
     });
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
+    }
+
+    if (user.company && user.company.status === 'SUSPENDED') {
+      return NextResponse.json({ error: 'Conta suspensa. Entre em contato com o suporte.' }, { status: 403 });
     }
 
     // Cria a sessão
@@ -37,6 +52,7 @@ export async function POST(request: Request) {
       email: user.email, 
       name: user.name, 
       role: user.role,
+      companyId: user.companyId,
       expires 
     });
 
@@ -53,7 +69,8 @@ export async function POST(request: Request) {
       id: user.id, 
       name: user.name, 
       email: user.email, 
-      role: user.role 
+      role: user.role,
+      companyId: user.companyId
     });
   } catch (error) {
     console.error('Login error:', error);

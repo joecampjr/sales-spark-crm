@@ -15,11 +15,17 @@ const UserSchema = z.object({
 export async function GET() {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
+
     const users = await prisma.user.findMany({
+      where,
       include: {
         branch: { select: { name: true } }
       },
@@ -42,8 +48,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Apenas ADMIN e SUPERADMIN podem criar usuários
+    if (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -61,7 +72,8 @@ export async function POST(request: Request) {
         email: data.email,
         password: hashedPassword,
         role: data.role,
-        branchId: data.branchId || null
+        branchId: data.branchId || null,
+        companyId: session.companyId || null
       }
     });
 

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const CreateLeadSchema = z.object({
@@ -16,11 +17,19 @@ const CreateLeadSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const statusFilter = searchParams.get('status') || 'todos';
 
     const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },
@@ -48,6 +57,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     
     // Limpa a formatação do telefone antes de salvar
@@ -68,6 +82,7 @@ export async function POST(request: Request) {
         estimatedValue: data.estimatedValue,
         source: data.source,
         sellerId: data.sellerId || null,
+        companyId: session.companyId || null,
       }
     });
 

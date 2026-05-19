@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const BranchSchema = z.object({
@@ -13,7 +14,18 @@ const BranchSchema = z.object({
 
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
+
     const branches = await prisma.branch.findMany({
+      where,
       include: {
         sellers: {
           select: { id: true, name: true, status: true }
@@ -33,20 +45,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (!session.companyId) {
+      return NextResponse.json({ error: 'Company ID is required to create a branch' }, { status: 400 });
+    }
+
     const body = await request.json();
     
     // Limpa telefone
     if (body.phone) body.phone = body.phone.replace(/\D/g, '');
     
     const data = BranchSchema.parse(body);
-
-    // Busca uma empresa padrão ou a primeira cadastrada
-    let company = await prisma.company.findFirst();
-    if (!company) {
-      company = await prisma.company.create({
-        data: { name: 'Empresa Principal', cnpj: '00.000.000/0001-00' }
-      });
-    }
 
     const newBranch = await prisma.branch.create({
       data: {
@@ -56,7 +69,7 @@ export async function POST(request: Request) {
         address: data.address || null,
         phone: data.phone || null,
         email: data.email || null,
-        companyId: company.id
+        companyId: session.companyId
       }
     });
 

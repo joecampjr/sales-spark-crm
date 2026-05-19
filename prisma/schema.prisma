@@ -10,10 +10,20 @@ datasource db {
 }
 
 model Company {
-  id        String   @id @default(uuid())
-  name      String
-  cnpj      String   @unique
-  branches  Branch[]
+  id          String    @id @default(uuid())
+  name        String
+  cnpj        String    @unique
+  status      String    @default("ACTIVE") // ACTIVE, SUSPENDED
+  suspendedAt DateTime?
+
+  branches     Branch[]
+  users        User[]
+  sellers      Seller[]
+  leads        Lead[]
+  interactions Interaction[]
+  visits       Visit[]
+  salesActions SalesAction[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -35,73 +45,87 @@ model Branch {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String   // Hash da senha
-  role      String   @default("VENDEDOR") // ADMIN, SUPERVISOR, GERENTE, VENDEDOR
-  
-  branchId  String?
-  branch    Branch?  @relation(fields: [branchId], references: [id])
-  
+  id       String @id @default(uuid())
+  name     String
+  email    String @unique
+  password String // Hash da senha
+  role     String @default("VENDEDOR") // SUPERADMIN, ADMIN, SUPERVISOR, GERENTE, VENDEDOR
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Seller {
-  id             String   @id @default(uuid())
+  id             String  @id @default(uuid())
   name           String
-  email          String?  @unique
+  email          String? @unique
   phone          String?
   avatar         String?
   region         String
-  status         String   @default("ativo")
-  commissionRate Float    @default(0.0)
-  
-  branchId       String?
-  branch         Branch?  @relation(fields: [branchId], references: [id])
-  
-  salesCount     Int      @default(0)
-  conversionRate Float    @default(0.0)
-  activeLeads    Int      @default(0)
-  contactsToday  Int      @default(0)
-  contactsTarget Int      @default(10)
-  monthlyGoal    Float    @default(0.0)
-  
-  leads          Lead[]
-  interactions   Interaction[]
-  visits         Visit[]
-  salesActions   SalesActionStaff[]
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  status         String  @default("ativo")
+  commissionRate Float   @default(0.0)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  branchId String?
+  branch   Branch? @relation(fields: [branchId], references: [id])
+
+  salesCount     Int   @default(0)
+  conversionRate Float @default(0.0)
+  activeLeads    Int   @default(0)
+  contactsToday  Int   @default(0)
+  contactsTarget Int   @default(10)
+  monthlyGoal    Float @default(0.0)
+
+  leads        Lead[]
+  interactions Interaction[]
+  visits       Visit[]
+  salesActions SalesActionStaff[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Lead {
-  id             String   @id @default(uuid())
+  id             String @id @default(uuid())
   name           String
-  phone          String   @unique
+  phone          String @unique
   city           String
   state          String
   status         String
   priority       String
   estimatedValue Float?
   source         String
-  sellerId       String?
-  seller         Seller?  @relation(fields: [sellerId], references: [id])
-  interactions   Interaction[]
-  visits         Visit[]
-  actionLeads    SalesActionLead[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  sellerId     String?
+  seller       Seller?           @relation(fields: [sellerId], references: [id])
+  interactions Interaction[]
+  visits       Visit[]
+  actionLeads  SalesActionLead[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
 }
 
 model Interaction {
-  id           String    @id @default(uuid())
-  leadId       String
-  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  sellerId     String
-  seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  leadId   String
+  lead     Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   type         String
   result       String
   notes        String?
@@ -111,11 +135,15 @@ model Interaction {
 }
 
 model Visit {
-  id             String    @id @default(uuid())
-  leadId         String
-  lead           Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  sellerId       String
-  seller       Seller    @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  leadId   String
+  lead     Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
   address        String
   visitDate      DateTime
   status         String
@@ -127,29 +155,32 @@ model Visit {
 }
 
 model SalesAction {
-  id              String    @id @default(uuid())
-  title           String
-  region          String
-  startDate       DateTime
-  endDate         DateTime
-  salesTarget     Float     @default(0)
-  status          String
-  observations    String?
-  
-  staffCount      Int       @default(0)
-  staff           SalesActionStaff[]
-  targetLeads     SalesActionLead[]
-  
-  reportContent   String?
-  reportResult    String?
+  id           String   @id @default(uuid())
+  title        String
+  region       String
+  startDate    DateTime
+  endDate      DateTime
+  salesTarget  Float    @default(0)
+  status       String
+  observations String?
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  staffCount  Int                @default(0)
+  staff       SalesActionStaff[]
+  targetLeads SalesActionLead[]
+
+  reportContent     String?
+  reportResult      String?
   reportSubmittedAt DateTime?
-  
-  authorizedById  String?
-  authorizedAt    DateTime?
-  
-  createdById     String
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+
+  authorizedById String?
+  authorizedAt   DateTime?
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model SalesActionStaff {
