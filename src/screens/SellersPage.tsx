@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/sheet";
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { maskPhone } from '@/lib/utils';
+import { maskPhone, maskCpf } from '@/lib/utils';
 
 export default function SellersPage() {
   const queryClient = useQueryClient();
@@ -50,6 +50,10 @@ export default function SellersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<any>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // CPF states
+  const [newCpf, setNewCpf] = useState('');
+  const [editCpf, setEditCpf] = useState('');
 
   // Queries
   const { data: sellers = [], isLoading } = useQuery({
@@ -122,9 +126,10 @@ export default function SellersPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const data = {
+    const data: any = {
       name: fd.get('name'),
       email: fd.get('email'),
+      cpf: fd.get('cpf'),
       phone: fd.get('phone'),
       region: fd.get('region'),
       monthlyGoal: Number(fd.get('monthlyGoal')),
@@ -133,6 +138,9 @@ export default function SellersPage() {
       branchId: fd.get('branchId') || null,
       status: fd.get('status'),
     };
+
+    const password = fd.get('password');
+    if (password) data.password = password;
 
     if (isEdit && editingSeller) {
       updateMutation.mutate({ ...data, id: editingSeller.id });
@@ -163,7 +171,12 @@ export default function SellersPage() {
           <h1 className="text-2xl font-bold text-foreground">Gestão de Talentos</h1>
           <p className="text-muted-foreground text-sm mt-1">Administre sua força de vendas e comissionamento</p>
         </div>
-        <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <Dialog open={isNewModalOpen} onOpenChange={(open) => {
+          setIsNewModalOpen(open);
+          if (open) {
+            setNewCpf('');
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-primary text-primary-foreground">
               <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Novo Vendedor
@@ -178,8 +191,22 @@ export default function SellersPage() {
                   <Input name="name" required placeholder="João Silva" />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail Corporativo (Opcional)</Label>
-                  <Input name="email" type="email" placeholder="joao@empresa.com" />
+                  <Label>E-mail Corporativo (Login)</Label>
+                  <Input name="email" type="email" required placeholder="joao@empresa.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input 
+                    name="cpf" 
+                    required 
+                    placeholder="000.000.000-00" 
+                    value={newCpf}
+                    onChange={(e) => setNewCpf(maskCpf(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Senha Temporária</Label>
+                  <Input name="password" type="password" required placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp/Celular</Label>
@@ -394,7 +421,12 @@ export default function SellersPage() {
       </Sheet>
 
       {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+        setIsEditModalOpen(open);
+        if (open && editingSeller) {
+          setEditCpf(editingSeller.user?.cpf ? maskCpf(editingSeller.user.cpf) : '');
+        }
+      }}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader><DialogTitle>Editar Perfil do Vendedor</DialogTitle></DialogHeader>
           {editingSeller && (
@@ -405,8 +437,18 @@ export default function SellersPage() {
                   <Input name="name" defaultValue={editingSeller.name} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail</Label>
-                  <Input name="email" type="email" defaultValue={editingSeller.email || ''} />
+                  <Label>E-mail Corporativo</Label>
+                  <Input name="email" type="email" defaultValue={editingSeller.email || ''} required placeholder="joao@empresa.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input 
+                    name="cpf" 
+                    required 
+                    placeholder="000.000.000-00" 
+                    value={editCpf}
+                    onChange={(e) => setEditCpf(maskCpf(e.target.value))}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>WhatsApp</Label>
@@ -415,6 +457,10 @@ export default function SellersPage() {
                     defaultValue={editingSeller.phone ? maskPhone(editingSeller.phone) : ''} 
                     onChange={(e) => e.target.value = maskPhone(e.target.value)}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Nova Senha (Deixe em branco para manter)</Label>
+                  <Input name="password" type="password" placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
                   <Label>Filial</Label>

@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { Separator } from '@/components/ui/separator';
+import { maskPhone, maskCpf } from '@/lib/utils';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -44,6 +46,12 @@ export default function UsersPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Perfil e CPF states
+  const [newRole, setNewRole] = useState('VENDEDOR');
+  const [editRole, setEditRole] = useState('VENDEDOR');
+  const [newCpf, setNewCpf] = useState('');
+  const [editCpf, setEditCpf] = useState('');
 
   // Queries
   const { data: users = [], isLoading } = useQuery({
@@ -93,7 +101,10 @@ export default function UsersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData)
       });
-      if (!res.ok) throw new Error('Erro ao atualizar usuário');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro ao atualizar usuário');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -101,7 +112,8 @@ export default function UsersPage() {
       setIsEditModalOpen(false);
       setEditingUser(null);
       toast.success('Usuário atualizado!');
-    }
+    },
+    onError: (err: any) => toast.error(err.message)
   });
 
   const deleteMutation = useMutation({
@@ -123,15 +135,25 @@ export default function UsersPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const role = fd.get('role') as string;
     const data: any = {
       name: fd.get('name'),
       email: fd.get('email'),
-      role: fd.get('role'),
+      role,
       branchId: fd.get('branchId') || null,
+      cpf: fd.get('cpf') || null,
     };
 
     const password = fd.get('password');
     if (password) data.password = password;
+
+    if (role === 'VENDEDOR') {
+      data.phone = fd.get('phone') || null;
+      data.region = fd.get('region') || 'São Paulo - Capital';
+      data.monthlyGoal = Number(fd.get('monthlyGoal')) || 0;
+      data.commissionRate = Number(fd.get('commissionRate')) || 0;
+      data.contactsTarget = Number(fd.get('contactsTarget')) || 10;
+    }
 
     if (isEdit && editingUser) {
       updateMutation.mutate({ ...data, id: editingUser.id });
@@ -171,7 +193,13 @@ export default function UsersPage() {
           <h1 className="text-2xl font-bold text-foreground">Gestão de Usuários</h1>
           <p className="text-muted-foreground text-sm mt-1">Administre as contas e permissões do sistema</p>
         </div>
-        <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <Dialog open={isNewModalOpen} onOpenChange={(open) => {
+          setIsNewModalOpen(open);
+          if (open) {
+            setNewRole('VENDEDOR');
+            setNewCpf('');
+          }
+        }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-primary text-primary-foreground">
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Novo Usuário
@@ -190,12 +218,27 @@ export default function UsersPage() {
                   <Input name="email" type="email" required placeholder="ana@empresa.com" />
                 </div>
                 <div className="space-y-2 col-span-2">
+                  <Label>CPF</Label>
+                  <Input 
+                    name="cpf" 
+                    required 
+                    placeholder="000.000.000-00" 
+                    value={newCpf}
+                    onChange={(e) => setNewCpf(maskCpf(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
                   <Label>Senha Temporária</Label>
                   <Input name="password" type="password" required placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
                   <Label>Perfil de Acesso</Label>
-                  <select name="role" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select 
+                    name="role" 
+                    value={newRole} 
+                    onChange={(e) => setNewRole(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
                     <option value="VENDEDOR">Vendedor</option>
                     <option value="GERENTE">Gerente</option>
                     <option value="SUPERVISOR">Supervisor</option>
@@ -211,6 +254,39 @@ export default function UsersPage() {
                     ))}
                   </select>
                 </div>
+                {newRole === 'VENDEDOR' && (
+                  <>
+                    <Separator className="col-span-2 my-2" />
+                    <div className="space-y-2 col-span-2">
+                      <p className="text-xs font-semibold text-primary">Dados do Vendedor</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>WhatsApp / Celular</Label>
+                      <Input 
+                        name="phone" 
+                        required 
+                        placeholder="(11) 99999-9999" 
+                        onChange={(e) => e.target.value = maskPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Região de Atuação</Label>
+                      <Input name="region" required placeholder="Ex: São Paulo - Sul" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Meta Mensal (R$)</Label>
+                      <Input name="monthlyGoal" type="number" defaultValue={50000} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comissão (%)</Label>
+                      <Input name="commissionRate" type="number" step="0.1" defaultValue={5} />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Meta de Contatos Diários</Label>
+                      <Input name="contactsTarget" type="number" defaultValue={10} />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={createMutation.isPending}>
@@ -277,7 +353,12 @@ export default function UsersPage() {
                         <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => { setEditingUser(u); setIsEditModalOpen(true); }}>
+                        <DropdownMenuItem onClick={() => { 
+                          setEditingUser(u); 
+                          setEditRole(u.role);
+                          setEditCpf(u.cpf ? maskCpf(u.cpf) : '');
+                          setIsEditModalOpen(true); 
+                        }}>
                           <Pencil className="w-4 h-4 mr-2" /> Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => { setUserToDelete(u); setIsDeleteDialogOpen(true); }}>
@@ -295,7 +376,7 @@ export default function UsersPage() {
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader><DialogTitle>Editar Usuário</DialogTitle></DialogHeader>
           {editingUser && (
             <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4 mt-4">
@@ -309,12 +390,27 @@ export default function UsersPage() {
                   <Input name="email" type="email" defaultValue={editingUser.email} required />
                 </div>
                 <div className="space-y-2 col-span-2">
+                  <Label>CPF</Label>
+                  <Input 
+                    name="cpf" 
+                    required 
+                    placeholder="000.000.000-00" 
+                    value={editCpf}
+                    onChange={(e) => setEditCpf(maskCpf(e.target.value))}
+                  />
+                </div>
+                <div className="space-y-2 col-span-2">
                   <Label>Nova Senha (Deixe em branco para manter)</Label>
                   <Input name="password" type="password" placeholder="••••••••" />
                 </div>
                 <div className="space-y-2">
                   <Label>Perfil</Label>
-                  <select name="role" defaultValue={editingUser.role} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select 
+                    name="role" 
+                    value={editRole} 
+                    onChange={(e) => setEditRole(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
                     <option value="VENDEDOR">Vendedor</option>
                     <option value="GERENTE">Gerente</option>
                     <option value="SUPERVISOR">Supervisor</option>
@@ -330,6 +426,39 @@ export default function UsersPage() {
                     ))}
                   </select>
                 </div>
+                {editRole === 'VENDEDOR' && (
+                  <>
+                    <Separator className="col-span-2 my-2" />
+                    <div className="space-y-2 col-span-2">
+                      <p className="text-xs font-semibold text-primary">Dados do Vendedor</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>WhatsApp / Celular</Label>
+                      <Input 
+                        name="phone" 
+                        required 
+                        defaultValue={editingUser.seller?.phone ? maskPhone(editingUser.seller.phone) : ''}
+                        onChange={(e) => e.target.value = maskPhone(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Região de Atuação</Label>
+                      <Input name="region" required defaultValue={editingUser.seller?.region || ''} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Meta Mensal (R$)</Label>
+                      <Input name="monthlyGoal" type="number" defaultValue={editingUser.seller?.monthlyGoal || 0} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comissão (%)</Label>
+                      <Input name="commissionRate" type="number" step="0.1" defaultValue={editingUser.seller?.commissionRate || 0} />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Meta de Contatos Diários</Label>
+                      <Input name="contactsTarget" type="number" defaultValue={editingUser.seller?.contactsTarget || 10} />
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex justify-end pt-4">
                 <Button type="submit" disabled={updateMutation.isPending}>

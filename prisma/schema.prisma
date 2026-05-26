@@ -15,7 +15,7 @@ model Company {
   cnpj        String    @unique
   status      String    @default("ACTIVE") // ACTIVE, SUSPENDED
   suspendedAt DateTime?
-  
+
   planName      String?   @default("Plano Premium")
   planValue     Float?    @default(499.00)
   nextDueDate   DateTime?
@@ -50,11 +50,12 @@ model Branch {
 }
 
 model User {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
-  email    String @unique
+  email    String  @unique
   password String // Hash da senha
-  role     String @default("VENDEDOR") // SUPERADMIN, ADMIN, SUPERVISOR, GERENTE, VENDEDOR
+  role     String  @default("VENDEDOR") // SUPERADMIN, ADMIN, SUPERVISOR, GERENTE, VENDEDOR
+  cpf      String? @unique // CPF do usuário
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
@@ -64,6 +65,7 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  seller    Seller?
 }
 
 model Seller {
@@ -81,6 +83,9 @@ model Seller {
 
   branchId String?
   branch   Branch? @relation(fields: [branchId], references: [id])
+
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   salesCount     Int   @default(0)
   conversionRate Float @default(0.0)
