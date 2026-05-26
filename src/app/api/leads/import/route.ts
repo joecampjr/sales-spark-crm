@@ -30,12 +30,12 @@ export async function POST(request: Request) {
       for (const lead of leads) {
         if (!lead.phone) continue; // Exige telefone
         
-        const existing = await tx.lead.findUnique({ where: { phone: lead.phone } });
+        const existing = await tx.lead.findFirst({ where: { phone: lead.phone } });
         
         if (existing) {
           // Atualiza dados
           await tx.lead.update({
-            where: { phone: lead.phone },
+            where: { id: existing.id },
             data: {
               name: lead.name,
               city: lead.city || existing.city,
