@@ -206,7 +206,7 @@ export default function UsersPage() {
                   <Label>Filial (Opcional)</Label>
                   <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="">Nenhuma</option>
-                    {branches.map((b: any) => (
+                    {Array.isArray(branches) && branches.map((b: any) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
@@ -325,7 +325,7 @@ export default function UsersPage() {
                   <Label>Filial</Label>
                   <select name="branchId" defaultValue={editingUser.branchId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="">Nenhuma</option>
-                    {branches.map((b: any) => (
+                    {Array.isArray(branches) && branches.map((b: any) => (
                       <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>

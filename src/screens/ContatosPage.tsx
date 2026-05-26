@@ -54,7 +54,9 @@ export default function ContatosPage() {
     queryKey: ['leads'],
     queryFn: async () => {
       const res = await fetch('/api/leads');
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -62,7 +64,9 @@ export default function ContatosPage() {
     queryKey: ['sellers'],
     queryFn: async () => {
       const res = await fetch('/api/sellers');
-      return res.json();
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     }
   });
 
@@ -171,14 +175,14 @@ export default function ContatosPage() {
                     <Label>Lead</Label>
                     <select name="leadId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="">Selecione...</option>
-                      {leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      {Array.isArray(leads) && leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label>Vendedor</Label>
                     <select name="sellerId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="">Selecione...</option>
-                      {sellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      {Array.isArray(sellers) && sellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
