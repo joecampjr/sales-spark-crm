@@ -43,7 +43,8 @@ export default function VisitasPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   // Permissions
-  const canAuthorize = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+  const canAuthorize = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'GERENTE';
+  const isSeller = user?.role === 'VENDEDOR';
 
   // Queries
   const { data: visits = [], isLoading } = useQuery({
@@ -232,18 +233,22 @@ export default function VisitasPage() {
                   <Label>Data e Hora</Label>
                   <Input name="visitDate" type="datetime-local" required className="bg-background" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Status Inicial</Label>
-                  <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="aguardando_autorizacao">Aguardando Autorização</option>
-                    {canAuthorize && (
-                      <>
-                        <option value="autorizada">Autorizada</option>
-                        <option value="realizada">Realizada</option>
-                      </>
-                    )}
-                  </select>
-                </div>
+                {isSeller ? (
+                  <input type="hidden" name="status" value="aguardando_autorizacao" />
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Status Inicial</Label>
+                    <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="aguardando_autorizacao">Aguardando Autorização</option>
+                      {canAuthorize && (
+                        <>
+                          <option value="autorizada">Autorizada</option>
+                          <option value="realizada">Realizada</option>
+                        </>
+                      )}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2 col-span-2">
                   <Label>Observações/Motivo</Label>
                   <Input name="notes" placeholder="Descreva o motivo da visita..." />
@@ -370,16 +375,20 @@ export default function VisitasPage() {
                   <Label>Data e Hora</Label>
                   <Input name="visitDate" type="datetime-local" defaultValue={new Date(editingVisit.visitDate).toISOString().slice(0, 16)} required className="bg-background" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <select name="status" defaultValue={editingVisit.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="aguardando_autorizacao">Aguardando Autorização</option>
-                    <option value="autorizada">Autorizada</option>
-                    <option value="realizada">Realizada</option>
-                    <option value="recusada">Recusada</option>
-                    <option value="cancelada">Cancelada</option>
-                  </select>
-                </div>
+                {isSeller ? (
+                  <input type="hidden" name="status" value={editingVisit.status} />
+                ) : (
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <select name="status" defaultValue={editingVisit.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="aguardando_autorizacao">Aguardando Autorização</option>
+                      <option value="autorizada">Autorizada</option>
+                      <option value="realizada">Realizada</option>
+                      <option value="recusada">Recusada</option>
+                      <option value="cancelada">Cancelada</option>
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2 col-span-2">
                   <Label>Observações</Label>
                   <Input name="notes" defaultValue={editingVisit.notes || ''} />
