@@ -78,7 +78,10 @@ export default function ContatosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newData)
       });
-      if (!res.ok) throw new Error('Erro ao criar contato');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao criar contato');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -86,7 +89,7 @@ export default function ContatosPage() {
       setIsNewModalOpen(false);
       toast.success('Contato registrado/agendado com sucesso!');
     },
-    onError: () => toast.error('Falha ao registrar contato.')
+    onError: (error: any) => toast.error(error.message || 'Falha ao registrar contato.')
   });
 
   const updateMutation = useMutation({
@@ -96,7 +99,10 @@ export default function ContatosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData)
       });
-      if (!res.ok) throw new Error('Erro ao atualizar contato');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar contato');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -104,18 +110,25 @@ export default function ContatosPage() {
       setIsEditModalOpen(false);
       setEditingContato(null);
       toast.success('Contato atualizado!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar contato.')
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await fetch(`/api/interactions/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/interactions/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao excluir contato');
+      }
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interactions'] });
       setIsDeleteDialogOpen(false);
       toast.success('Registro removido.');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao excluir contato.')
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {

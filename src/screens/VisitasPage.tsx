@@ -82,14 +82,18 @@ export default function VisitasPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newData)
       });
-      if (!res.ok) throw new Error('Erro ao agendar visita');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao agendar visita');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       setIsNewModalOpen(false);
       toast.success('Visita solicitada/agendada com sucesso!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao agendar visita.')
   });
 
   const updateMutation = useMutation({
@@ -99,6 +103,10 @@ export default function VisitasPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData)
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar visita');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -106,7 +114,8 @@ export default function VisitasPage() {
       setIsEditModalOpen(false);
       setEditingVisit(null);
       toast.success('Visita atualizada!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar visita.')
   });
 
   const authorizeMutation = useMutation({
@@ -119,21 +128,34 @@ export default function VisitasPage() {
           authorizedById: user?.id 
         })
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao autorizar visita');
+      }
       return res.json();
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       toast.success(variables.status === 'autorizada' ? 'Visita autorizada!' : 'Visita recusada.');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar autorização da visita.')
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/visits/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/visits/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao excluir visita');
+      }
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       setIsDeleteDialogOpen(false);
       toast.success('Visita removida.');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao excluir visita.')
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {

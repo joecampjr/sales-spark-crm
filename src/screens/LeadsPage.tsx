@@ -74,7 +74,10 @@ export default function LeadsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newLead)
       });
-      if (!res.ok) throw new Error('Erro ao criar lead');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao criar lead');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -82,7 +85,7 @@ export default function LeadsPage() {
       setIsModalOpen(false);
       toast.success('Lead criado com sucesso!');
     },
-    onError: () => toast.error('Falha ao criar o lead.')
+    onError: (error: any) => toast.error(error.message || 'Falha ao criar o lead.')
   });
 
   const updateMutation = useMutation({
@@ -92,7 +95,10 @@ export default function LeadsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedLead)
       });
-      if (!res.ok) throw new Error('Erro ao atualizar lead');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar lead');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -101,7 +107,7 @@ export default function LeadsPage() {
       setEditingLead(null);
       toast.success('Lead atualizado com sucesso!');
     },
-    onError: () => toast.error('Falha ao atualizar o lead.')
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar o lead.')
   });
 
   const deleteMutation = useMutation({
@@ -109,7 +115,10 @@ export default function LeadsPage() {
       const res = await fetch(`/api/leads/${id}`, {
         method: 'DELETE'
       });
-      if (!res.ok) throw new Error('Erro ao deletar lead');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao deletar lead');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -118,7 +127,7 @@ export default function LeadsPage() {
       setLeadToDelete(null);
       toast.success('Lead deletado com sucesso!');
     },
-    onError: () => toast.error('Falha ao deletar o lead.')
+    onError: (error: any) => toast.error(error.message || 'Falha ao deletar o lead.')
   });
 
   const importMutation = useMutation({

@@ -71,6 +71,19 @@ export async function POST(request: Request) {
 
     const data = CreateLeadSchema.parse(body);
 
+    // Verifica se já existe um lead com o mesmo telefone nesta empresa
+    if (data.phone) {
+      const existingLead = await prisma.lead.findFirst({
+        where: {
+          phone: data.phone,
+          companyId: session.companyId || null,
+        }
+      });
+      if (existingLead) {
+        return NextResponse.json({ error: 'Um lead com este telefone já está cadastrado nesta empresa.' }, { status: 400 });
+      }
+    }
+
     const newLead = await prisma.lead.create({
       data: {
         name: data.name,

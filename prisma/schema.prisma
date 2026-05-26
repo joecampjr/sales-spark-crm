@@ -101,7 +101,7 @@ model Seller {
 model Lead {
   id             String @id @default(uuid())
   name           String
-  phone          String @unique
+  phone          String
   city           String
   state          String
   status         String
