@@ -143,8 +143,8 @@ export default function ContatosPage() {
   };
 
   const filteredContatos = contatos.filter((c: any) => 
-    c.lead?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.seller?.name?.toLowerCase().includes(search.toLowerCase())
+    (c.lead?.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (c.seller?.name?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
   return (

@@ -151,9 +151,9 @@ export default function SellersPage() {
   };
 
   const filteredSellers = Array.isArray(sellers) ? sellers.filter((s: any) => 
-    s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.region?.toLowerCase().includes(search.toLowerCase()) ||
-    s.email?.toLowerCase().includes(search.toLowerCase())
+    (s.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (s.region?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (s.email?.toLowerCase() || '').includes(search.toLowerCase())
   ) : [];
 
   return (

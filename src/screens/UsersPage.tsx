@@ -141,8 +141,8 @@ export default function UsersPage() {
   };
 
   const filteredUsers = users.filter((u: any) => 
-    u.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.email?.toLowerCase().includes(search.toLowerCase())
+    (u.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (u.email?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
   const getRoleBadge = (role: string) => {

@@ -151,8 +151,8 @@ export default function VisitasPage() {
   };
 
   const filteredVisits = visits.filter((v: any) => 
-    v.lead?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    v.address?.toLowerCase().includes(search.toLowerCase())
+    (v.lead?.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (v.address?.toLowerCase() || '').includes(search.toLowerCase())
   );
 
   return (

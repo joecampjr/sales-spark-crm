@@ -119,8 +119,8 @@ export default function FiliaisPage() {
   };
 
   const filteredBranches = Array.isArray(branches) ? branches.filter((b: any) => 
-    b.name?.toLowerCase().includes(search.toLowerCase()) ||
-    b.city?.toLowerCase().includes(search.toLowerCase())
+    (b.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (b.city?.toLowerCase() || '').includes(search.toLowerCase())
   ) : [];
 
   return (
