@@ -62,14 +62,18 @@ export default function FiliaisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newData)
       });
-      if (!res.ok) throw new Error('Erro ao criar filial');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao criar filial');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       setIsNewModalOpen(false);
       toast.success('Filial cadastrada com sucesso!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao criar filial.')
   });
 
   const updateMutation = useMutation({
@@ -79,7 +83,10 @@ export default function FiliaisPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData)
       });
-      if (!res.ok) throw new Error('Erro ao atualizar filial');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar filial');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -87,16 +94,25 @@ export default function FiliaisPage() {
       setIsEditModalOpen(false);
       setEditingBranch(null);
       toast.success('Filial atualizada!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar filial.')
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => fetch(`/api/branches/${id}`, { method: 'DELETE' }),
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/branches/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao excluir filial');
+      }
+      return res.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       setIsDeleteDialogOpen(false);
       toast.success('Filial removida.');
-    }
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao excluir filial.')
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {

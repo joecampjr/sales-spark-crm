@@ -7,9 +7,9 @@ const UpdateBranchSchema = z.object({
   name: z.string().min(2).optional(),
   city: z.string().optional(),
   state: z.string().length(2).optional(),
-  address: z.string().optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  email: z.string().email().optional().or(z.literal('')),
+  address: z.string().optional().nullable().or(z.literal('')),
+  phone: z.string().optional().nullable().or(z.literal('')),
+  email: z.string().email().optional().nullable().or(z.literal('')),
 });
 
 export async function PATCH(

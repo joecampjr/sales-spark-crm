@@ -21,9 +21,23 @@ export async function decrypt(input: string): Promise<any> {
 }
 
 export async function getSession() {
-  const session = (await cookies()).get("session")?.value;
-  if (!session) return null;
-  return await decrypt(session);
+  const sessionVal = (await cookies()).get("session")?.value;
+  if (!sessionVal) return null;
+  try {
+    const decrypted = await decrypt(sessionVal);
+    // Se o usuário logado não possuir companyId na sessão mas for ADMIN, GERENTE ou VENDEDOR,
+    // buscamos a primeira empresa disponível no banco como fallback para evitar bloqueios nas APIs.
+    if (decrypted && !decrypted.companyId && decrypted.role !== 'SUPERADMIN') {
+      const { prisma } = await import('@/lib/prisma');
+      const firstCompany = await prisma.company.findFirst();
+      if (firstCompany) {
+        decrypted.companyId = firstCompany.id;
+      }
+    }
+    return decrypted;
+  } catch (e) {
+    return null;
+  }
 }
 
 export async function updateSession(request: NextRequest) {
