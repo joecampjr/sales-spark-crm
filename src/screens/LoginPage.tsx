@@ -11,7 +11,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  
+  // Estados para suporte a Múltiplos Perfis por CPF
+  const [isMultiProfile, setIsMultiProfile] = useState(false);
+  const [profilesList, setProfilesList] = useState<any[]>([]);
+  const [tempToken, setTempToken] = useState('');
+
+  const { login, selectProfile } = useAuth();
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -20,9 +26,24 @@ export default function LoginPage() {
     const result = await login(cpf, password);
     setLoading(false);
     if (result.success) {
-      router.push('/dashboard');
+      if (result.multipleProfiles && result.profiles && result.tempToken) {
+        setProfilesList(result.profiles);
+        setTempToken(result.tempToken);
+        setIsMultiProfile(true);
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       alert(result.message || 'Erro ao fazer login. Verifique seu CPF e Senha.');
+    }
+  };
+
+  const handleProfileSelect = async (userId: string) => {
+    setLoading(true);
+    const result = await selectProfile(userId, tempToken);
+    setLoading(false);
+    if (!result.success) {
+      alert(result.message || 'Erro ao carregar o perfil de acesso.');
     }
   };
 
@@ -127,57 +148,124 @@ export default function LoginPage() {
             <h1 className="text-xl font-bold text-foreground">Sales Spark CRM</h1>
           </div>
 
-          <div>
-            <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Acesso ao Painel</h2>
-            <p className="text-sm text-muted-foreground mt-2">Entre com suas credenciais de acesso.</p>
-          </div>
+          {!isMultiProfile ? (
+            <>
+              <div>
+                <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Acesso ao Painel</h2>
+                <p className="text-sm text-muted-foreground mt-2">Entre com suas credenciais de acesso.</p>
+              </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">CPF do Usuário</label>
-              <Input
-                type="text"
-                placeholder="000.000.000-00"
-                value={cpf}
-                onChange={(e) => setCpf(maskCpf(e.target.value))}
-                className="h-11 bg-muted/30 border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/80"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">Senha</label>
-                <button type="button" className="text-xs text-primary hover:underline transition-all">
-                  Esqueceu a senha?
-                </button>
-              </div>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-11 bg-muted/30 border-border/80 pr-10 focus:border-primary/80 focus:ring-1 focus:ring-primary/80"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">CPF do Usuário</label>
+                  <Input
+                    type="text"
+                    placeholder="000.000.000-00"
+                    value={cpf}
+                    onChange={(e) => setCpf(maskCpf(e.target.value))}
+                    className="h-11 bg-muted/30 border-border/80 focus:border-primary/80 focus:ring-1 focus:ring-primary/80"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium text-foreground">Senha</label>
+                    <button type="button" className="text-xs text-primary hover:underline transition-all">
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-11 bg-muted/30 border-border/80 pr-10 focus:border-primary/80 focus:ring-1 focus:ring-primary/80"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full h-11 gradient-primary text-primary-foreground font-semibold text-sm shadow-md hover:shadow-lg transition-all"
+                  disabled={loading}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                  {loading ? 'Validando...' : 'Entrar no sistema'}
+                  {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
+                </Button>
+              </form>
+            </>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                  <ShieldCheck className="w-6 h-6 text-primary animate-pulse" />
+                  Selecione seu Perfil
+                </h2>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Identificamos mais de uma função ou empresa vinculada ao seu CPF. Escolha qual deseja visualizar:
+                </p>
               </div>
+
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
+                {profilesList.map((profile) => (
+                  <button
+                    key={profile.id}
+                    onClick={() => handleProfileSelect(profile.id)}
+                    disabled={loading}
+                    className="w-full text-left p-4 rounded-xl border border-border bg-card hover:bg-muted/30 focus:border-primary transition-all flex items-center justify-between group shadow-sm hover:shadow"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/10 shrink-0 text-primary">
+                        {profile.role === 'SUPERADMIN' ? (
+                          <ShieldCheck className="w-5 h-5 text-primary" />
+                        ) : profile.role === 'ADMIN' ? (
+                          <Briefcase className="w-5 h-5 text-blue-500" />
+                        ) : profile.role === 'GERENTE' || profile.role === 'SUPERVISOR' ? (
+                          <Users className="w-5 h-5 text-cyan-500" />
+                        ) : (
+                          <Users className="w-5 h-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                          {profile.companyName}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                          {profile.role === 'SUPERADMIN' ? 'Super Administrador Master' :
+                           profile.role === 'ADMIN' ? 'Administrador de Empresa' :
+                           profile.role === 'GERENTE' ? 'Gerente Geral' :
+                           profile.role === 'SUPERVISOR' ? 'Supervisor Regional' : 'Vendedor Comercial'}
+                        </p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-11 border-border text-muted-foreground hover:text-foreground transition-all"
+                onClick={() => {
+                  setIsMultiProfile(false);
+                  setProfilesList([]);
+                  setTempToken('');
+                }}
+                disabled={loading}
+              >
+                Voltar e Digitar Credenciais
+              </Button>
             </div>
-            <Button
-              type="submit"
-              className="w-full h-11 gradient-primary text-primary-foreground font-semibold text-sm shadow-md hover:shadow-lg transition-all"
-              disabled={loading}
-            >
-              {loading ? 'Validando...' : 'Entrar no sistema'}
-              {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
-            </Button>
-          </form>
+          )}
 
           <p className="text-center text-xs text-muted-foreground">
             Ao entrar, você concorda com os{' '}

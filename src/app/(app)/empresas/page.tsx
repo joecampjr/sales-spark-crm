@@ -35,6 +35,7 @@ export default function EmpresasPage() {
   const [companyName, setCompanyName] = useState('');
   const [companyCnpj, setCompanyCnpj] = useState('');
   const [adminName, setAdminName] = useState('');
+  const [adminCpf, setAdminCpf] = useState('');
   const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
 
@@ -87,6 +88,7 @@ export default function EmpresasPage() {
       setCompanyName('');
       setCompanyCnpj('');
       setAdminName('');
+      setAdminCpf('');
       setAdminEmail('');
       setAdminPassword('');
     },
@@ -125,10 +127,19 @@ export default function EmpresasPage() {
     setCompanyCnpj(formatted.slice(0, 18));
   };
 
+  const handleCpfChange = (value: string) => {
+    const clean = value.replace(/\D/g, "");
+    let formatted = clean;
+    if (clean.length > 3) formatted = `${clean.slice(0, 3)}.${clean.slice(3)}`;
+    if (clean.length > 6) formatted = `${formatted.slice(0, 6)}.${clean.slice(6)}`;
+    if (clean.length > 9) formatted = `${formatted.slice(0, 9)}-${clean.slice(9, 11)}`;
+    setAdminCpf(formatted.slice(0, 14));
+  };
+
   const handleCreateCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyName || !companyCnpj || !adminName || !adminEmail || !adminPassword) {
+    if (!companyName || !companyCnpj || !adminName || !adminCpf || !adminEmail || !adminPassword) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -137,6 +148,7 @@ export default function EmpresasPage() {
       name: companyName,
       cnpj: companyCnpj,
       adminName,
+      adminCpf,
       adminEmail,
       adminPassword
     });
@@ -159,7 +171,7 @@ export default function EmpresasPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Building2 className="w-6 h-6 text-primary" />
-            Gestão de Empresas (Tenants)
+            Gestão de Empresas
           </h1>
           <p className="text-muted-foreground text-sm mt-1">Gerencie as assinaturas e acessos dos seus clientes.</p>
         </div>
@@ -266,7 +278,7 @@ export default function EmpresasPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-primary" />
-              Cadastrar Nova Empresa (Tenant)
+              Cadastrar Nova Empresa
             </DialogTitle>
             <DialogDescription>
               Preencha os dados da empresa e as credenciais do administrador inicial.
@@ -318,7 +330,17 @@ export default function EmpresasPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="adminEmail">E-mail de Login <span className="text-destructive">*</span></Label>
+                <Label htmlFor="adminCpf">CPF do Administrador (Login) <span className="text-destructive">*</span></Label>
+                <Input
+                  id="adminCpf"
+                  placeholder="000.000.000-00"
+                  value={adminCpf}
+                  onChange={(e) => handleCpfChange(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="adminEmail">E-mail do Administrador (Contato) <span className="text-destructive">*</span></Label>
                 <Input
                   id="adminEmail"
                   type="email"

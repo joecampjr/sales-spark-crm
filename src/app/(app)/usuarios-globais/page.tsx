@@ -220,7 +220,7 @@ export default function UsuariosGlobaisPage() {
             <thead className="bg-muted/40 text-muted-foreground text-xs uppercase font-semibold border-b border-border/40">
               <tr>
                 <th className="px-6 py-4">Usuário</th>
-                <th className="px-6 py-4">Empresa (Tenant)</th>
+                <th className="px-6 py-4">Empresa</th>
                 <th className="px-6 py-4">Perfil</th>
                 <th className="px-6 py-4">Filial</th>
                 <th className="px-6 py-4">Cadastro</th>
@@ -352,7 +352,7 @@ export default function UsuariosGlobaisPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="newCompany">Empresa Vinculada (Tenant)</Label>
+                <Label htmlFor="newCompany">Empresa Vinculada</Label>
                 <select 
                   id="newCompany" 
                   name="companyId" 
@@ -429,7 +429,7 @@ export default function UsuariosGlobaisPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="editCompany">Empresa Vinculada (Tenant)</Label>
+                  <Label htmlFor="editCompany">Empresa Vinculada</Label>
                   <select 
                     id="editCompany" 
                     name="companyId" 

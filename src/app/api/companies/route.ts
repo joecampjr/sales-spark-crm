@@ -8,6 +8,7 @@ const CreateCompanySchema = z.object({
   name: z.string().min(2, 'Nome da empresa deve ter pelo menos 2 caracteres'),
   cnpj: z.string().min(14, 'CNPJ deve ser preenchido corretamente'),
   adminName: z.string().min(2, 'Nome do administrador deve ter pelo menos 2 caracteres'),
+  adminCpf: z.string().min(11, 'CPF do administrador inválido'),
   adminEmail: z.string().email('E-mail do administrador inválido'),
   adminPassword: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
 });
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
         data: {
           name: data.adminName,
           email: data.adminEmail,
+          cpf: data.adminCpf.replace(/\D/g, ''),
           password: hashedPassword,
           role: 'ADMIN',
           companyId: company.id

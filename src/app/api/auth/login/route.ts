@@ -35,14 +35,52 @@ export async function POST(request: Request) {
       });
     }
 
-    const user = await prisma.user.findUnique({
+    const users = await prisma.user.findMany({
       where: { cpf: cleanCpf },
       include: { company: true }
     });
 
-    if (!user || !(await bcrypt.compare(password, user.password))) {
+    if (users.length === 0) {
       return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
     }
+
+    // Filtra os usuários que coincidem a senha informada
+    const validUsers = [];
+    for (const u of users) {
+      const isMatch = await bcrypt.compare(password, u.password);
+      if (isMatch) {
+        validUsers.push(u);
+      }
+    }
+
+    if (validUsers.length === 0) {
+      return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
+    }
+
+    // Caso possua múltiplos perfis com a mesma senha e CPF
+    if (validUsers.length > 1) {
+      const tempToken = await encrypt({
+        cpf: cleanCpf,
+        userIds: validUsers.map(u => u.id),
+        isTemp: true
+      });
+
+      const profiles = validUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        role: u.role,
+        companyName: u.company?.name || 'Global (CoBusiness)'
+      }));
+
+      return NextResponse.json({
+        multipleProfiles: true,
+        profiles,
+        tempToken
+      });
+    }
+
+    // Se possuir perfil único ativo
+    const user = validUsers[0];
 
     if (user.company && user.company.status === 'SUSPENDED') {
       return NextResponse.json({ error: 'Conta suspensa. Entre em contato com o suporte.' }, { status: 403 });
@@ -69,6 +107,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ 
+      multipleProfiles: false,
       id: user.id, 
       name: user.name, 
       email: user.email, 

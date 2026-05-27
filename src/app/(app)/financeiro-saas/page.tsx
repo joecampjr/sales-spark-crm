@@ -171,7 +171,7 @@ export default function FinanceiroSaasPage() {
           Financeiro SaaS (Faturamento)
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Acompanhe, edite, gerencie e exclua as mensalidades, planos e tenants ativos na plataforma.
+          Acompanhe, edite, gerencie e exclua as mensalidades, planos e empresas ativas na plataforma.
         </p>
       </div>
 

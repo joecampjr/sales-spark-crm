@@ -55,7 +55,7 @@ model User {
   email    String  @unique
   password String // Hash da senha
   role     String  @default("VENDEDOR") // SUPERADMIN, ADMIN, SUPERVISOR, GERENTE, VENDEDOR
-  cpf      String? @unique // CPF do usuário
+  cpf      String? // CPF do usuário
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
