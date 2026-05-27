@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import Papa from 'papaparse';
 
 export async function GET(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const where: any = {};
+    if (session.companyId) {
+      where.companyId = session.companyId;
+    }
+
     const leads = await prisma.lead.findMany({
+      where,
       include: { seller: { select: { name: true } } },
       orderBy: { createdAt: 'desc' }
     });

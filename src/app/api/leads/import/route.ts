@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getSession } from '@/lib/auth';
 import { z } from 'zod';
 
 const ImportSchema = z.array(z.object({
@@ -15,6 +16,12 @@ const ImportSchema = z.array(z.object({
 
 export async function POST(request: Request) {
   try {
+    const session = await getSession();
+    if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const companyId = session.companyId || null;
     const body = await request.json();
     const leads = ImportSchema.parse(body);
 
@@ -30,7 +37,16 @@ export async function POST(request: Request) {
       for (const lead of leads) {
         if (!lead.phone) continue; // Exige telefone
         
-        const existing = await tx.lead.findFirst({ where: { phone: lead.phone } });
+        // Remove formatação do telefone para consistência no banco e na busca
+        const cleanedPhone = lead.phone.replace(/\D/g, '');
+        if (!cleanedPhone) continue;
+
+        const existing = await tx.lead.findFirst({
+          where: {
+            phone: cleanedPhone,
+            companyId: companyId
+          }
+        });
         
         if (existing) {
           // Atualiza dados
@@ -48,13 +64,14 @@ export async function POST(request: Request) {
           await tx.lead.create({
             data: {
               name: lead.name,
-              phone: lead.phone,
+              phone: cleanedPhone,
               city: lead.city,
               state: lead.state,
               status: lead.status,
               priority: lead.priority,
               estimatedValue: lead.estimatedValue,
-              source: lead.source
+              source: lead.source,
+              companyId: companyId
             }
           });
           imported++;
