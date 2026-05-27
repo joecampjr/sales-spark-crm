@@ -6,6 +6,7 @@ import { Building2, Search, Power, PowerOff, Plus, ShieldCheck, Trash2, AlertTri
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { maskCpf } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -128,12 +129,7 @@ export default function EmpresasPage() {
   };
 
   const handleCpfChange = (value: string) => {
-    const clean = value.replace(/\D/g, "");
-    let formatted = clean;
-    if (clean.length > 3) formatted = `${clean.slice(0, 3)}.${clean.slice(3)}`;
-    if (clean.length > 6) formatted = `${formatted.slice(0, 6)}.${clean.slice(6)}`;
-    if (clean.length > 9) formatted = `${formatted.slice(0, 9)}-${clean.slice(9, 11)}`;
-    setAdminCpf(formatted.slice(0, 14));
+    setAdminCpf(maskCpf(value));
   };
 
   const handleCreateCompanySubmit = (e: React.FormEvent) => {
