@@ -107,6 +107,7 @@ export default function SalesActionsPage() {
       startDate: fd.get('startDate'),
       endDate: fd.get('endDate'),
       salesTarget: Number(fd.get('salesTarget')),
+      estimatedCost: Number(fd.get('estimatedCost')) || 0,
       observations: fd.get('observations'),
       staffCount: selectedStaff.length,
       staffIds: selectedStaff,
@@ -178,6 +179,10 @@ export default function SalesActionsPage() {
                   <div className="space-y-2">
                     <Label>Meta de Vendas (R$)</Label>
                     <Input name="salesTarget" type="number" required placeholder="50000" />
+                  </div>
+                  <div className="space-y-2 col-span-2">
+                    <Label>Custo Estimado (R$)</Label>
+                    <Input name="estimatedCost" type="number" defaultValue={0} placeholder="Ex: 1500" />
                   </div>
                   <div className="space-y-2">
                     <Label>Data Início</Label>
@@ -252,13 +257,17 @@ export default function SalesActionsPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 py-3 border-y border-border/30">
-              <div className="space-y-1">
+              <div className="space-y-1 col-span-2">
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Período</p>
                 <p className="text-xs font-medium">{new Date(action.startDate).toLocaleDateString()} - {new Date(action.endDate).toLocaleDateString()}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Meta</p>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Meta de Faturamento</p>
                 <p className="text-xs font-bold text-primary">R$ {action.salesTarget.toLocaleString()}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Custo Estimado</p>
+                <p className="text-xs font-bold text-amber-500">R$ {(action.estimatedCost ?? 0).toLocaleString()}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Equipe</p>

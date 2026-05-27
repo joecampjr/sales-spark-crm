@@ -171,6 +171,7 @@ model SalesAction {
   startDate    DateTime
   endDate      DateTime
   salesTarget  Float    @default(0)
+  estimatedCost Float?   @default(0)
   status       String
   observations String?
 
