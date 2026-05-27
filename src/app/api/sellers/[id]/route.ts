@@ -10,7 +10,7 @@ const UpdateSellerSchema = z.object({
   cpf: z.string().min(11).optional().or(z.literal('')).nullable(),
   password: z.string().min(6).optional().or(z.literal('')).nullable(),
   phone: z.string().regex(/^\d{2}9?\d{8}$/, 'Formato de telefone inválido (DDD + 8 ou 9 dígitos)').optional().or(z.literal('')),
-  region: z.string().optional(),
+  region: z.string().optional().nullable().or(z.literal('')),
   monthlyGoal: z.number().optional(),
   contactsTarget: z.number().optional(),
   commissionRate: z.number().optional(),
@@ -61,7 +61,7 @@ export async function PATCH(
           name: data.name,
           email: data.email === '' ? null : data.email || undefined,
           phone: data.phone === '' ? null : data.phone || undefined,
-          region: data.region,
+          region: data.region === '' ? null : data.region || undefined,
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,
@@ -75,7 +75,7 @@ export async function PATCH(
         const userUpdateData: any = {};
         if (data.name) userUpdateData.name = data.name;
         if (data.email !== undefined) {
-          userUpdateData.email = data.email === '' ? undefined : data.email;
+          userUpdateData.email = data.email === '' ? null : data.email;
         }
         if (data.cpf !== undefined) {
           userUpdateData.cpf = data.cpf === '' ? null : data.cpf;

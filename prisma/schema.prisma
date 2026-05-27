@@ -74,7 +74,7 @@ model Seller {
   email          String? @unique
   phone          String?
   avatar         String?
-  region         String
+  region         String?
   status         String  @default("ativo")
   commissionRate Float   @default(0.0)
 

@@ -6,11 +6,11 @@ import bcrypt from 'bcryptjs';
 
 const SellerSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email('E-mail inválido'),
+  email: z.union([z.string().email('E-mail inválido'), z.literal('')]).optional().nullable(),
   cpf: z.string().min(11, 'CPF inválido'),
   password: z.string().min(6, 'Senha temporária deve ter no mínimo 6 caracteres'),
   phone: z.string().regex(/^\d{2}9?\d{8}$/, 'Formato de telefone inválido (DDD + 8 ou 9 dígitos)').optional().or(z.literal('')),
-  region: z.string(),
+  region: z.string().optional().nullable().or(z.literal('')),
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
   commissionRate: z.number().optional().default(0),
@@ -71,18 +71,23 @@ export async function POST(request: Request) {
     const data = SellerSchema.parse(body);
 
     const newSeller = await prisma.$transaction(async (tx) => {
-      // 1. Verifica se e-mail ou CPF de usuário já existe
-      const existingUser = await tx.user.findFirst({
-        where: {
-          OR: [
-            { email: data.email },
-            { cpf: data.cpf }
-          ]
-        }
-      });
+      // 1. Verifica se e-mail ou CPF de usuário já existe (apenas se fornecido)
+      const conditions: any[] = [];
+      if (data.email) {
+        conditions.push({ email: data.email });
+      }
+      if (data.cpf) {
+        conditions.push({ cpf: data.cpf });
+      }
 
-      if (existingUser) {
-        throw new Error('E-mail ou CPF já cadastrado por outro usuário');
+      if (conditions.length > 0) {
+        const existingUser = await tx.user.findFirst({
+          where: { OR: conditions }
+        });
+
+        if (existingUser) {
+          throw new Error('E-mail ou CPF já cadastrado por outro usuário');
+        }
       }
 
       // 2. Criptografa a senha temporária
@@ -92,7 +97,7 @@ export async function POST(request: Request) {
       const user = await tx.user.create({
         data: {
           name: data.name,
-          email: data.email,
+          email: data.email || null,
           password: hashedPassword,
           role: 'VENDEDOR',
           cpf: data.cpf,
@@ -105,9 +110,9 @@ export async function POST(request: Request) {
       const seller = await tx.seller.create({
         data: {
           name: data.name,
-          email: data.email,
+          email: data.email || null,
           phone: data.phone || null,
-          region: data.region,
+          region: data.region || null,
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,

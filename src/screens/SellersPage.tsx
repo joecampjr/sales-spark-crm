@@ -191,8 +191,8 @@ export default function SellersPage() {
                   <Input name="name" required placeholder="João Silva" />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail Corporativo (Login)</Label>
-                  <Input name="email" type="email" required placeholder="joao@empresa.com" />
+                  <Label>E-mail Corporativo (Login) <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                  <Input name="email" type="email" placeholder="joao@empresa.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
@@ -228,8 +228,8 @@ export default function SellersPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Região de Atuação</Label>
-                  <Input name="region" required placeholder="Ex: São Paulo - Capital" />
+                  <Label>Região de Atuação <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                  <Input name="region" placeholder="Ex: Viana" />
                 </div>
                 <div className="space-y-2">
                   <Label>Status Inicial</Label>
@@ -437,8 +437,8 @@ export default function SellersPage() {
                   <Input name="name" defaultValue={editingSeller.name} required />
                 </div>
                 <div className="space-y-2">
-                  <Label>E-mail Corporativo</Label>
-                  <Input name="email" type="email" defaultValue={editingSeller.email || ''} required placeholder="joao@empresa.com" />
+                  <Label>E-mail Corporativo <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                  <Input name="email" type="email" defaultValue={editingSeller.email || ''} placeholder="joao@empresa.com" />
                 </div>
                 <div className="space-y-2">
                   <Label>CPF</Label>
@@ -476,8 +476,8 @@ export default function SellersPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Região</Label>
-                  <Input name="region" defaultValue={editingSeller.region} />
+                  <Label>Região <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                  <Input name="region" defaultValue={editingSeller.region || ''} placeholder="Ex: Viana" />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
