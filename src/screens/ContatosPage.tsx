@@ -234,9 +234,14 @@ export default function ContatosPage() {
                     <Label>Resultado</Label>
                     <select name="result" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="Interessado">Interessado</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
+                      <option value="Agendou visita">Agendou visita</option>
+                      <option value="Solicitou orçamento">Solicitou orçamento</option>
                       <option value="Muito caro">Muito caro</option>
                       <option value="Não gostou da qualidade">Não gostou da qualidade</option>
                       <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                      <option value="Comprou do concorrente">Comprou do concorrente</option>
                       <option value="Não respondeu">Não respondeu</option>
                       <option value="Não atendeu">Não atendeu</option>
                       <option value="Outros">Outros</option>
@@ -369,9 +374,14 @@ export default function ContatosPage() {
                   <Label>Resultado</Label>
                   <select name="result" defaultValue={editingContato.result} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                     <option value="Interessado">Interessado</option>
+                    <option value="Em negociação">Em negociação</option>
+                    <option value="Vendido / Sucesso">Vendido / Sucesso</option>
+                    <option value="Agendou visita">Agendou visita</option>
+                    <option value="Solicitou orçamento">Solicitou orçamento</option>
                     <option value="Muito caro">Muito caro</option>
                     <option value="Não gostou da qualidade">Não gostou da qualidade</option>
                     <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                    <option value="Comprou do concorrente">Comprou do concorrente</option>
                     <option value="Não respondeu">Não respondeu</option>
                     <option value="Não atendeu">Não atendeu</option>
                     <option value="Outros">Outros</option>
