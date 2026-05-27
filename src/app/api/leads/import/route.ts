@@ -21,6 +21,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (session.role === 'VENDEDOR') {
+      return NextResponse.json({ error: 'Vendedores não têm permissão para importar listas de leads.' }, { status: 403 });
+    }
+
     const companyId = session.companyId || null;
     const body = await request.json();
     const leads = ImportSchema.parse(body);

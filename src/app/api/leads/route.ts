@@ -30,12 +30,40 @@ export async function GET(request: Request) {
     if (session.companyId) {
       where.companyId = session.companyId;
     }
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { city: { contains: search, mode: 'insensitive' } },
-      ];
+
+    // Filtro de Vendedor (Visibilidade Restrita)
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      if (userSeller) {
+        where.AND = [
+          {
+            OR: [
+              { sellerId: userSeller.id },
+              { sellerId: null }
+            ]
+          }
+        ];
+      } else {
+        where.sellerId = null;
+      }
     }
+
+    if (search) {
+      const searchCondition = {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+          { city: { contains: search, mode: 'insensitive' } },
+        ]
+      };
+      if (where.AND) {
+        where.AND.push(searchCondition);
+      } else {
+        where.AND = [searchCondition];
+      }
+    }
+
     if (statusFilter && statusFilter !== 'todos') {
       where.status = statusFilter;
     }
@@ -70,6 +98,16 @@ export async function POST(request: Request) {
     }
 
     const data = CreateLeadSchema.parse(body);
+
+    // Se for VENDEDOR, restringe atribuição apenas a si mesmo ou nulo
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      if (data.sellerId && (!userSeller || data.sellerId !== userSeller.id)) {
+        return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
+      }
+    }
 
     // Se atribuiu um vendedor, valida o limite de 5 leads ativos sem contato/visita
     if (data.sellerId) {

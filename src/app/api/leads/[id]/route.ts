@@ -35,6 +35,30 @@ export async function PATCH(
 
     const data = UpdateLeadSchema.parse(body);
 
+    const lead = await prisma.lead.findUnique({
+      where: { id }
+    });
+    if (!lead) {
+      return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 });
+    }
+
+    // Restrições para o papel de VENDEDOR
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      
+      // 1. Se o lead pertence a outro vendedor, bloqueia a edição
+      if (lead.sellerId && (!userSeller || lead.sellerId !== userSeller.id)) {
+        return NextResponse.json({ error: 'Você não tem permissão para editar este lead pois ele está atribuído a outro vendedor.' }, { status: 403 });
+      }
+
+      // 2. Se tentar atribuir o lead a outro vendedor
+      if (data.sellerId && (!userSeller || data.sellerId !== userSeller.id)) {
+        return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
+      }
+    }
+
     // Se atribuiu ou alterou o vendedor, valida o limite de 5 leads ativos sem contato/visita
     if (data.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
@@ -84,6 +108,10 @@ export async function DELETE(
     const session = await getSession();
     if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (session.role === 'VENDEDOR') {
+      return NextResponse.json({ error: 'Vendedores não têm permissão para excluir leads.' }, { status: 403 });
     }
 
     const { id } = await params;

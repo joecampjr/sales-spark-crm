@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { LeadStatus, LEAD_STATUS_LABELS, PRIORITY_LABELS } from '@/types/crm';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   DropdownMenu, 
@@ -28,6 +29,9 @@ import Papa from 'papaparse';
 import { maskPhone } from '@/lib/utils';
 
 export default function LeadsPage() {
+  const { user } = useAuth();
+  const isVendedor = user?.role === 'VENDEDOR';
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
@@ -76,6 +80,11 @@ export default function LeadsPage() {
       return Array.isArray(data) ? data : [];
     }
   });
+
+  const userSeller = sellers.find((s: any) => s.userId === user?.id);
+  const assignableSellers = isVendedor
+    ? (userSeller ? [userSeller] : [])
+    : sellers;
 
   const createMutation = useMutation({
     mutationFn: async (newLead: any) => {
@@ -233,9 +242,11 @@ export default function LeadsPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="file" accept=".csv" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => setIsImportModalOpen(true)} disabled={importMutation.isPending}>
-            <Upload className="w-3.5 h-3.5 mr-1.5" /> {importMutation.isPending ? 'Importando...' : 'Importar CSV'}
-          </Button>
+          {!isVendedor && (
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => setIsImportModalOpen(true)} disabled={importMutation.isPending}>
+              <Upload className="w-3.5 h-3.5 mr-1.5" /> {importMutation.isPending ? 'Importando...' : 'Importar CSV'}
+            </Button>
+          )}
           <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open('/api/leads/export', '_blank')}>
             <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar
           </Button>
@@ -312,7 +323,7 @@ export default function LeadsPage() {
                     <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                     <select name="sellerId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                       <option value="">Nenhum (Sem responsável)</option>
-                      {Array.isArray(sellers) && sellers.map((s: any) => (
+                      {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -421,15 +432,17 @@ export default function LeadsPage() {
                         }}>
                           <Pencil className="w-4 h-4 mr-2" /> Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            setLeadToDelete(lead);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" /> Deletar
-                        </DropdownMenuItem>
+                        {!isVendedor && (
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setLeadToDelete(lead);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" /> Deletar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -510,7 +523,7 @@ export default function LeadsPage() {
                   <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                   <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="">Nenhum (Sem responsável)</option>
-                    {Array.isArray(sellers) && sellers.map((s: any) => (
+                    {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
