@@ -83,8 +83,8 @@ export default function SellersPage() {
         body: JSON.stringify(newData)
       });
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Erro ao criar vendedor');
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Erro ao criar vendedor');
       }
       return res.json();
     },
@@ -103,7 +103,10 @@ export default function SellersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedData)
       });
-      if (!res.ok) throw new Error('Erro ao atualizar vendedor');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Erro ao atualizar vendedor');
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -111,7 +114,8 @@ export default function SellersPage() {
       setIsEditModalOpen(false);
       setEditingSeller(null);
       toast.success('Perfil atualizado!');
-    }
+    },
+    onError: (error: any) => toast.error(error.message)
   });
 
   const deleteMutation = useMutation({

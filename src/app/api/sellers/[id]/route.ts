@@ -9,7 +9,7 @@ const UpdateSellerSchema = z.object({
   email: z.string().email().optional().or(z.literal('')).nullable(),
   cpf: z.string().min(11).optional().or(z.literal('')).nullable(),
   password: z.string().min(6).optional().or(z.literal('')).nullable(),
-  phone: z.string().regex(/^\d{2}9?\d{8}$/, 'Formato de telefone inválido (DDD + 8 ou 9 dígitos)').optional().or(z.literal('')),
+  phone: z.string().regex(/^\d{10,11}$/, 'Telefone deve ter 10 ou 11 dígitos (DDD + número)').optional().or(z.literal('')),
   region: z.string().optional().nullable().or(z.literal('')),
   monthlyGoal: z.number().optional(),
   contactsTarget: z.number().optional(),

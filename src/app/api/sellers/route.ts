@@ -9,7 +9,7 @@ const SellerSchema = z.object({
   email: z.union([z.string().email('E-mail inválido'), z.literal('')]).optional().nullable(),
   cpf: z.string().min(11, 'CPF inválido'),
   password: z.string().min(6, 'Senha temporária deve ter no mínimo 6 caracteres'),
-  phone: z.string().regex(/^\d{2}9?\d{8}$/, 'Formato de telefone inválido (DDD + 8 ou 9 dígitos)').optional().or(z.literal('')),
+  phone: z.string().regex(/^\d{10,11}$/, 'Telefone deve ter 10 ou 11 dígitos (DDD + número)').optional().or(z.literal('')),
   region: z.string().optional().nullable().or(z.literal('')),
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
