@@ -15,7 +15,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { name, email, password, role, companyId, branchId } = body;
+    const { name, email, password, role, companyId, branchId, cpf } = body;
 
     const user = await prisma.user.findUnique({
       where: { id }
@@ -27,6 +27,7 @@ export async function PATCH(
 
     const updateData: any = {};
     if (name) updateData.name = name;
+    if (cpf) updateData.cpf = cpf.replace(/\D/g, '');
     if (email) {
       // Verificar se e-mail já existe em outro usuário
       const existing = await prisma.user.findFirst({

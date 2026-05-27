@@ -15,6 +15,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        cpf: true,
         role: true,
         companyId: true,
         branchId: true,
@@ -50,9 +51,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { name, email, password, role, companyId, branchId } = body;
+    const { name, email, password, role, companyId, branchId, cpf } = body;
 
-    if (!name || !email || !password || !role) {
+    if (!name || !email || !password || !role || !cpf) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 });
     }
 
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
       data: {
         name,
         email,
+        cpf: cpf.replace(/\D/g, ''),
         password: hashedPassword,
         role,
         companyId: companyId || null,

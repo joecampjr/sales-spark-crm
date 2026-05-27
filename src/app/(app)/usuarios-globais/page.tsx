@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
+import { maskCpf } from '@/lib/utils';
 
 export default function UsuariosGlobaisPage() {
   const queryClient = useQueryClient();
@@ -49,6 +50,8 @@ export default function UsuariosGlobaisPage() {
 
   // States para formulários
   const [selectedCompanyId, setSelectedCompanyId] = useState('');
+  const [newCpf, setNewCpf] = useState('');
+  const [editCpf, setEditCpf] = useState('');
 
   // Queries
   const { data: users = [], isLoading } = useQuery({
@@ -96,6 +99,7 @@ export default function UsuariosGlobaisPage() {
       queryClient.invalidateQueries({ queryKey: ['global-users'] });
       setIsNewModalOpen(false);
       setSelectedCompanyId('');
+      setNewCpf('');
       toast.success('Usuário criado com sucesso na plataforma!');
     },
     onError: (err: any) => toast.error(err.message)
@@ -119,6 +123,7 @@ export default function UsuariosGlobaisPage() {
       setIsEditModalOpen(false);
       setEditingUser(null);
       setSelectedCompanyId('');
+      setEditCpf('');
       toast.success('Usuário atualizado com sucesso!');
     },
     onError: (err: any) => toast.error(err.message)
@@ -147,6 +152,7 @@ export default function UsuariosGlobaisPage() {
     const data: any = {
       name: fd.get('name'),
       email: fd.get('email'),
+      cpf: fd.get('cpf'),
       role: fd.get('role'),
       companyId: fd.get('companyId') || null,
       branchId: fd.get('branchId') || null,
@@ -254,6 +260,9 @@ export default function UsuariosGlobaisPage() {
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <Mail className="w-3 h-3" /> {u.email}
                           </p>
+                          <p className="text-[10px] text-muted-foreground/80 mt-0.5">
+                            CPF: {u.cpf ? maskCpf(u.cpf) : 'Sem CPF'}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -290,6 +299,7 @@ export default function UsuariosGlobaisPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => {
                             setEditingUser(u);
+                            setEditCpf(u.cpf ? maskCpf(u.cpf) : '');
                             setSelectedCompanyId(u.companyId || '');
                             setIsEditModalOpen(true);
                           }}>
@@ -332,7 +342,18 @@ export default function UsuariosGlobaisPage() {
                 <Input id="newName" name="name" required placeholder="Ex: Lucas Mendes" />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="newEmail">E-mail (Login) <span className="text-destructive">*</span></Label>
+                <Label htmlFor="newCpf">CPF do Usuário <span className="text-destructive">*</span></Label>
+                <Input 
+                  id="newCpf" 
+                  name="cpf" 
+                  required 
+                  placeholder="000.000.000-00" 
+                  value={newCpf} 
+                  onChange={(e) => setNewCpf(maskCpf(e.target.value))} 
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="newEmail">E-mail (Contato) <span className="text-destructive">*</span></Label>
                 <Input id="newEmail" name="email" type="email" required placeholder="lucas@empresa.com" />
               </div>
               <div className="space-y-2 col-span-2">
@@ -407,6 +428,17 @@ export default function UsuariosGlobaisPage() {
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="editName">Nome Completo</Label>
                   <Input id="editName" name="name" defaultValue={editingUser.name} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="editCpf">CPF do Usuário <span className="text-destructive">*</span></Label>
+                  <Input 
+                    id="editCpf" 
+                    name="cpf" 
+                    required 
+                    placeholder="000.000.000-00" 
+                    value={editCpf} 
+                    onChange={(e) => setEditCpf(maskCpf(e.target.value))} 
+                  />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="editEmail">E-mail</Label>
