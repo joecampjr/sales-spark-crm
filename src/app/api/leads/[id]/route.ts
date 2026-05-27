@@ -35,6 +35,21 @@ export async function PATCH(
 
     const data = UpdateLeadSchema.parse(body);
 
+    // Se atribuiu ou alterou o vendedor, valida o limite de 5 leads ativos sem contato/visita
+    if (data.sellerId) {
+      const activeLeadsCount = await prisma.lead.count({
+        where: {
+          sellerId: data.sellerId,
+          id: { not: id }, // Exclui o próprio lead da contagem
+          interactions: { none: {} },
+          visits: { none: {} }
+        }
+      });
+      if (activeLeadsCount >= 5) {
+        return NextResponse.json({ error: 'Este vendedor já possui o limite de 5 leads ativos sem contato ou visita.' }, { status: 400 });
+      }
+    }
+
     const whereClause: any = { id };
     if (session.companyId) {
       whereClause.companyId = session.companyId;

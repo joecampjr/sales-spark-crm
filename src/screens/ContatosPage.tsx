@@ -40,6 +40,10 @@ export default function ContatosPage() {
   const [contatoToDelete, setContatoToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
+  // States for automatic seller selection
+  const [selectedLeadId, setSelectedLeadId] = useState('');
+  const [selectedSellerId, setSelectedSellerId] = useState('');
+
   // Queries
   const { data: contatos = [], isLoading } = useQuery({
     queryKey: ['interactions'],
@@ -131,6 +135,19 @@ export default function ContatosPage() {
     onError: (error: any) => toast.error(error.message || 'Falha ao excluir contato.')
   });
 
+  const handleLeadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const leadId = e.target.value;
+    setSelectedLeadId(leadId);
+    
+    // Encontra o lead selecionado e pré-seleciona o vendedor dele se houver
+    const lead = leads.find((l: any) => l.id === leadId);
+    if (lead && lead.sellerId) {
+      setSelectedSellerId(lead.sellerId);
+    } else {
+      setSelectedSellerId('');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -172,7 +189,13 @@ export default function ContatosPage() {
           <p className="text-muted-foreground text-sm mt-1">Gestão de interações e retornos</p>
         </div>
         <div className="flex items-center gap-2">
-          <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+          <Dialog open={isNewModalOpen} onOpenChange={(open) => {
+            setIsNewModalOpen(open);
+            if (open) {
+              setSelectedLeadId('');
+              setSelectedSellerId('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button size="sm" className="gradient-primary text-primary-foreground">
                 <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar Contato
@@ -186,14 +209,14 @@ export default function ContatosPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Lead</Label>
-                    <select name="leadId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <select name="leadId" required value={selectedLeadId} onChange={handleLeadChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="">Selecione...</option>
                       {Array.isArray(leads) && leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label>Vendedor</Label>
-                    <select name="sellerId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <select name="sellerId" required value={selectedSellerId} onChange={(e) => setSelectedSellerId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="">Selecione...</option>
                       {Array.isArray(sellers) && sellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
@@ -209,7 +232,15 @@ export default function ContatosPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Resultado</Label>
-                    <Input name="result" required placeholder="Ex: Interessado" />
+                    <select name="result" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      <option value="Interessado">Interessado</option>
+                      <option value="Muito caro">Muito caro</option>
+                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Não atendeu">Não atendeu</option>
+                      <option value="Outros">Outros</option>
+                    </select>
                   </div>
                   <div className="space-y-2 col-span-2">
                     <Label>Agendar Retorno (Opcional)</Label>
@@ -336,7 +367,15 @@ export default function ContatosPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Resultado</Label>
-                  <Input name="result" defaultValue={editingContato.result} required />
+                  <select name="result" defaultValue={editingContato.result} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <option value="Interessado">Interessado</option>
+                    <option value="Muito caro">Muito caro</option>
+                    <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                    <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                    <option value="Não respondeu">Não respondeu</option>
+                    <option value="Não atendeu">Não atendeu</option>
+                    <option value="Outros">Outros</option>
+                  </select>
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Agendar Retorno</Label>

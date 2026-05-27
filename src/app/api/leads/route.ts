@@ -71,6 +71,20 @@ export async function POST(request: Request) {
 
     const data = CreateLeadSchema.parse(body);
 
+    // Se atribuiu um vendedor, valida o limite de 5 leads ativos sem contato/visita
+    if (data.sellerId) {
+      const activeLeadsCount = await prisma.lead.count({
+        where: {
+          sellerId: data.sellerId,
+          interactions: { none: {} },
+          visits: { none: {} }
+        }
+      });
+      if (activeLeadsCount >= 5) {
+        return NextResponse.json({ error: 'Este vendedor já possui o limite de 5 leads ativos sem contato ou visita.' }, { status: 400 });
+      }
+    }
+
     // Verifica se já existe um lead com o mesmo telefone nesta empresa
     if (data.phone) {
       const existingLead = await prisma.lead.findFirst({

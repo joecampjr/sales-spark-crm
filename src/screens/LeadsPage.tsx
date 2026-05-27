@@ -67,6 +67,16 @@ export default function LeadsPage() {
     }
   });
 
+  const { data: sellers = [] } = useQuery({
+    queryKey: ['sellers'],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers');
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }
+  });
+
   const createMutation = useMutation({
     mutationFn: async (newLead: any) => {
       const res = await fetch('/api/leads', {
@@ -185,7 +195,8 @@ export default function LeadsPage() {
       status: fd.get('status'),
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
-      source: fd.get('source')
+      source: fd.get('source'),
+      sellerId: fd.get('sellerId') || null,
     });
   };
 
@@ -202,7 +213,8 @@ export default function LeadsPage() {
       status: fd.get('status'),
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
-      source: fd.get('source')
+      source: fd.get('source'),
+      sellerId: fd.get('sellerId') || null,
     });
   };
 
@@ -294,6 +306,15 @@ export default function LeadsPage() {
                       <option value="Redes Sociais">Redes Sociais</option>
                       <option value="WhatsApp">WhatsApp</option>
                       <option value="Outros">Outros</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                    <select name="sellerId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Nenhum (Sem responsável)</option>
+                      {Array.isArray(sellers) && sellers.map((s: any) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -483,6 +504,15 @@ export default function LeadsPage() {
                     <option value="Redes Sociais">Redes Sociais</option>
                     <option value="WhatsApp">WhatsApp</option>
                     <option value="Outros">Outros</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
+                  <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="">Nenhum (Sem responsável)</option>
+                    {Array.isArray(sellers) && sellers.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
