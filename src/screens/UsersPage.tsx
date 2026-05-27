@@ -215,7 +215,7 @@ export default function UsersPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>E-mail (Login)</Label>
-                  <Input name="email" type="email" required placeholder="ana@empresa.com" />
+                  <Input name="email" type="email" placeholder="ana@empresa.com" />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>CPF</Label>
@@ -387,7 +387,7 @@ export default function UsersPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>E-mail</Label>
-                  <Input name="email" type="email" defaultValue={editingUser.email} required />
+                  <Input name="email" type="email" defaultValue={editingUser.email || ''} />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>CPF</Label>

@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth';
 
 const UpdateUserSchema = z.object({
   name: z.string().min(2).optional(),
-  email: z.string().email().optional(),
+  email: z.union([z.string().email(), z.literal('')]).optional().nullable(),
   password: z.string().min(6).optional().or(z.literal('')),
   role: z.string().optional(),
   branchId: z.string().optional().nullable(),
@@ -48,7 +48,7 @@ export async function PATCH(
         where: { id },
         data: {
           name: data.name,
-          email: data.email,
+          email: data.email === '' ? null : data.email,
           role: data.role,
           cpf: data.cpf,
           branchId: data.branchId === '' ? null : data.branchId || undefined,

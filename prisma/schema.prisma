@@ -52,7 +52,7 @@ model Branch {
 model User {
   id       String  @id @default(uuid())
   name     String
-  email    String  @unique
+  email    String?  @unique
   password String // Hash da senha
   role     String  @default("VENDEDOR") // SUPERADMIN, ADMIN, SUPERVISOR, GERENTE, VENDEDOR
   cpf      String? // CPF do usuário

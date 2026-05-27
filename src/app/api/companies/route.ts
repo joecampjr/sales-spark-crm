@@ -9,7 +9,7 @@ const CreateCompanySchema = z.object({
   cnpj: z.string().min(14, 'CNPJ deve ser preenchido corretamente'),
   adminName: z.string().min(2, 'Nome do administrador deve ter pelo menos 2 caracteres'),
   adminCpf: z.string().min(11, 'CPF do administrador inválido'),
-  adminEmail: z.string().email('E-mail do administrador inválido'),
+  adminEmail: z.union([z.string().email('E-mail do administrador inválido'), z.literal('')]).optional().nullable(),
   adminPassword: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
 });
 
@@ -55,11 +55,13 @@ export async function POST(request: Request) {
     }
 
     // Verificar se o email do admin já existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email: data.adminEmail }
-    });
-    if (existingUser) {
-      return NextResponse.json({ error: 'Já existe um usuário cadastrado com este e-mail.' }, { status: 400 });
+    if (data.adminEmail) {
+      const existingUser = await prisma.user.findUnique({
+        where: { email: data.adminEmail }
+      });
+      if (existingUser) {
+        return NextResponse.json({ error: 'Já existe um usuário cadastrado com este e-mail.' }, { status: 400 });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
@@ -77,7 +79,7 @@ export async function POST(request: Request) {
       const adminUser = await tx.user.create({
         data: {
           name: data.adminName,
-          email: data.adminEmail,
+          email: data.adminEmail || null,
           cpf: data.adminCpf.replace(/\D/g, ''),
           password: hashedPassword,
           role: 'ADMIN',

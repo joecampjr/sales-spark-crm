@@ -28,15 +28,19 @@ export async function PATCH(
     const updateData: any = {};
     if (name) updateData.name = name;
     if (cpf) updateData.cpf = cpf.replace(/\D/g, '');
-    if (email) {
-      // Verificar se e-mail já existe em outro usuário
-      const existing = await prisma.user.findFirst({
-        where: { email, NOT: { id } }
-      });
-      if (existing) {
-        return NextResponse.json({ error: 'Este e-mail já está sendo utilizado por outro usuário.' }, { status: 400 });
+    if (email !== undefined) {
+      if (email) {
+        // Verificar se e-mail já existe em outro usuário
+        const existing = await prisma.user.findFirst({
+          where: { email, NOT: { id } }
+        });
+        if (existing) {
+          return NextResponse.json({ error: 'Este e-mail já está sendo utilizado por outro usuário.' }, { status: 400 });
+        }
+        updateData.email = email;
+      } else {
+        updateData.email = null;
       }
-      updateData.email = email;
     }
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);

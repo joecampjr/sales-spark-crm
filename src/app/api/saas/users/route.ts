@@ -53,17 +53,19 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, email, password, role, companyId, branchId, cpf } = body;
 
-    if (!name || !email || !password || !role || !cpf) {
+    if (!name || !password || !role || !cpf) {
       return NextResponse.json({ error: 'Campos obrigatórios ausentes.' }, { status: 400 });
     }
 
     // Verificar se e-mail já existe
-    const existing = await prisma.user.findUnique({
-      where: { email }
-    });
+    if (email) {
+      const existing = await prisma.user.findUnique({
+        where: { email }
+      });
 
-    if (existing) {
-      return NextResponse.json({ error: 'Este e-mail já está sendo utilizado.' }, { status: 400 });
+      if (existing) {
+        return NextResponse.json({ error: 'Este e-mail já está sendo utilizado.' }, { status: 400 });
+      }
     }
 
     // Criptografar a senha
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
     const newUser = await prisma.user.create({
       data: {
         name,
-        email,
+        email: email || null,
         cpf: cpf.replace(/\D/g, ''),
         password: hashedPassword,
         role,

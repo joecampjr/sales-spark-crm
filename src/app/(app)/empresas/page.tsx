@@ -135,7 +135,7 @@ export default function EmpresasPage() {
   const handleCreateCompanySubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!companyName || !companyCnpj || !adminName || !adminCpf || !adminEmail || !adminPassword) {
+    if (!companyName || !companyCnpj || !adminName || !adminCpf || !adminPassword) {
       toast.error('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -145,7 +145,7 @@ export default function EmpresasPage() {
       cnpj: companyCnpj,
       adminName,
       adminCpf,
-      adminEmail,
+      adminEmail: adminEmail || '',
       adminPassword
     });
   };
@@ -336,14 +336,13 @@ export default function EmpresasPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="adminEmail">E-mail do Administrador (Contato) <span className="text-destructive">*</span></Label>
+                <Label htmlFor="adminEmail">E-mail do Administrador (Contato)</Label>
                 <Input
                   id="adminEmail"
                   type="email"
                   placeholder="Ex: admin@empresa.com"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
-                  required
                 />
               </div>
               <div className="grid gap-2">

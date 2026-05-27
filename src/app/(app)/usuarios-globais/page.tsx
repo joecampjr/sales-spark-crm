@@ -353,8 +353,8 @@ export default function UsuariosGlobaisPage() {
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <Label htmlFor="newEmail">E-mail (Contato) <span className="text-destructive">*</span></Label>
-                <Input id="newEmail" name="email" type="email" required placeholder="lucas@empresa.com" />
+                <Label htmlFor="newEmail">E-mail (Contato)</Label>
+                <Input id="newEmail" name="email" type="email" placeholder="lucas@empresa.com" />
               </div>
               <div className="space-y-2 col-span-2">
                 <Label htmlFor="newPassword">Senha Provisória <span className="text-destructive">*</span></Label>
@@ -442,7 +442,7 @@ export default function UsuariosGlobaisPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="editEmail">E-mail</Label>
-                  <Input id="editEmail" name="email" type="email" defaultValue={editingUser.email} required />
+                  <Input id="editEmail" name="email" type="email" defaultValue={editingUser.email || ''} />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="editPassword">Nova Senha (deixe em branco para manter)</Label>

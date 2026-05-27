@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth';
 
 const UserSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email(),
+  email: z.union([z.string().email(), z.literal('')]).optional().nullable(),
   password: z.string().min(6).optional(),
   role: z.string(),
   branchId: z.string().optional().nullable(),
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
       const user = await tx.user.create({
         data: {
           name: data.name,
-          email: data.email,
+          email: data.email || null,
           password: hashedPassword,
           role: data.role,
           cpf: data.cpf || null,
