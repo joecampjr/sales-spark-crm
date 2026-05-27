@@ -7,6 +7,7 @@ const UpdateVisitSchema = z.object({
   visitDate: z.string().optional(),
   status: z.string().optional(),
   notes: z.string().optional(),
+  result: z.string().optional().nullable(),
 });
 
 export async function PATCH(
@@ -25,6 +26,7 @@ export async function PATCH(
         visitDate: data.visitDate ? new Date(data.visitDate) : undefined,
         status: data.status,
         notes: data.notes,
+        result: data.result,
         authorizedById: body.authorizedById,
         authorizedAt: body.authorizedById ? new Date() : undefined,
       },

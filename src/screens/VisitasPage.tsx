@@ -41,6 +41,8 @@ export default function VisitasPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [visitToDelete, setVisitToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [newStatus, setNewStatus] = useState('aguardando_autorizacao');
+  const [editingStatus, setEditingStatus] = useState('');
 
   // Permissions
   const canAuthorize = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'GERENTE';
@@ -162,6 +164,14 @@ export default function VisitasPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const status = fd.get('status');
+    const result = fd.get('result');
+
+    if (status === 'realizada' && !result) {
+      toast.error('O resultado da visita é obrigatório quando o status for "Realizada".');
+      return;
+    }
+
     const data = {
       leadId: fd.get('leadId'),
       sellerId: fd.get('sellerId'),
@@ -169,6 +179,7 @@ export default function VisitasPage() {
       visitDate: fd.get('visitDate'),
       status: fd.get('status'),
       notes: fd.get('notes'),
+      result: fd.get('result') || null,
     };
 
     if (isEdit && editingVisit) {
@@ -201,7 +212,7 @@ export default function VisitasPage() {
           <h1 className="text-2xl font-bold text-foreground">Visitas Técnicas</h1>
           <p className="text-muted-foreground text-sm mt-1">Gestão de solicitações e autorizações de saída</p>
         </div>
-        <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <Dialog open={isNewModalOpen} onOpenChange={(open) => { setIsNewModalOpen(open); if (open) setNewStatus('aguardando_autorizacao'); }}>
           <DialogTrigger asChild>
             <Button size="sm" className="gradient-primary text-primary-foreground">
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Solicitar Visita
@@ -238,7 +249,12 @@ export default function VisitasPage() {
                 ) : (
                   <div className="space-y-2">
                     <Label>Status Inicial</Label>
-                    <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <select 
+                      name="status" 
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
                       <option value="aguardando_autorizacao">Aguardando Autorização</option>
                       {canAuthorize && (
                         <>
@@ -246,6 +262,26 @@ export default function VisitasPage() {
                           <option value="realizada">Realizada</option>
                         </>
                       )}
+                    </select>
+                  </div>
+                )}
+                {newStatus === 'realizada' && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Resultado da Visita <span className="text-destructive">*</span></Label>
+                    <select name="result" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">Selecione...</option>
+                      <option value="Interessado">Interessado</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
+                      <option value="Agendou visita">Agendou visita</option>
+                      <option value="Solicitou orçamento">Solicitou orçamento</option>
+                      <option value="Muito caro">Muito caro</option>
+                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                      <option value="Comprou do concorrente">Comprou do concorrente</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Não atendeu">Não atendeu</option>
+                      <option value="Outros">Outros</option>
                     </select>
                   </div>
                 )}
@@ -313,7 +349,14 @@ export default function VisitasPage() {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    {getStatusBadge(visit.status)}
+                    <div className="flex flex-col gap-1 items-start">
+                      {getStatusBadge(visit.status)}
+                      {visit.result && (
+                        <span className="text-[11px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border/30">
+                          {visit.result}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
@@ -343,7 +386,7 @@ export default function VisitasPage() {
                           <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => { setEditingVisit(visit); setIsEditModalOpen(true); }}>
+                          <DropdownMenuItem onClick={() => { setEditingVisit(visit); setEditingStatus(visit.status); setIsEditModalOpen(true); }}>
                             <Pencil className="w-4 h-4 mr-2" /> Editar
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => { setVisitToDelete(visit); setIsDeleteDialogOpen(true); }}>
@@ -380,12 +423,37 @@ export default function VisitasPage() {
                 ) : (
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <select name="status" defaultValue={editingVisit.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <select 
+                      name="status" 
+                      value={editingStatus} 
+                      onChange={(e) => setEditingStatus(e.target.value)} 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
                       <option value="aguardando_autorizacao">Aguardando Autorização</option>
                       <option value="autorizada">Autorizada</option>
                       <option value="realizada">Realizada</option>
                       <option value="recusada">Recusada</option>
                       <option value="cancelada">Cancelada</option>
+                    </select>
+                  </div>
+                )}
+                {editingStatus === 'realizada' && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Resultado da Visita <span className="text-destructive">*</span></Label>
+                    <select name="result" defaultValue={editingVisit.result || ''} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                      <option value="">Selecione...</option>
+                      <option value="Interessado">Interessado</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
+                      <option value="Agendou visita">Agendou visita</option>
+                      <option value="Solicitou orçamento">Solicitou orçamento</option>
+                      <option value="Muito caro">Muito caro</option>
+                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
+                      <option value="Comprou do concorrente">Comprou do concorrente</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Não atendeu">Não atendeu</option>
+                      <option value="Outros">Outros</option>
                     </select>
                   </div>
                 )}

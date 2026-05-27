@@ -158,6 +158,7 @@ model Visit {
   visitDate      DateTime
   status         String
   notes          String?
+  result         String?
   authorizedById String?
   authorizedAt   DateTime?
   createdAt      DateTime  @default(now())

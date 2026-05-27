@@ -10,6 +10,7 @@ const VisitSchema = z.object({
   visitDate: z.string(),
   status: z.string(),
   notes: z.string().optional(),
+  result: z.string().optional().nullable(),
 });
 
 export async function GET(request: Request) {
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
         visitDate: new Date(data.visitDate),
         status: data.status,
         notes: data.notes,
+        result: data.result,
         companyId: session.companyId || null,
       }
     });
