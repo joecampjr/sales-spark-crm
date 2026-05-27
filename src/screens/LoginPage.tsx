@@ -58,7 +58,7 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
               <Briefcase className="w-5 h-5 text-primary" />
             </div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">Sales Spark</h1>
+            <span className="text-xl font-bold text-foreground tracking-tight">Sales Spark</span>
           </div>
           <p className="text-xs text-muted-foreground/80 pl-13">Plataforma Comercial Inteligente</p>
         </div>
@@ -145,13 +145,13 @@ export default function LoginPage() {
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
               <Briefcase className="w-5 h-5 text-primary-foreground" />
             </div>
-            <h1 className="text-xl font-bold text-foreground">Sales Spark CRM</h1>
+            <span className="text-xl font-bold text-foreground">Sales Spark CRM</span>
           </div>
 
           {!isMultiProfile ? (
             <>
               <div>
-                <h2 className="text-2xl font-extrabold text-foreground tracking-tight">Acesso ao Painel</h2>
+                <h1 className="text-2xl font-extrabold text-foreground tracking-tight">Acesso ao Painel</h1>
                 <p className="text-sm text-muted-foreground mt-2">Entre com suas credenciais de acesso.</p>
               </div>
 

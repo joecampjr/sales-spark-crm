@@ -36,10 +36,10 @@ export default function DashboardPage() {
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Building2 className="w-6 h-6 text-primary" />
             Painel de Controle SaaS (CoBusiness)
-          </h1>
+          </h2>
           <p className="text-muted-foreground text-sm mt-1">Visão geral do faturamento, saúde e escala do seu ecossistema</p>
         </div>
 
