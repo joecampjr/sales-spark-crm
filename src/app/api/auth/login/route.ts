@@ -6,11 +6,13 @@ import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const { cpf, password } = await request.json();
 
-    // Lógica de seed automática para o primeiro Admin
+    const cleanCpf = cpf ? cpf.replace(/\D/g, '') : '';
+
+    // Lógica de seed automática para o primeiro Admin via CPF
     const userCount = await prisma.user.count();
-    if (userCount === 0 && email === 'admin@admin.com') {
+    if (userCount === 0 && cleanCpf === '00000000000') {
       const hashedPassword = await bcrypt.hash('admin123', 10);
       
       const defaultCompany = await prisma.company.create({
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
         data: {
           name: 'Administrador Spark',
           email: 'admin@admin.com',
+          cpf: '00000000000',
           password: hashedPassword,
           role: 'SUPERADMIN',
           companyId: defaultCompany.id
@@ -33,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { cpf: cleanCpf },
       include: { company: true }
     });
 
