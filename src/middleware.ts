@@ -36,7 +36,42 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Valida o token
-    await jwtVerify(session, key);
+    const { payload } = await jwtVerify(session, key);
+    const role = payload.role as string;
+
+    // 1. Bloqueia Dashboard para VENDEDOR
+    if (pathname === '/dashboard' || pathname === '/') {
+      if (role === 'VENDEDOR') {
+        return NextResponse.redirect(new URL('/leads', request.url));
+      }
+    }
+
+    // 2. Proteção de rotas restritas de Gestão
+    const isSellersRoute = pathname.startsWith('/vendedores') || pathname.startsWith('/api/sellers');
+    const isBranchesRoute = pathname.startsWith('/filiais') || pathname.startsWith('/api/branches');
+    const isUsersRoute = pathname.startsWith('/usuarios') || pathname.startsWith('/api/users');
+
+    if (isSellersRoute) {
+      const allowed = ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'];
+      if (!allowed.includes(role)) {
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        return NextResponse.redirect(new URL('/leads', request.url));
+      }
+    }
+
+    if (isBranchesRoute || isUsersRoute) {
+      const allowed = ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'];
+      if (!allowed.includes(role)) {
+        if (pathname.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+        const redirectUrl = role === 'VENDEDOR' ? '/leads' : '/dashboard';
+        return NextResponse.redirect(new URL(redirectUrl, request.url));
+      }
+    }
+
     return NextResponse.next();
   } catch (error) {
     // Token expirado ou inválido

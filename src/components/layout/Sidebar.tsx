@@ -34,21 +34,22 @@ const navSections = [
   {
     label: 'Principal',
     items: [
-      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'] },
       { label: 'Leads', path: '/leads', icon: Target },
       { label: 'Contatos', path: '/contatos', icon: Phone },
       { label: 'Visitas', path: '/visitas', icon: Calendar },
       { label: 'Ações de Venda', path: '/acoes-venda', icon: Zap },
+      { label: 'Ranking', path: '/ranking', icon: Award },
     ],
   },
   {
     label: 'Gestão',
     items: [
-      { label: 'Vendedores', path: '/vendedores', icon: UserCheck },
-      { label: 'Filiais', path: '/filiais', icon: MapPin },
-      { label: 'Usuários', path: '/usuarios', icon: Users },
-      { label: 'Ranking', path: '/ranking', icon: Award },
+      { label: 'Vendedores', path: '/vendedores', icon: UserCheck, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'] },
+      { label: 'Filiais', path: '/filiais', icon: MapPin, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'] },
+      { label: 'Usuários', path: '/usuarios', icon: Users, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'] },
     ],
+    roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE']
   },
   {
     label: 'Administração',
@@ -141,6 +142,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               )}
               <div className="space-y-1">
                 {section.items.map((item) => {
+                  if ((item as any).roles && user && !(item as any).roles.includes(user.role)) return null;
+
                   const isActive = pathname === item.path;
                   const Icon = item.icon;
                   return (
