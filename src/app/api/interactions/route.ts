@@ -31,9 +31,13 @@ export async function GET(request: Request) {
         where: { userId: session.id }
       });
       if (userSeller) {
-        where.sellerId = userSeller.id;
+        where.lead = {
+          sellerId: userSeller.id
+        };
       } else {
-        where.sellerId = 'non-existent-seller-id';
+        where.lead = {
+          sellerId: 'non-existent-seller-id'
+        };
       }
     }
 
