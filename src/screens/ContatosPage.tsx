@@ -56,7 +56,7 @@ export default function ContatosPage() {
   });
 
   const { data: mySeller = null } = useQuery({
-    queryKey: ['mySeller'],
+    queryKey: ['mySeller', user?.id],
     queryFn: async () => {
       const res = await fetch('/api/sellers/me');
       if (!res.ok) return null;
