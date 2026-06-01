@@ -142,6 +142,8 @@ export default function SalesActionsPage() {
     reportMutation.mutate({
       reportContent: fd.get('reportContent'),
       reportResult: fd.get('reportResult'),
+      reportRealCost: Number(fd.get('reportRealCost')) || 0,
+      reportRealSales: Number(fd.get('reportRealSales')) || 0,
       leadResults
     });
   };
@@ -161,6 +163,14 @@ export default function SalesActionsPage() {
     const now = new Date();
     const diff = now.getTime() - end.getTime();
     return diff > 0 && diff < (48 * 60 * 60 * 1000);
+  };
+
+  const isAfterEndDate = (endDate: string) => {
+    const end = new Date(endDate);
+    const now = new Date();
+    const endZero = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+    const nowZero = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return nowZero.getTime() > endZero.getTime();
   };
 
   return (
@@ -305,6 +315,42 @@ export default function SalesActionsPage() {
               </div>
             )}
 
+            {action.status === 'concluida' && (
+              (() => {
+                const canSeeReport = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'SUPERADMIN' || (user?.role === 'GERENTE' && user?.id === action.createdById);
+                if (!canSeeReport) return null;
+
+                return (
+                  <div className="p-4 bg-primary/5 rounded-lg border border-primary/10 space-y-3 mt-3">
+                    <span className="font-bold block text-[10px] text-primary uppercase tracking-wider flex items-center gap-1.5">
+                      <FileText className="w-3.5 h-3.5" /> Relatório da Operação
+                    </span>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-[9px] text-muted-foreground uppercase font-semibold">Custo Real</p>
+                        <p className="font-bold text-amber-600">R$ {(action.reportRealCost ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground uppercase font-semibold">Total Vendido</p>
+                        <p className="font-bold text-success">R$ {(action.reportRealSales ?? 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-[9px] text-muted-foreground uppercase font-semibold">Resultado Geral</p>
+                        <p className="font-semibold text-foreground text-xs">{action.reportResult}</p>
+                      </div>
+                    </div>
+
+                    {action.reportContent && (
+                      <div className="pt-2 border-t border-primary/10 text-xs text-muted-foreground italic col-span-2">
+                        &quot;{action.reportContent}&quot;
+                      </div>
+                    )}
+                  </div>
+                );
+              })()
+            )}
+
             <div className="flex items-center justify-between gap-2 pt-2">
               <div className="flex items-center gap-2">
                 {canAuthorize && action.status === 'aguardando_autorizacao' && (
@@ -335,7 +381,7 @@ export default function SalesActionsPage() {
                   </>
                 )}
 
-                {action.status === 'autorizada' && isWithin48h(action.endDate) && (
+                {action.status === 'autorizada' && isAfterEndDate(action.endDate) && user?.role === 'GERENTE' && (
                   <Button 
                     size="sm" 
                     variant="outline"
@@ -380,6 +426,16 @@ export default function SalesActionsPage() {
                     <option value="Parcial">Parcial - Meta não atingida</option>
                     <option value="Fracasso">Fracasso - Resultados insatisfatórios</option>
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Custo Real da Ação (R$)</Label>
+                    <Input name="reportRealCost" type="number" required placeholder="Ex: 1200" step="0.01" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Total Vendido (R$)</Label>
+                    <Input name="reportRealSales" type="number" required placeholder="Ex: 45000" step="0.01" />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>Ocorrências e Detalhes da Ação</Label>

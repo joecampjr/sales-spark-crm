@@ -190,6 +190,8 @@ model SalesAction {
 
   reportContent     String?
   reportResult      String?
+  reportRealCost    Float?
+  reportRealSales   Float?
   reportSubmittedAt DateTime?
 
   authorizedById String?

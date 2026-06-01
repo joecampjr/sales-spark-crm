@@ -37,6 +37,8 @@ export async function PATCH(
           status: 'concluida',
           reportContent: body.reportContent,
           reportResult: body.reportResult,
+          reportRealCost: body.reportRealCost !== undefined ? Number(body.reportRealCost) : null,
+          reportRealSales: body.reportRealSales !== undefined ? Number(body.reportRealSales) : null,
           reportSubmittedAt: new Date(),
         }
       });
