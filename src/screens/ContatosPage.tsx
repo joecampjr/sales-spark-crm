@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -31,6 +32,7 @@ import {
 
 export default function ContatosPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [search, setSearch] = useState('');
   
   // Modals state
@@ -73,6 +75,13 @@ export default function ContatosPage() {
       return Array.isArray(data) ? data : [];
     }
   });
+
+  const isVendedor = user?.role === 'VENDEDOR';
+  const userSeller = sellers.find((s: any) => s.userId === user?.id);
+  const myLinkedLeads = leads.filter((l: any) => l.sellerId === userSeller?.id);
+  const assignableSellers = isVendedor
+    ? (userSeller ? [userSeller] : [])
+    : sellers;
 
   // Mutations
   const createMutation = useMutation({
@@ -193,7 +202,7 @@ export default function ContatosPage() {
             setIsNewModalOpen(open);
             if (open) {
               setSelectedLeadId('');
-              setSelectedSellerId('');
+              setSelectedSellerId(isVendedor && userSeller ? userSeller.id : '');
             }
           }}>
             <DialogTrigger asChild>
@@ -211,14 +220,14 @@ export default function ContatosPage() {
                     <Label>Lead</Label>
                     <select name="leadId" required value={selectedLeadId} onChange={handleLeadChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                       <option value="">Selecione...</option>
-                      {Array.isArray(leads) && leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                      {Array.isArray(isVendedor ? myLinkedLeads : leads) && (isVendedor ? myLinkedLeads : leads).map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label>Vendedor</Label>
-                    <select name="sellerId" required value={selectedSellerId} onChange={(e) => setSelectedSellerId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                    <select name="sellerId" required value={selectedSellerId} onChange={(e) => setSelectedSellerId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" disabled={isVendedor}>
                       <option value="">Selecione...</option>
-                      {Array.isArray(sellers) && sellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                   </div>
                   <div className="space-y-2">

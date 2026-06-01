@@ -26,6 +26,29 @@ export async function GET(request: Request) {
     if (session.companyId) where.companyId = session.companyId;
     if (leadId) where.leadId = leadId;
 
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      if (userSeller) {
+        where.sellerId = userSeller.id;
+      } else {
+        where.sellerId = 'non-existent-seller-id';
+      }
+    }
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (dbUser && dbUser.branchId) {
+        where.seller = {
+          branchId: dbUser.branchId
+        };
+      }
+    }
+
     const interactions = await prisma.interaction.findMany({
       where,
       include: {
@@ -51,6 +74,15 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const data = InteractionSchema.parse(body);
+
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      if (!userSeller || data.sellerId !== userSeller.id) {
+        return NextResponse.json({ error: 'Você só pode registrar interações para você mesmo.' }, { status: 403 });
+      }
+    }
 
     const newInteraction = await prisma.interaction.create({
       data: {
