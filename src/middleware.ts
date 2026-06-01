@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // 2. Proteção de rotas restritas de Gestão
-    const isSellersRoute = pathname.startsWith('/vendedores') || pathname.startsWith('/api/sellers');
+    const isSellersRoute = (pathname.startsWith('/vendedores') || pathname.startsWith('/api/sellers')) && pathname !== '/api/sellers/me';
     const isBranchesRoute = pathname.startsWith('/filiais') || pathname.startsWith('/api/branches');
     const isUsersRoute = pathname.startsWith('/usuarios') || pathname.startsWith('/api/users');
 
