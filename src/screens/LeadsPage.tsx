@@ -26,7 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import Papa from 'papaparse';
-import { maskPhone } from '@/lib/utils';
+import { maskPhone, maskCpf } from '@/lib/utils';
 
 export default function LeadsPage() {
   const { user } = useAuth();
@@ -43,9 +43,13 @@ export default function LeadsPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // CPF states
+  const [newCpf, setNewCpf] = useState('');
+  const [editCpf, setEditCpf] = useState('');
+
   const downloadTemplate = () => {
-    const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem'];
-    const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site'];
+    const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID'];
+    const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '12345678909', ''];
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
       + headers.join(";") + "\n" 
       + example.join(";");
@@ -81,10 +85,35 @@ export default function LeadsPage() {
     }
   });
 
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches'],
+    queryFn: async () => {
+      const res = await fetch('/api/branches');
+      if (!res.ok) return [];
+      return res.json();
+    }
+  });
+
   const userSeller = sellers.find((s: any) => s.userId === user?.id);
   const assignableSellers = isVendedor
     ? (userSeller ? [userSeller] : [])
     : sellers;
+
+  const handleVincular = (leadId: string) => {
+    if (!userSeller) {
+      toast.error('Você não possui um perfil de vendedor associado.');
+      return;
+    }
+    updateMutation.mutate({
+      id: leadId,
+      sellerId: userSeller.id,
+    }, {
+      onSuccess: () => {
+        toast.success('Lead vinculado a você com sucesso!');
+        window.location.href = '/contatos';
+      }
+    });
+  };
 
   const createMutation = useMutation({
     mutationFn: async (newLead: any) => {
@@ -182,7 +211,9 @@ export default function LeadsPage() {
           status: row['Status'] || row['status'] || 'novo',
           priority: row['Prioridade'] || row['priority'] || 'media',
           estimatedValue: parseFloat(row['Valor Estimado'] || row['estimatedValue']) || 0,
-          source: row['Origem'] || row['source'] || 'CSV Import'
+          source: row['Origem'] || row['source'] || 'CSV Import',
+          cpf: row['CPF'] || row['cpf'] || null,
+          branchId: row['Filial ID'] || row['branchId'] || null
         }));
         importMutation.mutate(mapped);
         setIsImportModalOpen(false);
@@ -205,6 +236,8 @@ export default function LeadsPage() {
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
       source: fd.get('source'),
+      cpf: fd.get('cpf') || null,
+      branchId: fd.get('branchId') || null,
       sellerId: fd.get('sellerId') || null,
     });
   };
@@ -223,6 +256,8 @@ export default function LeadsPage() {
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
       source: fd.get('source'),
+      cpf: fd.get('cpf') || null,
+      branchId: fd.get('branchId') || null,
       sellerId: fd.get('sellerId') || null,
     });
   };
@@ -251,7 +286,12 @@ export default function LeadsPage() {
             <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar
           </Button>
 
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <Dialog open={isModalOpen} onOpenChange={(open) => {
+            setIsModalOpen(open);
+            if (open) {
+              setNewCpf('');
+            }
+          }}>
             <DialogTrigger asChild>
               <Button size="sm" className="text-xs gradient-primary text-primary-foreground">
                 <Plus className="w-3.5 h-3.5 mr-1.5" /> Novo Lead
@@ -274,6 +314,15 @@ export default function LeadsPage() {
                       required 
                       placeholder="(DD) 99999-9999" 
                       onChange={(e) => e.target.value = maskPhone(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>CPF</Label>
+                    <Input 
+                      name="cpf" 
+                      placeholder="000.000.000-00" 
+                      value={newCpf}
+                      onChange={(e) => setNewCpf(maskCpf(e.target.value))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -329,6 +378,17 @@ export default function LeadsPage() {
                       ))}
                     </select>
                   </div>
+                  {!isVendedor && (
+                    <div className="space-y-2">
+                      <Label>Filial</Label>
+                      <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Nenhuma (Sede / Geral)</option>
+                        {Array.isArray(branches) && branches.map((b: any) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
                 <div className="flex w-full justify-end pt-4">
                   <Button type="submit" disabled={createMutation.isPending}>
@@ -411,8 +471,25 @@ export default function LeadsPage() {
                       {PRIORITY_LABELS[lead.priority as keyof typeof PRIORITY_LABELS] || lead.priority}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-muted-foreground">
-                    {lead.seller?.name || <span className="text-destructive text-xs">Sem responsável</span>}
+                  <td className="py-3 px-4 text-sm text-muted-foreground font-medium">
+                    {lead.seller?.name || (
+                      <div className="flex items-center gap-2">
+                        <span className="text-destructive text-xs">Sem responsável</span>
+                        {isVendedor && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-6 px-2 text-[10px] border-primary text-primary hover:bg-primary/5 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleVincular(lead.id);
+                            }}
+                          >
+                            Vincular
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-sm font-medium text-foreground">
                     {lead.estimatedValue ? `R$ ${(lead.estimatedValue / 1000).toFixed(0)}k` : '-'}
@@ -455,7 +532,12 @@ export default function LeadsPage() {
       </div>
 
       {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      <Dialog open={isEditModalOpen} onOpenChange={(open) => {
+        setIsEditModalOpen(open);
+        if (open && editingLead) {
+          setEditCpf(editingLead.cpf ? maskCpf(editingLead.cpf) : '');
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Lead</DialogTitle>
@@ -465,7 +547,7 @@ export default function LeadsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome</Label>
-                  <Input name="name" required defaultValue={editingLead.name} />
+                  <Input name="name" required defaultValue={editingLead.name} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
@@ -475,15 +557,26 @@ export default function LeadsPage() {
                       defaultValue={editingLead.phone ? maskPhone(editingLead.phone) : ''}
                       placeholder="(DD) 99999-9999" 
                       onChange={(e) => e.target.value = maskPhone(e.target.value)}
+                      disabled={isVendedor}
                     />
                 </div>
                 <div className="space-y-2">
+                  <Label>CPF</Label>
+                  <Input 
+                    name="cpf" 
+                    placeholder="000.000.000-00" 
+                    value={editCpf}
+                    onChange={(e) => setEditCpf(maskCpf(e.target.value))}
+                    disabled={isVendedor}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Cidade</Label>
-                  <Input name="city" required defaultValue={editingLead.city} />
+                  <Input name="city" required defaultValue={editingLead.city} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Estado (UF)</Label>
-                  <Input name="state" required defaultValue={editingLead.state} maxLength={2} />
+                  <Input name="state" required defaultValue={editingLead.state} maxLength={2} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
@@ -498,7 +591,7 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
-                  <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
                     <option value="baixa">Baixa</option>
                     <option value="media">Média</option>
                     <option value="alta">Alta</option>
@@ -507,11 +600,11 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Valor Estimado</Label>
-                  <Input type="number" name="estimatedValue" defaultValue={editingLead.estimatedValue} />
+                  <Input type="number" name="estimatedValue" defaultValue={editingLead.estimatedValue} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>
-                  <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
                     <option value="Loja Física">Loja Física</option>
                     <option value="Visita Externa">Visita Externa</option>
                     <option value="Indicação">Indicação</option>
@@ -523,13 +616,24 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
-                  <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
                     <option value="">Nenhum (Sem responsável)</option>
                     {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                 </div>
+                {!isVendedor && (
+                  <div className="space-y-2">
+                    <Label>Filial</Label>
+                    <select name="branchId" defaultValue={editingLead.branchId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Nenhuma (Sede / Geral)</option>
+                      {Array.isArray(branches) && branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="flex w-full justify-end pt-4">
                 <Button type="submit" disabled={updateMutation.isPending}>
@@ -578,6 +682,8 @@ export default function LeadsPage() {
                 <li>Telefone</li>
                 <li>Cidade</li>
                 <li>Estado</li>
+                <li>CPF <span className="text-muted-foreground font-normal">(Apenas números, opcional)</span></li>
+                <li>Filial ID <span className="text-muted-foreground font-normal">(ID do sistema da filial, opcional)</span></li>
                 <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido, contato_nao_atualizado)</span></li>
                 <li>Prioridade <span className="text-muted-foreground font-normal">(baixa, media, alta, urgente)</span></li>
                 <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números)</span></li>

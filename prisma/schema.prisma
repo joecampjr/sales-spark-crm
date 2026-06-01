@@ -45,6 +45,7 @@ model Branch {
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   sellers   Seller[]
   users     User[]
+  leads     Lead[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -113,9 +114,13 @@ model Lead {
   priority       String
   estimatedValue Float?
   source         String
+  cpf            String?
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
+
+  branchId  String?
+  branch    Branch?  @relation(fields: [branchId], references: [id])
 
   sellerId     String?
   seller       Seller?           @relation(fields: [sellerId], references: [id])

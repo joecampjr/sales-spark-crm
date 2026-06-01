@@ -11,7 +11,9 @@ const ImportSchema = z.array(z.object({
   status: z.string().optional().default('novo'),
   priority: z.string().optional().default('media'),
   estimatedValue: z.number().optional().nullable(),
-  source: z.string().optional().default('CSV')
+  source: z.string().optional().default('CSV'),
+  cpf: z.string().optional().nullable(),
+  branchId: z.string().optional().nullable(),
 }));
 
 export async function POST(request: Request) {
@@ -60,7 +62,9 @@ export async function POST(request: Request) {
               name: lead.name,
               city: lead.city || existing.city,
               state: lead.state || existing.state,
-              estimatedValue: lead.estimatedValue || existing.estimatedValue
+              estimatedValue: lead.estimatedValue || existing.estimatedValue,
+              cpf: lead.cpf ? lead.cpf.replace(/\D/g, '') : existing.cpf,
+              branchId: lead.branchId || existing.branchId
             }
           });
           updated++;
@@ -75,6 +79,8 @@ export async function POST(request: Request) {
               priority: lead.priority,
               estimatedValue: lead.estimatedValue,
               source: lead.source,
+              cpf: lead.cpf ? lead.cpf.replace(/\D/g, '') : null,
+              branchId: lead.branchId || null,
               companyId: companyId
             }
           });

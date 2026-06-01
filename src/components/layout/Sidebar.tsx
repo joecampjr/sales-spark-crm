@@ -38,7 +38,7 @@ const navSections = [
       { label: 'Leads', path: '/leads', icon: Target },
       { label: 'Contatos', path: '/contatos', icon: Phone },
       { label: 'Visitas', path: '/visitas', icon: Calendar },
-      { label: 'Ações de Venda', path: '/acoes-venda', icon: Zap },
+      { label: 'Ações de Venda', path: '/acoes-venda', icon: Zap, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'] },
       { label: 'Ranking', path: '/ranking', icon: Award },
     ],
   },

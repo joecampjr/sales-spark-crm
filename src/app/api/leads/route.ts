@@ -13,6 +13,8 @@ const CreateLeadSchema = z.object({
   estimatedValue: z.number().nullable().optional(),
   source: z.string(),
   sellerId: z.string().nullable().optional(),
+  cpf: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -31,22 +33,15 @@ export async function GET(request: Request) {
       where.companyId = session.companyId;
     }
 
-    // Filtro de Vendedor (Visibilidade Restrita)
+    // Filtro de Vendedor (Visibilidade Restrita por Filial)
     if (session.role === 'VENDEDOR') {
       const userSeller = await prisma.seller.findUnique({
         where: { userId: session.id }
       });
-      if (userSeller) {
-        where.AND = [
-          {
-            OR: [
-              { sellerId: userSeller.id },
-              { sellerId: null }
-            ]
-          }
-        ];
+      if (userSeller && userSeller.branchId) {
+        where.branchId = userSeller.branchId;
       } else {
-        where.sellerId = null;
+        where.branchId = 'non-existent-branch-id';
       }
     }
 
@@ -92,20 +87,28 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     
-    // Limpa a formatação do telefone antes de salvar
+    // Limpa a formatação do telefone e CPF antes de salvar
     if (body.phone) {
       body.phone = body.phone.replace(/\D/g, '');
+    }
+    if (body.cpf) {
+      body.cpf = body.cpf.replace(/\D/g, '');
     }
 
     const data = CreateLeadSchema.parse(body);
 
-    // Se for VENDEDOR, restringe atribuição apenas a si mesmo ou nulo
+    let finalBranchId = data.branchId || null;
+
+    // Se for VENDEDOR, restringe atribuição apenas a si mesmo ou nulo, e herda a filial dele
     if (session.role === 'VENDEDOR') {
       const userSeller = await prisma.seller.findUnique({
         where: { userId: session.id }
       });
       if (data.sellerId && (!userSeller || data.sellerId !== userSeller.id)) {
         return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
+      }
+      if (userSeller) {
+        finalBranchId = userSeller.branchId;
       }
     }
 
@@ -147,6 +150,8 @@ export async function POST(request: Request) {
         priority: data.priority,
         estimatedValue: data.estimatedValue,
         source: data.source,
+        cpf: data.cpf || null,
+        branchId: finalBranchId,
         sellerId: data.sellerId || null,
         companyId: session.companyId || null,
       }

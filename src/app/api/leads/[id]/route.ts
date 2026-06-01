@@ -13,6 +13,8 @@ const UpdateLeadSchema = z.object({
   estimatedValue: z.number().nullable().optional(),
   source: z.string().optional(),
   sellerId: z.string().nullable().optional(),
+  cpf: z.string().nullable().optional(),
+  branchId: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -28,9 +30,12 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    // Limpa a formatação do telefone antes de salvar
+    // Limpa a formatação do telefone e CPF antes de salvar
     if (body.phone) {
       body.phone = body.phone.replace(/\D/g, '');
+    }
+    if (body.cpf) {
+      body.cpf = body.cpf.replace(/\D/g, '');
     }
 
     const data = UpdateLeadSchema.parse(body);
@@ -56,6 +61,14 @@ export async function PATCH(
       // 2. Se tentar atribuir o lead a outro vendedor
       if (data.sellerId && (!userSeller || data.sellerId !== userSeller.id)) {
         return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
+      }
+
+      // 3. Vendedor só pode alterar status e sellerId
+      const allowedFields = ['status', 'sellerId'];
+      const fieldsBeingUpdated = Object.keys(data).filter(k => (data as any)[k] !== undefined);
+      const isUpdatingRestrictedFields = fieldsBeingUpdated.some(k => !allowedFields.includes(k));
+      if (isUpdatingRestrictedFields) {
+        return NextResponse.json({ error: 'Vendedores só possuem permissão para atualizar o status do lead ou vinculá-lo.' }, { status: 403 });
       }
     }
 
