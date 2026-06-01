@@ -160,6 +160,11 @@ export async function POST(request: Request) {
           sellerId: data.sellerId,
           status: {
             notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+          },
+          interactions: {
+            none: {
+              result: 'Reativado'
+            }
           }
         }
       });

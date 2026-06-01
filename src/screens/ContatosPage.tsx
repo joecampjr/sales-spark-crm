@@ -55,8 +55,18 @@ export default function ContatosPage() {
     }
   });
 
+  const { data: mySeller = null } = useQuery({
+    queryKey: ['mySeller'],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers/me');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user
+  });
+
   const isVendedor = user?.role === 'VENDEDOR';
-  const userSeller = sellers.find((s: any) => s.userId === user?.id);
+  const userSeller = mySeller;
 
   // Filtra apenas leads atribuídos (com algum vendedor responsável)
   // Como a própria API de Leads já filtra por filial e visibilidade correta, apenas filtramos por sellerId !== null

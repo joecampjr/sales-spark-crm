@@ -94,7 +94,17 @@ export default function LeadsPage() {
     }
   });
 
-  const userSeller = sellers.find((s: any) => s.userId === user?.id);
+  const { data: mySeller = null } = useQuery({
+    queryKey: ['mySeller'],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers/me');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user
+  });
+
+  const userSeller = mySeller;
   const assignableSellers = isVendedor
     ? (userSeller ? [userSeller] : [])
     : sellers;

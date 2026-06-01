@@ -79,6 +79,11 @@ export async function PATCH(
           sellerId: data.sellerId,
           status: {
             notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+          },
+          interactions: {
+            none: {
+              result: 'Reativado'
+            }
           }
         }
       });
