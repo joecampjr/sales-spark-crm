@@ -99,8 +99,15 @@ export async function GET(request: Request) {
     const leads = await prisma.lead.findMany({
       where,
       include: {
-        seller: { select: { name: true } },
-        branch: { select: { name: true } }
+        seller: { select: { id: true, name: true } },
+        branch: { select: { id: true, name: true } },
+        interactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          include: {
+            seller: { select: { name: true } }
+          }
+        }
       },
       orderBy: { createdAt: 'desc' }
     });

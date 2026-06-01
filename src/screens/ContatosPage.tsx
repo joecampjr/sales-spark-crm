@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, Calendar, Trash2, Pencil, Plus } from 'lucide-react';
+import { Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, Calendar, Trash2, Pencil, RotateCcw, AlertCircle, Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { StatusBadge } from '@/components/crm/StatusBadge';
+import { LEAD_STATUS_LABELS, LeadStatus } from '@/types/crm';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -17,52 +19,29 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 export default function ContatosPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<'ativos' | 'finalizados'>('ativos');
   
   // Modals state
-  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
-  const [editingContato, setEditingContato] = useState<any>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [contatoToDelete, setContatoToDelete] = useState<any>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
 
-  // States for automatic seller selection
-  const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [selectedSellerId, setSelectedSellerId] = useState('');
+  // States for automatic status mapping in update form
+  const [formResult, setFormResult] = useState('Interessado');
+  const [formStatus, setFormStatus] = useState('em_negociacao');
 
   // Queries
-  const { data: contatos = [], isLoading } = useQuery({
-    queryKey: ['interactions'],
-    queryFn: async () => {
-      const res = await fetch('/api/interactions');
-      if (!res.ok) throw new Error('Falha ao carregar contatos');
-      return res.json();
-    }
-  });
-
-  const { data: leads = [] } = useQuery({
+  const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
     queryKey: ['leads'],
     queryFn: async () => {
       const res = await fetch('/api/leads');
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
+      if (!res.ok) throw new Error('Falha ao carregar leads');
+      return res.json();
     }
   });
 
@@ -78,206 +57,206 @@ export default function ContatosPage() {
 
   const isVendedor = user?.role === 'VENDEDOR';
   const userSeller = sellers.find((s: any) => s.userId === user?.id);
-  const myLinkedLeads = leads.filter((l: any) => l.sellerId === userSeller?.id);
-  const assignableSellers = isVendedor
-    ? (userSeller ? [userSeller] : [])
-    : sellers;
 
-  // Mutations
-  const createMutation = useMutation({
-    mutationFn: async (newData: any) => {
+  // Filtra apenas leads atribuídos (com algum vendedor responsável)
+  // Como a própria API de Leads já filtra por filial e visibilidade correta, apenas filtramos por sellerId !== null
+  const assignedLeads = Array.isArray(leads) 
+    ? leads.filter((l: any) => l.sellerId !== null)
+    : [];
+
+  const activeLeads = assignedLeads.filter((l: any) => 
+    !['vendido', 'perdido', 'contato_nao_atualizado'].includes(l.status)
+  );
+
+  const finalizedLeads = assignedLeads.filter((l: any) => 
+    ['vendido', 'perdido', 'contato_nao_atualizado'].includes(l.status)
+  );
+
+  const displayedLeads = activeTab === 'ativos' ? activeLeads : finalizedLeads;
+
+  const filteredLeads = displayedLeads.filter((l: any) => 
+    (l.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+    (l.seller?.name?.toLowerCase() || '').includes(search.toLowerCase())
+  );
+
+  // Mutações
+  const updateLeadStatusMutation = useMutation({
+    mutationFn: async ({ leadId, status }: { leadId: string; status: string }) => {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar lead');
+      }
+      return res.json();
+    }
+  });
+
+  const createInteractionMutation = useMutation({
+    mutationFn: async (interactionData: any) => {
       const res = await fetch('/api/interactions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newData)
+        body: JSON.stringify(interactionData)
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Erro ao criar contato');
+        throw new Error(errorData.error || 'Erro ao criar interação');
       }
       return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interactions'] });
-      setIsNewModalOpen(false);
-      toast.success('Contato registrado/agendado com sucesso!');
-    },
-    onError: (error: any) => toast.error(error.message || 'Falha ao registrar contato.')
+    }
   });
 
-  const updateMutation = useMutation({
-    mutationFn: async (updatedData: any) => {
-      const res = await fetch(`/api/interactions/${updatedData.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Erro ao atualizar contato');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interactions'] });
-      setIsEditModalOpen(false);
-      setEditingContato(null);
-      toast.success('Contato atualizado!');
-    },
-    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar contato.')
-  });
+  // Manipulador de mudança de resultado da conversa no modal (auto-seleção inteligente de status)
+  const handleResultChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const resultVal = e.target.value;
+    setFormResult(resultVal);
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/interactions/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Erro ao excluir contato');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interactions'] });
-      setIsDeleteDialogOpen(false);
-      toast.success('Registro removido.');
-    },
-    onError: (error: any) => toast.error(error.message || 'Falha ao excluir contato.')
-  });
-
-  const handleLeadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const leadId = e.target.value;
-    setSelectedLeadId(leadId);
-    
-    // Encontra o lead selecionado e pré-seleciona o vendedor dele se houver
-    const lead = leads.find((l: any) => l.id === leadId);
-    if (lead && lead.sellerId) {
-      setSelectedSellerId(lead.sellerId);
+    // Mapeamento Inteligente
+    if (resultVal === 'Vendido / Sucesso') {
+      setFormStatus('vendido');
+    } else if (['Muito caro', 'Não gostou da qualidade', 'Não tinha o produto desejado', 'Comprou do concorrente', 'Não respondeu', 'Não atendeu'].includes(resultVal)) {
+      setFormStatus('perdido');
+    } else if (resultVal === 'Contato não atualizado') {
+      setFormStatus('contato_nao_atualizado');
     } else {
-      setSelectedSellerId('');
+      setFormStatus('em_negociacao');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit = false) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const data = {
-      leadId: fd.get('leadId'),
-      sellerId: fd.get('sellerId'),
-      type: fd.get('type'),
-      result: fd.get('result'),
-      notes: fd.get('notes'),
-      scheduledFor: fd.get('scheduledFor') || null,
-    };
+  const handleOpenUpdateModal = (lead: any) => {
+    setSelectedLead(lead);
+    
+    // Inicializa valores padrão
+    const lastInteraction = lead.interactions?.[0];
+    const initialResult = lastInteraction?.result || 'Interessado';
+    setFormResult(initialResult);
+    setFormStatus(lead.status || 'em_negociacao');
+    setIsUpdateModalOpen(true);
+  };
 
-    if (isEdit && editingContato) {
-      updateMutation.mutate({ ...data, id: editingContato.id });
-    } else {
-      createMutation.mutate(data);
+  const handleUpdateResultSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!selectedLead) return;
+
+    const fd = new FormData(e.currentTarget);
+    const sellerIdToUse = selectedLead.sellerId || (isVendedor && userSeller ? userSeller.id : null);
+    
+    if (!sellerIdToUse) {
+      toast.error('Vendedor responsável não encontrado para este lead.');
+      return;
+    }
+
+    const notes = fd.get('notes') as string;
+    const scheduledFor = fd.get('scheduledFor') as string;
+    const type = fd.get('type') as string;
+
+    try {
+      // 1. Cria a nova interação
+      await createInteractionMutation.mutateAsync({
+        leadId: selectedLead.id,
+        sellerId: sellerIdToUse,
+        type,
+        result: formResult,
+        notes: notes || null,
+        scheduledFor: scheduledFor || null
+      });
+
+      // 2. Atualiza o status do Lead
+      await updateLeadStatusMutation.mutateAsync({
+        leadId: selectedLead.id,
+        status: formStatus
+      });
+
+      // 3. Atualiza queries e notifica
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setIsUpdateModalOpen(false);
+      toast.success('Resultado do contato atualizado com sucesso!');
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao salvar a atualização do contato.');
+    }
+  };
+
+  // Reativação do Lead
+  const handleReativarLead = async (lead: any) => {
+    const sellerIdToUse = lead.sellerId || (isVendedor && userSeller ? userSeller.id : null);
+    
+    if (!sellerIdToUse) {
+      toast.error('Nenhum vendedor associado a este lead.');
+      return;
+    }
+
+    try {
+      // 1. Cria interação do sistema registrando a reativação sem perder dados
+      await createInteractionMutation.mutateAsync({
+        leadId: lead.id,
+        sellerId: sellerIdToUse,
+        type: 'sistema',
+        result: 'Reativado',
+        notes: 'Lead reativado pelo vendedor para nova tentativa de venda.',
+        scheduledFor: null
+      });
+
+      // 2. Muda o status do lead na base de dados para em_negociacao
+      await updateLeadStatusMutation.mutateAsync({
+        leadId: lead.id,
+        status: 'em_negociacao'
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Lead reativado com sucesso para nova tentativa de venda!');
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao reativar o lead.');
     }
   };
 
   const getIcon = (tipo: string) => {
     switch (tipo) {
-      case 'ligacao': return <Phone className="w-4 h-4 text-blue-500" />;
-      case 'whatsapp': return <MessageSquare className="w-4 h-4 text-green-500" />;
-      case 'email': return <Mail className="w-4 h-4 text-orange-500" />;
-      default: return <UserPlus className="w-4 h-4 text-gray-500" />;
+      case 'ligacao': return <Phone className="w-3.5 h-3.5 text-blue-500 animate-pulse" />;
+      case 'whatsapp': return <MessageSquare className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />;
+      case 'email': return <Mail className="w-3.5 h-3.5 text-amber-500 animate-pulse" />;
+      case 'sistema': return <RotateCcw className="w-3.5 h-3.5 text-slate-500" />;
+      default: return <UserPlus className="w-3.5 h-3.5 text-slate-400" />;
     }
   };
-
-  const filteredContatos = contatos.filter((c: any) => 
-    (c.lead?.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (c.seller?.name?.toLowerCase() || '').includes(search.toLowerCase())
-  );
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Contatos e Agendamentos</h1>
-          <p className="text-muted-foreground text-sm mt-1">Gestão de interações e retornos</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Dialog open={isNewModalOpen} onOpenChange={(open) => {
-            setIsNewModalOpen(open);
-            if (open) {
-              setSelectedLeadId('');
-              setSelectedSellerId(isVendedor && userSeller ? userSeller.id : '');
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gradient-primary text-primary-foreground">
-                <Plus className="w-3.5 h-3.5 mr-1.5" /> Registrar Contato
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Registrar Nova Interação</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Lead</Label>
-                    <select name="leadId" required value={selectedLeadId} onChange={handleLeadChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                      <option value="">Selecione...</option>
-                      {Array.isArray(isVendedor ? myLinkedLeads : leads) && (isVendedor ? myLinkedLeads : leads).map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Vendedor</Label>
-                    <select name="sellerId" required value={selectedSellerId} onChange={(e) => setSelectedSellerId(e.target.value)} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" disabled={isVendedor}>
-                      <option value="">Selecione...</option>
-                      {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Meio de Contato</Label>
-                    <select name="type" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                      <option value="ligacao">Ligação</option>
-                      <option value="whatsapp">WhatsApp</option>
-                      <option value="email">E-mail</option>
-                      <option value="visita">Visita</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Resultado</Label>
-                    <select name="result" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-                      <option value="Interessado">Interessado</option>
-                      <option value="Em negociação">Em negociação</option>
-                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
-                      <option value="Agendou visita">Agendou visita</option>
-                      <option value="Solicitou orçamento">Solicitou orçamento</option>
-                      <option value="Muito caro">Muito caro</option>
-                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
-                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
-                      <option value="Comprou do concorrente">Comprou do concorrente</option>
-                      <option value="Não respondeu">Não respondeu</option>
-                      <option value="Não atendeu">Não atendeu</option>
-                      <option value="Contato não atualizado">Contato não atualizado</option>
-                      <option value="Outros">Outros</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Agendar Retorno (Opcional)</Label>
-                    <Input name="scheduledFor" type="datetime-local" className="bg-background" />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Observações</Label>
-                    <Input name="notes" placeholder="Detalhes da conversa..." />
-                  </div>
-                </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? 'Salvando...' : 'Salvar Registro'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Contatos e Agendamentos</h1>
+          <p className="text-muted-foreground text-sm mt-1">Gestão de interações, resultados de conversa e retornos agendados</p>
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Tabs */}
+      <div className="flex border-b border-border/50 gap-2">
+        <button
+          onClick={() => setActiveTab('ativos')}
+          className={`pb-3 px-4 font-semibold text-sm transition-all border-b-2 relative -mb-[2px] ${
+            activeTab === 'ativos'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Contatos Ativos ({activeLeads.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('finalizados')}
+          className={`pb-3 px-4 font-semibold text-sm transition-all border-b-2 relative -mb-[2px] ${
+            activeTab === 'finalizados'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Histórico Finalizado ({finalizedLeads.length})
+        </button>
+      </div>
+
+      {/* Filters & Search */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -285,7 +264,7 @@ export default function ContatosPage() {
             placeholder="Buscar por lead ou vendedor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-card border-border h-10 text-sm"
+            className="pl-9 bg-card border-border h-10 text-sm shadow-sm"
           />
         </div>
       </div>
@@ -295,94 +274,135 @@ export default function ContatosPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-border/50 bg-muted/30">
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Lead</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Canal</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Vendedor</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Resultado</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Data</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase">Próximo Contato</th>
-                <th className="w-10 py-4 px-6"></th>
+              <tr className="border-b border-border/50 bg-muted/20">
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Lead</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Canal</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Vendedor</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resultado Atual</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Última Ação</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Próximo Contato</th>
+                <th className="w-24 py-4 px-6"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">
-              {isLoading ? (
-                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Carregando interações...</td></tr>
-              ) : filteredContatos.length === 0 ? (
-                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum registro encontrado.</td></tr>
-              ) : filteredContatos.map((contato: any) => (
-                <tr key={contato.id} className="table-row-hover">
-                  <td className="py-4 px-6 font-medium">{contato.lead?.name}</td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-muted/50">{getIcon(contato.type)}</div>
-                      <span className="text-xs capitalize">{contato.type}</span>
-                    </div>
-                  </td>
-                  <td className="py-4 px-6 text-sm">{contato.seller?.name}</td>
-                  <td className="py-4 px-6 text-sm">{contato.result}</td>
-                  <td className="py-4 px-6 text-xs">
-                    {new Date(contato.createdAt).toLocaleString('pt-BR')}
-                  </td>
-                  <td className="py-4 px-6">
-                    {contato.scheduledFor ? (
-                      <span className="flex items-center gap-1.5 text-xs text-warning font-medium">
-                        <Calendar className="w-3 h-3" />
-                        {new Date(contato.scheduledFor).toLocaleString('pt-BR')}
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground italic">Não agendado</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="w-4 h-4" /></Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {
-                          setEditingContato(contato);
-                          setIsEditModalOpen(true);
-                        }}>
-                          <Pencil className="w-4 h-4 mr-2" /> Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => {
-                          setContatoToDelete(contato);
-                          setIsDeleteDialogOpen(true);
-                        }}>
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </td>
-                </tr>
-              ))}
+              {isLoadingLeads ? (
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Carregando leads vinculados...</td></tr>
+              ) : filteredLeads.length === 0 ? (
+                <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado nesta aba.</td></tr>
+              ) : filteredLeads.map((lead: any) => {
+                const lastInteraction = lead.interactions?.[0];
+                
+                return (
+                  <tr key={lead.id} className="table-row-hover">
+                    <td className="py-4 px-6">
+                      <div>
+                        <p className="font-semibold text-foreground text-sm">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{lead.phone}</p>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-muted/60">
+                          {getIcon(lastInteraction?.type || 'novo')}
+                        </div>
+                        <span className="text-xs font-medium capitalize">
+                          {lastInteraction?.type === 'sistema' ? 'Reativado' : (lastInteraction?.type || 'Nenhum')}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-foreground">{lead.seller?.name || '-'}</td>
+                    <td className="py-4 px-6"><StatusBadge status={lead.status} /></td>
+                    <td className="py-4 px-6 text-xs text-muted-foreground">
+                      {lastInteraction 
+                        ? new Date(lastInteraction.createdAt).toLocaleString('pt-BR')
+                        : new Date(lead.updatedAt || lead.createdAt).toLocaleDateString('pt-BR')
+                      }
+                    </td>
+                    <td className="py-4 px-6">
+                      {lastInteraction?.scheduledFor ? (
+                        <span className="flex items-center gap-1.5 text-xs text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full w-fit">
+                          <Calendar className="w-3 h-3" />
+                          {new Date(lastInteraction.scheduledFor).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60 italic font-normal">Não agendado</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      {activeTab === 'ativos' ? (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-8 text-xs font-semibold hover:bg-muted border-border/50 text-foreground"
+                          onClick={() => handleOpenUpdateModal(lead)}
+                        >
+                          <Pencil className="w-3 h-3 mr-1.5" /> Atualizar
+                        </Button>
+                      ) : (
+                        ['vendido', 'perdido'].includes(lead.status) && (
+                          <Button 
+                            size="sm" 
+                            className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+                            onClick={() => handleReativarLead(lead)}
+                          >
+                            <RotateCcw className="w-3 h-3 mr-1.5" /> Reativar
+                          </Button>
+                        )
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Edit Modal */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+      {/* Update Result Modal */}
+      <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Editar Registro</DialogTitle>
+            <DialogTitle className="text-xl font-bold tracking-tight">Atualizar Resultado do Contato</DialogTitle>
           </DialogHeader>
-          {editingContato && (
-            <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4 mt-4">
+          {selectedLead && (
+            <form onSubmit={handleUpdateResultSubmit} className="space-y-4 mt-4 animate-fade-in">
+              <div className="bg-muted/40 p-3 rounded-lg flex items-start gap-2.5 text-sm border border-border/30 mb-2">
+                <AlertCircle className="w-4.5 h-4.5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold text-foreground">Lead: </span>
+                  <span className="text-muted-foreground">{selectedLead.name}</span>
+                  <span className="mx-2 text-border">|</span>
+                  <span className="font-semibold text-foreground">Status Atual: </span>
+                  <span className="text-muted-foreground capitalize">{LEAD_STATUS_LABELS[selectedLead.status as LeadStatus] || selectedLead.status}</span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2">
-                  <Label>Meio de Contato</Label>
-                  <select name="type" defaultValue={editingContato.type} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <div className="space-y-2">
+                  <Label htmlFor="type" className="font-semibold text-sm">Meio de Contato</Label>
+                  <select 
+                    id="type"
+                    name="type" 
+                    required 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <option value="ligacao">Ligação</option>
                     <option value="whatsapp">WhatsApp</option>
                     <option value="email">E-mail</option>
                     <option value="visita">Visita</option>
                   </select>
                 </div>
-                <div className="space-y-2 col-span-2">
-                  <Label>Resultado</Label>
-                  <select name="result" defaultValue={editingContato.result} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+
+                <div className="space-y-2">
+                  <Label htmlFor="result" className="font-semibold text-sm">Resultado da Conversa</Label>
+                  <select 
+                    id="result"
+                    name="result" 
+                    value={formResult}
+                    onChange={handleResultChange}
+                    required 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
                     <option value="Interessado">Interessado</option>
                     <option value="Em negociação">Em negociação</option>
                     <option value="Vendido / Sucesso">Vendido / Sucesso</option>
@@ -398,40 +418,67 @@ export default function ContatosPage() {
                     <option value="Outros">Outros</option>
                   </select>
                 </div>
+
                 <div className="space-y-2 col-span-2">
-                  <Label>Agendar Retorno</Label>
-                  <Input name="scheduledFor" type="datetime-local" defaultValue={editingContato.scheduledFor ? new Date(editingContato.scheduledFor).toISOString().slice(0, 16) : ''} />
+                  <Label htmlFor="status" className="font-semibold text-sm">Novo Status do Lead (Salvo no Cadastro)</Label>
+                  <select 
+                    id="status"
+                    name="status" 
+                    value={formStatus}
+                    onChange={(e) => setFormStatus(e.target.value)}
+                    required 
+                    className="flex h-10 w-full rounded-md border border-primary bg-primary/5 px-3 py-2 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="novo">Novo</option>
+                    <option value="em_negociacao">Em Negociação</option>
+                    <option value="contato_realizado">Contato Realizado</option>
+                    <option value="vendido">Vendido (Fecha espaço limite)</option>
+                    <option value="perdido">Perdido (Fecha espaço limite)</option>
+                    <option value="contato_nao_atualizado">Contato Não Atualizado (Fecha espaço limite)</option>
+                  </select>
                 </div>
+
                 <div className="space-y-2 col-span-2">
-                  <Label>Observações</Label>
-                  <Input name="notes" defaultValue={editingContato.notes || ''} />
+                  <Label htmlFor="scheduledFor" className="font-semibold text-sm">Agendar Retorno (Próximo Contato - Opcional)</Label>
+                  <Input 
+                    id="scheduledFor"
+                    name="scheduledFor" 
+                    type="datetime-local" 
+                    className="bg-background" 
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="notes" className="font-semibold text-sm">Relato do Contato / Observações</Label>
+                  <Input 
+                    id="notes"
+                    name="notes" 
+                    placeholder="Ex: Cliente gostou dos preços e quer que ligue na próxima segunda-feira às 10h..." 
+                    className="bg-background"
+                  />
                 </div>
               </div>
-              <div className="flex justify-end pt-4">
-                <Button type="submit" disabled={updateMutation.isPending}>
-                  {updateMutation.isPending ? 'Salvando...' : 'Salvar Alterações'}
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-border/30">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => setIsUpdateModalOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+                  disabled={createInteractionMutation.isPending || updateLeadStatusMutation.isPending}
+                >
+                  {createInteractionMutation.isPending ? 'Salvando...' : 'Confirmar e Salvar'}
                 </Button>
               </div>
             </form>
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Delete Alert */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir registro?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação removerá permanentemente este contato do histórico do lead.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-white" onClick={() => deleteMutation.mutate(contatoToDelete?.id)}>
-              Confirmar Exclusão
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
