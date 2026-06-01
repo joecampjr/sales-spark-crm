@@ -39,12 +39,13 @@ export async function GET(request: Request) {
         where: { userId: session.id }
       });
       if (userSeller) {
-        const branchIds: (string | null)[] = [null];
-        if (userSeller.branchId) {
-          branchIds.push(userSeller.branchId);
-        }
-        where.branchId = { in: branchIds };
         where.AND = [
+          {
+            OR: [
+              { branchId: userSeller.branchId },
+              { branchId: null }
+            ]
+          },
           {
             OR: [
               { sellerId: userSeller.id },
@@ -64,11 +65,14 @@ export async function GET(request: Request) {
         select: { branchId: true }
       });
       if (dbUser) {
-        const branchIds: (string | null)[] = [null];
-        if (dbUser.branchId) {
-          branchIds.push(dbUser.branchId);
-        }
-        where.branchId = { in: branchIds };
+        where.AND = [
+          {
+            OR: [
+              { branchId: dbUser.branchId },
+              { branchId: null }
+            ]
+          }
+        ];
       } else {
         where.branchId = 'non-existent-branch-id';
       }
