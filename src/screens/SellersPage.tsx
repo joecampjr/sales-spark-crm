@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -39,6 +40,9 @@ import { Separator } from '@/components/ui/separator';
 import { maskPhone, maskCpf } from '@/lib/utils';
 
 export default function SellersPage() {
+  const { user } = useAuth();
+  const isSupervisorOrAbove = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   
@@ -222,15 +226,17 @@ export default function SellersPage() {
                   />
                   <p className="text-[10px] text-muted-foreground italic">DDD + 8 ou 9 dígitos</p>
                 </div>
-                <div className="space-y-2">
-                  <Label>Filial / Unidade</Label>
-                  <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                    <option value="">Selecione uma filial...</option>
-                    {Array.isArray(branches) && branches.map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {isSupervisorOrAbove && (
+                  <div className="space-y-2">
+                    <Label>Filial / Unidade</Label>
+                    <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Selecione uma filial...</option>
+                      {Array.isArray(branches) && branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Região de Atuação <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                   <Input name="region" placeholder="Ex: Viana" />
@@ -466,19 +472,21 @@ export default function SellersPage() {
                   <Label>Nova Senha (Deixe em branco para manter)</Label>
                   <Input name="password" type="password" placeholder="••••••••" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Filial</Label>
-                  <select 
-                    name="branchId" 
-                    defaultValue={editingSeller.branchId || ''} 
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <option value="">Nenhuma</option>
-                    {Array.isArray(branches) && branches.map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {isSupervisorOrAbove && (
+                  <div className="space-y-2">
+                    <Label>Filial</Label>
+                    <select 
+                      name="branchId" 
+                      defaultValue={editingSeller.branchId || ''} 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Nenhuma</option>
+                      {Array.isArray(branches) && branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Região <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
                   <Input name="region" defaultValue={editingSeller.region || ''} placeholder="Ex: Viana" />

@@ -70,6 +70,16 @@ export async function POST(request: Request) {
 
     const data = SellerSchema.parse(body);
 
+    let finalBranchId = data.branchId || null;
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      finalBranchId = dbUser?.branchId || null;
+    }
+
     const newSeller = await prisma.$transaction(async (tx) => {
       // 1. Verifica se e-mail ou CPF de usuário já existe (apenas se fornecido)
       const conditions: any[] = [];
@@ -101,7 +111,7 @@ export async function POST(request: Request) {
           password: hashedPassword,
           role: 'VENDEDOR',
           cpf: data.cpf,
-          branchId: data.branchId || null,
+          branchId: finalBranchId,
           companyId: session.companyId || null
         }
       });
@@ -116,7 +126,7 @@ export async function POST(request: Request) {
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,
-          branchId: data.branchId || null,
+          branchId: finalBranchId,
           status: data.status,
           salesCount: 0,
           conversionRate: 0,

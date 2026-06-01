@@ -244,6 +244,7 @@ export default function ContatosPage() {
                       <option value="Comprou do concorrente">Comprou do concorrente</option>
                       <option value="Não respondeu">Não respondeu</option>
                       <option value="Não atendeu">Não atendeu</option>
+                      <option value="Contato não atualizado">Contato não atualizado</option>
                       <option value="Outros">Outros</option>
                     </select>
                   </div>
@@ -384,6 +385,7 @@ export default function ContatosPage() {
                     <option value="Comprou do concorrente">Comprou do concorrente</option>
                     <option value="Não respondeu">Não respondeu</option>
                     <option value="Não atendeu">Não atendeu</option>
+                    <option value="Contato não atualizado">Contato não atualizado</option>
                     <option value="Outros">Outros</option>
                   </select>
                 </div>

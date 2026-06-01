@@ -41,6 +41,16 @@ export async function PATCH(
 
     const data = UpdateSellerSchema.parse(body);
 
+    let finalBranchId = data.branchId;
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      finalBranchId = dbUser?.branchId || null;
+    }
+
     // 1. Busca o vendedor garantindo a empresa do tenant
     const seller = await prisma.seller.findFirst({
       where: {
@@ -65,7 +75,7 @@ export async function PATCH(
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,
-          branchId: data.branchId === '' ? null : data.branchId || undefined,
+          branchId: finalBranchId === '' ? null : finalBranchId || undefined,
           status: data.status,
         }
       });
@@ -80,8 +90,8 @@ export async function PATCH(
         if (data.cpf !== undefined) {
           userUpdateData.cpf = data.cpf === '' ? null : data.cpf;
         }
-        if (data.branchId !== undefined) {
-          userUpdateData.branchId = data.branchId === '' ? null : data.branchId;
+        if (finalBranchId !== undefined) {
+          userUpdateData.branchId = finalBranchId === '' ? null : finalBranchId;
         }
         if (data.password) {
           userUpdateData.password = await bcrypt.hash(data.password, 10);

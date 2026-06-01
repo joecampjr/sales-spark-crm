@@ -14,7 +14,8 @@ export type LeadStatus =
   | 'perdido'
   | 'sem_interesse'
   | 'sem_cobertura'
-  | 'achou_caro';
+  | 'achou_caro'
+  | 'contato_nao_atualizado';
 
 export type LeadPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 
@@ -117,6 +118,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   sem_interesse: 'Sem Interesse',
   sem_cobertura: 'Sem Cobertura',
   achou_caro: 'Achou Caro',
+  contato_nao_atualizado: 'Contato Não Atualizado',
 };
 
 export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
@@ -132,6 +134,7 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   sem_interesse: 'bg-muted text-muted-foreground',
   sem_cobertura: 'bg-muted text-muted-foreground',
   achou_caro: 'bg-destructive/10 text-destructive',
+  contato_nao_atualizado: 'bg-muted text-muted-foreground',
 };
 
 export const PRIORITY_LABELS: Record<LeadPriority, string> = {

@@ -109,17 +109,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // Se atribuiu um vendedor, valida o limite de 5 leads ativos sem contato/visita
+    // Se atribuiu um vendedor, valida o limite de 5 leads ativos
     if (data.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
         where: {
           sellerId: data.sellerId,
-          interactions: { none: {} },
-          visits: { none: {} }
+          status: {
+            notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+          }
         }
       });
       if (activeLeadsCount >= 5) {
-        return NextResponse.json({ error: 'Este vendedor já possui o limite de 5 leads ativos sem contato ou visita.' }, { status: 400 });
+        return NextResponse.json({ error: 'Este vendedor já possui o limite de 5 leads ativos.' }, { status: 400 });
       }
     }
 

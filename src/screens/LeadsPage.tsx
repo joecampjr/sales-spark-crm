@@ -292,6 +292,7 @@ export default function LeadsPage() {
                       <option value="contato_realizado">Contato Realizado</option>
                       <option value="vendido">Vendido</option>
                       <option value="perdido">Perdido</option>
+                      <option value="contato_nao_atualizado">Contato Não Atualizado</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -352,7 +353,7 @@ export default function LeadsPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'vendido', 'perdido'].map((s) => (
+          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'vendido', 'perdido', 'contato_nao_atualizado'].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -492,6 +493,7 @@ export default function LeadsPage() {
                     <option value="contato_realizado">Contato Realizado</option>
                     <option value="vendido">Vendido</option>
                     <option value="perdido">Perdido</option>
+                    <option value="contato_nao_atualizado">Contato Não Atualizado</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -576,7 +578,7 @@ export default function LeadsPage() {
                 <li>Telefone</li>
                 <li>Cidade</li>
                 <li>Estado</li>
-                <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido)</span></li>
+                <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido, contato_nao_atualizado)</span></li>
                 <li>Prioridade <span className="text-muted-foreground font-normal">(baixa, media, alta, urgente)</span></li>
                 <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números)</span></li>
                 <li>Origem</li>
