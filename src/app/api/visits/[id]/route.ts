@@ -19,13 +19,19 @@ export async function PATCH(
     const body = await request.json();
     const data = UpdateVisitSchema.parse(body);
 
+    const existing = await prisma.visit.findUnique({ where: { id } });
+    let finalNotes = data.notes !== undefined ? data.notes : (existing?.notes || "");
+    if (body.justification) {
+      finalNotes = (finalNotes ? finalNotes + "\n\n" : "") + `[Justificativa da Autorização/Recusa]: ${body.justification}`;
+    }
+
     const updated = await prisma.visit.update({
       where: { id },
       data: {
         address: data.address,
         visitDate: data.visitDate ? new Date(data.visitDate) : undefined,
         status: data.status,
-        notes: data.notes,
+        notes: finalNotes,
         result: data.result,
         authorizedById: body.authorizedById,
         authorizedAt: body.authorizedById ? new Date() : undefined,

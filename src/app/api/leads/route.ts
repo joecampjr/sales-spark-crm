@@ -33,13 +33,34 @@ export async function GET(request: Request) {
       where.companyId = session.companyId;
     }
 
-    // Filtro de Vendedor (Visibilidade Restrita por Filial)
+    // Filtro de Vendedor (Visibilidade Restrita por Filial e Leads Sem Responsável ou Próprios)
     if (session.role === 'VENDEDOR') {
       const userSeller = await prisma.seller.findUnique({
         where: { userId: session.id }
       });
       if (userSeller && userSeller.branchId) {
         where.branchId = userSeller.branchId;
+        where.AND = [
+          {
+            OR: [
+              { sellerId: userSeller.id },
+              { sellerId: null }
+            ]
+          }
+        ];
+      } else {
+        where.branchId = 'non-existent-branch-id';
+      }
+    }
+
+    // Filtro de Gerente (Visibilidade Restrita por Filial)
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (dbUser && dbUser.branchId) {
+        where.branchId = dbUser.branchId;
       } else {
         where.branchId = 'non-existent-branch-id';
       }

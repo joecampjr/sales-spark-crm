@@ -11,12 +11,19 @@ export async function PATCH(
 
     // Se for uma autorização
     if (body.action === 'authorize' || body.action === 'reject') {
+      const existing = await prisma.salesAction.findUnique({ where: { id } });
+      let finalObs = existing?.observations || "";
+      if (body.justification) {
+        finalObs = (finalObs ? finalObs + "\n\n" : "") + `[Justificativa da Autorização/Recusa]: ${body.justification}`;
+      }
+
       const updated = await prisma.salesAction.update({
         where: { id },
         data: {
           status: body.action === 'authorize' ? 'autorizada' : 'recusada',
           authorizedById: body.authorizedById,
           authorizedAt: new Date(),
+          observations: finalObs,
         }
       });
       return NextResponse.json(updated);

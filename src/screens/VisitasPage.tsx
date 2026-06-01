@@ -44,6 +44,11 @@ export default function VisitasPage() {
   const [newStatus, setNewStatus] = useState('aguardando_autorizacao');
   const [editingStatus, setEditingStatus] = useState('');
 
+  // Justification Modal state
+  const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
+  const [justifyTarget, setJustifyTarget] = useState<{ id: string; status: 'autorizada' | 'recusada' } | null>(null);
+  const [justification, setJustification] = useState('');
+
   // Permissions
   const canAuthorize = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'GERENTE';
   const isSeller = user?.role === 'VENDEDOR';
@@ -122,13 +127,14 @@ export default function VisitasPage() {
   });
 
   const authorizeMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string, status: 'autorizada' | 'recusada' }) => {
+    mutationFn: async ({ id, status, justification }: { id: string, status: 'autorizada' | 'recusada', justification?: string }) => {
       const res = await fetch(`/api/visits/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           status,
-          authorizedById: user?.id 
+          authorizedById: user?.id,
+          justification
         })
       });
       if (!res.ok) {
@@ -140,6 +146,9 @@ export default function VisitasPage() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['visits'] });
       toast.success(variables.status === 'autorizada' ? 'Visita autorizada!' : 'Visita recusada.');
+      setIsJustifyModalOpen(false);
+      setJustification('');
+      setJustifyTarget(null);
     },
     onError: (error: any) => toast.error(error.message || 'Falha ao atualizar autorização da visita.')
   });
@@ -357,17 +366,26 @@ export default function VisitasPage() {
                           {visit.result}
                         </span>
                       )}
+                      {visit.notes && (
+                        <p className="text-[11px] text-muted-foreground max-w-[200px] italic line-clamp-2 mt-1" title={visit.notes}>
+                          &quot;{visit.notes}&quot;
+                        </p>
+                      )}
                     </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      {canAuthorize && visit.status === 'aguardando_autorizacao' && (
+                       {canAuthorize && visit.status === 'aguardando_autorizacao' && (
                         <>
                           <Button 
                             size="sm" 
                             variant="outline" 
                             className="h-7 text-[10px] border-primary text-primary hover:bg-primary/5"
-                            onClick={() => authorizeMutation.mutate({ id: visit.id, status: 'autorizada' })}
+                            onClick={() => {
+                              setJustifyTarget({ id: visit.id, status: 'autorizada' });
+                              setJustification('');
+                              setIsJustifyModalOpen(true);
+                            }}
                           >
                             Autorizar
                           </Button>
@@ -375,7 +393,11 @@ export default function VisitasPage() {
                             size="sm" 
                             variant="outline" 
                             className="h-7 text-[10px] border-destructive text-destructive hover:bg-destructive/5"
-                            onClick={() => authorizeMutation.mutate({ id: visit.id, status: 'recusada' })}
+                            onClick={() => {
+                              setJustifyTarget({ id: visit.id, status: 'recusada' });
+                              setJustification('');
+                              setIsJustifyModalOpen(true);
+                            }}
                           >
                             Recusar
                           </Button>
@@ -489,6 +511,51 @@ export default function VisitasPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Justification Modal */}
+      <Dialog open={isJustifyModalOpen} onOpenChange={setIsJustifyModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>
+              {justifyTarget?.status === 'autorizada' ? 'Autorizar Visita' : 'Recusar Visita'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Justificativa / Observação <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="Descreva o motivo desta decisão..."
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsJustifyModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!justification.trim()) {
+                    toast.error('Por favor, insira uma justificativa.');
+                    return;
+                  }
+                  if (justifyTarget) {
+                    authorizeMutation.mutate({
+                      id: justifyTarget.id,
+                      status: justifyTarget.status,
+                      justification
+                    });
+                  }
+                }}
+                disabled={authorizeMutation.isPending}
+                className={justifyTarget?.status === 'autorizada' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+              >
+                {authorizeMutation.isPending ? 'Enviando...' : justifyTarget?.status === 'autorizada' ? 'Autorizar' : 'Recusar'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -60,8 +60,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Apenas ADMIN e SUPERADMIN podem criar usuários
-    if (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN') {
+    // Apenas ADMIN, SUPERADMIN e SUPERVISOR podem criar usuários
+    if (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPERVISOR') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,6 +74,11 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    let finalBranchId = data.branchId || null;
+    if (data.role === 'SUPERVISOR' || data.role === 'ADMIN' || data.role === 'SUPERADMIN') {
+      finalBranchId = null;
+    }
+
     const newUser = await prisma.$transaction(async (tx) => {
       // 1. Cria o usuário
       const user = await tx.user.create({
@@ -83,7 +88,7 @@ export async function POST(request: Request) {
           password: hashedPassword,
           role: data.role,
           cpf: data.cpf || null,
-          branchId: data.branchId || null,
+          branchId: finalBranchId,
           companyId: session.companyId || null
         }
       });
@@ -102,7 +107,7 @@ export async function POST(request: Request) {
             monthlyGoal: data.monthlyGoal ?? 50000,
             contactsTarget: data.contactsTarget ?? 10,
             commissionRate: data.commissionRate ?? 5,
-            branchId: data.branchId || null,
+            branchId: finalBranchId,
             status: 'ativo',
             companyId: session.companyId || null,
             userId: user.id

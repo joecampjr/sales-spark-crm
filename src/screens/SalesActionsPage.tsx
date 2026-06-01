@@ -32,6 +32,11 @@ export default function SalesActionsPage() {
   const [selectedAction, setSelectedAction] = useState<any>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
 
+  // Justification Modal state
+  const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
+  const [justifyTarget, setJustifyTarget] = useState<{ id: string; action: 'authorize' | 'reject' } | null>(null);
+  const [justification, setJustification] = useState('');
+
   // Permissions
   const canCreate = user?.role === 'ADMIN' || user?.role === 'GERENTE';
   const canAuthorize = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
@@ -63,18 +68,26 @@ export default function SalesActionsPage() {
   });
 
   const authorizeMutation = useMutation({
-    mutationFn: async ({ id, action }: { id: string, action: 'authorize' | 'reject' }) => {
+    mutationFn: async ({ id, action, justification }: { id: string, action: 'authorize' | 'reject', justification?: string }) => {
       const res = await fetch(`/api/sales-actions/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, authorizedById: user?.id })
+        body: JSON.stringify({ action, authorizedById: user?.id, justification })
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao atualizar status da ação');
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales-actions'] });
       toast.success('Status da ação atualizado!');
-    }
+      setIsJustifyModalOpen(false);
+      setJustification('');
+      setJustifyTarget(null);
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao atualizar status da ação.')
   });
 
   const reportMutation = useMutation({
@@ -285,6 +298,13 @@ export default function SalesActionsPage() {
               </div>
             </div>
 
+            {action.observations && (
+              <div className="p-3 bg-muted/40 rounded-lg border border-border/30 text-xs italic text-muted-foreground mt-2 max-h-[80px] overflow-y-auto">
+                <span className="font-bold not-italic block text-[10px] text-muted-foreground uppercase mb-0.5">Observações / Estratégia</span>
+                &quot;{action.observations}&quot;
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-2 pt-2">
               <div className="flex items-center gap-2">
                 {canAuthorize && action.status === 'aguardando_autorizacao' && (
@@ -292,15 +312,23 @@ export default function SalesActionsPage() {
                     <Button 
                       size="sm" 
                       className="h-8 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
-                      onClick={() => authorizeMutation.mutate({ id: action.id, action: 'authorize' })}
+                      onClick={() => {
+                        setJustifyTarget({ id: action.id, action: 'authorize' });
+                        setJustification('');
+                        setIsJustifyModalOpen(true);
+                      }}
                     >
                       Autorizar
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="h-8 text-[10px] border-destructive text-destructive"
-                      onClick={() => authorizeMutation.mutate({ id: action.id, action: 'reject' })}
+                      className="h-8 text-[10px] border-destructive text-destructive hover:bg-destructive/5"
+                      onClick={() => {
+                        setJustifyTarget({ id: action.id, action: 'reject' });
+                        setJustification('');
+                        setIsJustifyModalOpen(true);
+                      }}
                     >
                       Recusar
                     </Button>
@@ -386,6 +414,51 @@ export default function SalesActionsPage() {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+      {/* Justification Modal */}
+      <Dialog open={isJustifyModalOpen} onOpenChange={setIsJustifyModalOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle>
+              {justifyTarget?.action === 'authorize' ? 'Autorizar Ação' : 'Recusar Ação'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Justificativa / Observação <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="Descreva o motivo desta decisão..."
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setIsJustifyModalOpen(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (!justification.trim()) {
+                    toast.error('Por favor, insira uma justificativa.');
+                    return;
+                  }
+                  if (justifyTarget) {
+                    authorizeMutation.mutate({
+                      id: justifyTarget.id,
+                      action: justifyTarget.action,
+                      justification
+                    });
+                  }
+                }}
+                disabled={authorizeMutation.isPending}
+                className={justifyTarget?.action === 'authorize' ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'}
+              >
+                {authorizeMutation.isPending ? 'Enviando...' : justifyTarget?.action === 'authorize' ? 'Autorizar' : 'Recusar'}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

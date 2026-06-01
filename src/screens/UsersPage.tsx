@@ -176,12 +176,13 @@ export default function UsersPage() {
     }
   };
 
-  if (currentUser?.role !== 'ADMIN') {
+  const isAuthorized = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN' || currentUser?.role === 'SUPERVISOR';
+  if (!isAuthorized) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8">
         <Shield className="w-16 h-16 text-muted-foreground/30 mb-4" />
         <h2 className="text-xl font-bold">Acesso Restrito</h2>
-        <p className="text-muted-foreground mt-2 max-w-md">Esta página é exclusiva para administradores do sistema.</p>
+        <p className="text-muted-foreground mt-2 max-w-md">Esta página é exclusiva para administradores e supervisores do sistema.</p>
       </div>
     );
   }
@@ -245,15 +246,17 @@ export default function UsersPage() {
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Filial (Opcional)</Label>
-                  <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                    <option value="">Nenhuma</option>
-                    {Array.isArray(branches) && branches.map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {(newRole === 'VENDEDOR' || newRole === 'GERENTE') && (
+                  <div className="space-y-2">
+                    <Label>Filial (Opcional)</Label>
+                    <select name="branchId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Nenhuma</option>
+                      {Array.isArray(branches) && branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {newRole === 'VENDEDOR' && (
                   <>
                     <Separator className="col-span-2 my-2" />
@@ -417,15 +420,17 @@ export default function UsersPage() {
                     <option value="ADMIN">Administrador</option>
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Filial</Label>
-                  <select name="branchId" defaultValue={editingUser.branchId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                    <option value="">Nenhuma</option>
-                    {Array.isArray(branches) && branches.map((b: any) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {(editRole === 'VENDEDOR' || editRole === 'GERENTE') && (
+                  <div className="space-y-2">
+                    <Label>Filial</Label>
+                    <select name="branchId" defaultValue={editingUser.branchId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="">Nenhuma</option>
+                      {Array.isArray(branches) && branches.map((b: any) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {editRole === 'VENDEDOR' && (
                   <>
                     <Separator className="col-span-2 my-2" />

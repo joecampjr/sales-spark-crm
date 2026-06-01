@@ -25,6 +25,32 @@ export async function GET(request: Request) {
       where.companyId = session.companyId;
     }
 
+    // Restrições de Visibilidade baseadas em Função (Filial e Vendedor)
+    if (session.role === 'VENDEDOR') {
+      const userSeller = await prisma.seller.findUnique({
+        where: { userId: session.id }
+      });
+      if (userSeller) {
+        where.sellerId = userSeller.id;
+      } else {
+        where.sellerId = 'non-existent-seller-id';
+      }
+    } else if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (dbUser && dbUser.branchId) {
+        where.seller = {
+          branchId: dbUser.branchId
+        };
+      } else {
+        where.seller = {
+          branchId: 'non-existent-branch-id'
+        };
+      }
+    }
+
     const visits = await prisma.visit.findMany({
       where,
       include: {

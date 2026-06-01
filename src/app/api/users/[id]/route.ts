@@ -25,7 +25,7 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPERVISOR')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -42,6 +42,16 @@ export async function PATCH(
 
     const data = UpdateUserSchema.parse(body);
 
+    const existingUserRecord = await prisma.user.findUnique({ where: { id } });
+    const finalRole = data.role || existingUserRecord?.role || 'VENDEDOR';
+
+    let finalBranchId: string | null | undefined = data.branchId;
+    if (finalRole === 'SUPERVISOR' || finalRole === 'ADMIN' || finalRole === 'SUPERADMIN') {
+      finalBranchId = null;
+    } else if (data.branchId === '') {
+      finalBranchId = null;
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       // 1. Atualiza o usuário
       const user = await tx.user.update({
@@ -51,12 +61,10 @@ export async function PATCH(
           email: data.email === '' ? null : data.email,
           role: data.role,
           cpf: data.cpf,
-          branchId: data.branchId === '' ? null : data.branchId || undefined,
+          branchId: finalBranchId,
           password: data.password ? await bcrypt.hash(data.password, 10) : undefined,
         },
       });
-
-      const finalRole = data.role || user.role;
 
       // 2. Trata a vinculação e sincronização com Seller
       if (finalRole === 'VENDEDOR') {
@@ -73,7 +81,7 @@ export async function PATCH(
               monthlyGoal: data.monthlyGoal !== undefined ? (data.monthlyGoal ?? 0) : undefined,
               contactsTarget: data.contactsTarget !== undefined ? (data.contactsTarget ?? 10) : undefined,
               commissionRate: data.commissionRate !== undefined ? (data.commissionRate ?? 0) : undefined,
-              branchId: data.branchId === '' ? null : data.branchId || undefined,
+              branchId: finalBranchId,
             }
           });
         } else {
@@ -122,7 +130,7 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session || session.role !== 'ADMIN') {
+    if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPERVISOR')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
