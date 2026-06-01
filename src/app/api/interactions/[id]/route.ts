@@ -6,7 +6,7 @@ import { getSession } from '@/lib/auth';
 const UpdateInteractionSchema = z.object({
   type: z.string().optional(),
   result: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   scheduledFor: z.string().nullable().optional(),
 });
 

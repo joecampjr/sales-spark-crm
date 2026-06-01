@@ -246,6 +246,15 @@ export default function LeadsPage() {
     e.preventDefault();
     if (!editingLead) return;
     const fd = new FormData(e.currentTarget);
+
+    if (isVendedor) {
+      updateMutation.mutate({
+        id: editingLead.id,
+        status: fd.get('status'),
+      });
+      return;
+    }
+
     updateMutation.mutate({
       id: editingLead.id,
       name: fd.get('name'),

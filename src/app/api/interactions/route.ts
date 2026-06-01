@@ -8,7 +8,7 @@ const InteractionSchema = z.object({
   sellerId: z.string(),
   type: z.string(),
   result: z.string(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
   scheduledFor: z.string().nullable().optional(), // ISO string
 });
 

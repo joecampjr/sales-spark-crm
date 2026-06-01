@@ -161,8 +161,8 @@ export default function ContatosPage() {
         sellerId: sellerIdToUse,
         type,
         result: formResult,
-        notes: notes || null,
-        scheduledFor: scheduledFor || null
+        notes: notes || undefined,
+        scheduledFor: scheduledFor || undefined
       });
 
       // 2. Atualiza o status do Lead
