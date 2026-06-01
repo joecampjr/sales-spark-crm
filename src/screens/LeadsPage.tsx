@@ -435,7 +435,7 @@ export default function LeadsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
-                {['Nome', 'Cidade', 'Status', 'Prioridade', 'Vendedor', 'Valor Est.', 'Origem', 'Entrada', ''].map((h) => (
+                {['Nome', 'Cidade', 'Filial', 'Status', 'Prioridade', 'Vendedor', 'Valor Est.', 'Origem', 'Entrada', ''].map((h) => (
                   <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     {h}
                   </th>
@@ -444,9 +444,9 @@ export default function LeadsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
+                <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
               ) : leads.length === 0 ? (
-                <tr><td colSpan={9} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
+                <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
               ) : leads.map((lead: any) => (
                 <tr key={lead.id} className="table-row-hover border-b border-border/30 last:border-0 cursor-pointer">
                   <td className="py-3 px-4">
@@ -461,6 +461,9 @@ export default function LeadsPage() {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-sm text-muted-foreground">{lead.city}/{lead.state}</td>
+                  <td className="py-3 px-4 text-sm text-muted-foreground font-medium">
+                    {lead.branch?.name || <span className="text-muted-foreground/60 italic text-xs">Sede / Geral</span>}
+                  </td>
                   <td className="py-3 px-4"><StatusBadge status={lead.status} /></td>
                   <td className="py-3 px-4">
                     <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
