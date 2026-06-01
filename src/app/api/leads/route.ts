@@ -38,8 +38,12 @@ export async function GET(request: Request) {
       const userSeller = await prisma.seller.findUnique({
         where: { userId: session.id }
       });
-      if (userSeller && userSeller.branchId) {
-        where.branchId = userSeller.branchId;
+      if (userSeller) {
+        const branchIds: (string | null)[] = [null];
+        if (userSeller.branchId) {
+          branchIds.push(userSeller.branchId);
+        }
+        where.branchId = { in: branchIds };
         where.AND = [
           {
             OR: [
@@ -59,8 +63,12 @@ export async function GET(request: Request) {
         where: { id: session.id },
         select: { branchId: true }
       });
-      if (dbUser && dbUser.branchId) {
-        where.branchId = dbUser.branchId;
+      if (dbUser) {
+        const branchIds: (string | null)[] = [null];
+        if (dbUser.branchId) {
+          branchIds.push(dbUser.branchId);
+        }
+        where.branchId = { in: branchIds };
       } else {
         where.branchId = 'non-existent-branch-id';
       }
