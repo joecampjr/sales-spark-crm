@@ -1,7 +1,10 @@
+"use client";
+
+import { useState } from 'react';
 import { Bell, Search, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -9,6 +12,83 @@ interface TopbarProps {
 }
 
 export function Topbar({ onMenuClick, title }: TopbarProps) {
+  const { user } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Queries
+  const { data: visits = [] } = useQuery({
+    queryKey: ['visits'],
+    queryFn: async () => {
+      const res = await fetch('/api/visits');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user,
+    refetchInterval: 30000 // atualiza a cada 30s
+  });
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: async () => {
+      const res = await fetch('/api/leads');
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user && user.role === 'VENDEDOR',
+    refetchInterval: 30000
+  });
+
+  const isVendedor = user?.role === 'VENDEDOR';
+  const isAdminOrSupervisor = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR' || user?.role === 'GERENTE';
+
+  const notifications: any[] = [];
+
+  if (user) {
+    if (isAdminOrSupervisor) {
+      // Solicitações de visita pendentes de autorização
+      const pendingVisits = visits.filter((v: any) => v.status === 'aguardando_autorizacao');
+      pendingVisits.forEach((v: any) => {
+        notifications.push({
+          id: `pending-visit-${v.id}`,
+          title: 'Solicitação de Visita',
+          description: `O vendedor ${v.seller?.name || ''} solicitou visita para o lead ${v.lead?.name || ''}.`,
+          time: new Date(v.createdAt).toLocaleDateString('pt-BR'),
+          type: 'visit_pending',
+          link: '/visitas'
+        });
+      });
+    }
+
+    if (isVendedor) {
+      // Visitas autorizadas ou recusadas
+      const myVisits = visits.filter((v: any) => ['autorizada', 'recusada'].includes(v.status));
+      myVisits.forEach((v: any) => {
+        const isAuthorized = v.status === 'autorizada';
+        notifications.push({
+          id: `my-visit-${v.id}-${v.status}`,
+          title: isAuthorized ? 'Visita Autorizada' : 'Visita Recusada',
+          description: `Sua solicitação de visita para o lead ${v.lead?.name || ''} foi ${v.status === 'autorizada' ? 'autorizada' : 'recusada'}.`,
+          time: new Date(v.updatedAt || v.createdAt).toLocaleDateString('pt-BR'),
+          type: isAuthorized ? 'visit_authorized' : 'visit_refused',
+          link: '/visitas'
+        });
+      });
+
+      // Leads sem responsável/vendedor na filial
+      const unassignedLeads = leads.filter((l: any) => l.sellerId === null);
+      unassignedLeads.forEach((l: any) => {
+        notifications.push({
+          id: `unassigned-lead-${l.id}`,
+          title: 'Lead Sem Responsável',
+          description: `O lead ${l.name} está disponível na filial para vinculação.`,
+          time: new Date(l.createdAt).toLocaleDateString('pt-BR'),
+          type: 'unassigned_lead',
+          link: '/leads'
+        });
+      });
+    }
+  }
+
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-30">
       <div className="flex items-center gap-4">
@@ -25,10 +105,54 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
             className="w-72 pl-9 bg-muted/50 border-transparent focus:border-primary/30 h-9 text-sm"
           />
         </div>
-        <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
-          <Bell className="w-5 h-5 text-muted-foreground" />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
-        </button>
+        
+        <div className="relative">
+          <button 
+            onClick={() => setIsOpen(!isOpen)}
+            className="relative p-2 rounded-lg hover:bg-muted transition-colors focus:outline-none"
+            title="Notificações"
+          >
+            <Bell className="w-5 h-5 text-muted-foreground" />
+            {notifications.length > 0 && (
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+            )}
+          </button>
+
+          {isOpen && (
+            <div className="absolute right-0 mt-2 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-xl shadow-xl z-50 animate-fade-in flex flex-col">
+              <div className="p-4 border-b border-border/50 flex justify-between items-center bg-muted/20">
+                <span className="font-semibold text-sm text-foreground">Notificações</span>
+                {notifications.length > 0 && (
+                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    {notifications.length} nova(s)
+                  </span>
+                )}
+              </div>
+              <div className="divide-y divide-border/30">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-muted-foreground">
+                    Nenhuma notificação no momento.
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <a 
+                      key={n.id} 
+                      href={n.link}
+                      onClick={() => setIsOpen(false)}
+                      className="p-4 flex flex-col gap-1 hover:bg-muted/40 transition-colors block text-left"
+                    >
+                      <div className="flex justify-between items-start">
+                        <span className="font-semibold text-xs text-foreground leading-tight">{n.title}</span>
+                        <span className="text-[9px] text-muted-foreground font-medium shrink-0 ml-2">{n.time}</span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-normal mt-1">{n.description}</p>
+                    </a>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
