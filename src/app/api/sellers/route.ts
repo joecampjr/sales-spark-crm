@@ -30,9 +30,22 @@ export async function GET() {
       where.companyId = session.companyId;
     }
 
+    if (session.role === 'VENDEDOR') {
+      where.userId = session.id;
+    } else if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (dbUser && dbUser.branchId) {
+        where.branchId = dbUser.branchId;
+      } else {
+        where.branchId = 'non-existent-branch-id';
+      }
+    }
+
     const sellers = await prisma.seller.findMany({
       where,
-      orderBy: { salesCount: 'desc' },
       include: {
         branch: true,
         user: {
@@ -44,7 +57,58 @@ export async function GET() {
       }
     });
 
-    return NextResponse.json(sellers);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const calculatedSellers = await Promise.all(sellers.map(async (seller) => {
+      // 1. Contar vendas reais do vendedor
+      const salesCount = await prisma.lead.count({
+        where: {
+          sellerId: seller.id,
+          status: 'vendido'
+        }
+      });
+
+      // 2. Contar leads ativos (status diferente de vendido, perdido, contato_nao_atualizado)
+      const activeLeads = await prisma.lead.count({
+        where: {
+          sellerId: seller.id,
+          status: {
+            notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+          }
+        }
+      });
+
+      // 3. Contar total de leads atribuídos a este vendedor
+      const totalLeads = await prisma.lead.count({
+        where: {
+          sellerId: seller.id
+        }
+      });
+
+      const conversionRate = totalLeads > 0 ? Number(((salesCount / totalLeads) * 100).toFixed(1)) : 0;
+
+      // 4. Contar contatos realizados hoje
+      const contactsToday = await prisma.interaction.count({
+        where: {
+          sellerId: seller.id,
+          createdAt: { gte: startOfToday }
+        }
+      });
+
+      return {
+        ...seller,
+        salesCount,
+        activeLeads,
+        conversionRate,
+        contactsToday
+      };
+    }));
+
+    // Ordenar decrescentemente por número de vendas
+    calculatedSellers.sort((a, b) => b.salesCount - a.salesCount);
+
+    return NextResponse.json(calculatedSellers);
   } catch (error) {
     console.error('Error fetching sellers:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

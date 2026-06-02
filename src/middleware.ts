@@ -52,7 +52,12 @@ export async function middleware(request: NextRequest) {
     const isUsersRoute = pathname.startsWith('/usuarios') || pathname.startsWith('/api/users');
 
     if (isSellersRoute) {
-      const allowed = ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'];
+      // Vendedor é permitido APENAS para ler (GET) via API. A página UI /vendedores e mutações via API continuam bloqueadas.
+      const isApiGet = pathname.startsWith('/api/sellers') && request.method === 'GET';
+      const allowed = isApiGet 
+        ? ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE', 'VENDEDOR']
+        : ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'];
+
       if (!allowed.includes(role)) {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
