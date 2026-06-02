@@ -13,7 +13,7 @@ const UpdateLeadSchema = z.object({
   estimatedValue: z.number().nullable().optional(),
   source: z.string().optional(),
   sellerId: z.string().nullable().optional(),
-  cpf: z.string().nullable().optional(),
+  cpf: z.string().optional(),
   branchId: z.string().nullable().optional(),
 });
 
@@ -72,6 +72,31 @@ export async function PATCH(
       }
     }
 
+    // CPF obrigatório e validação de duplicidade (se fornecido ou editado)
+    if (data.cpf !== undefined) {
+      if (!data.cpf) {
+        return NextResponse.json({ error: 'CPF é obrigatório.' }, { status: 400 });
+      }
+      const cleanedCpf = data.cpf.replace(/\D/g, '');
+      if (cleanedCpf.length !== 11) {
+        return NextResponse.json({ error: 'CPF inválido (deve conter 11 dígitos).' }, { status: 400 });
+      }
+      data.cpf = cleanedCpf;
+
+      if (cleanedCpf !== lead.cpf) {
+        const existingLeadCpf = await prisma.lead.findFirst({
+          where: {
+            cpf: cleanedCpf,
+            companyId: session.companyId || null,
+            id: { not: id } // Exclui o lead atual da checagem
+          }
+        });
+        if (existingLeadCpf) {
+          return NextResponse.json({ error: 'Um lead com este CPF já está cadastrado nesta empresa.' }, { status: 400 });
+        }
+      }
+    }
+
     // Se atribuiu ou alterou o vendedor, valida o limite de 5 leads ativos
     if (data.sellerId && data.sellerId !== lead.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
@@ -79,11 +104,6 @@ export async function PATCH(
           sellerId: data.sellerId,
           status: {
             notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
-          },
-          interactions: {
-            none: {
-              result: 'Reativado'
-            }
           }
         }
       });

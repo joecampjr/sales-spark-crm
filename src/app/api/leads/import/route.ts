@@ -12,7 +12,7 @@ const ImportSchema = z.array(z.object({
   priority: z.string().optional().default('media'),
   estimatedValue: z.number().optional().nullable(),
   source: z.string().optional().default('CSV'),
-  cpf: z.string().optional().nullable(),
+  cpf: z.string(),
   branchId: z.string().optional().nullable(),
 }));
 
@@ -47,9 +47,21 @@ export async function POST(request: Request) {
         const cleanedPhone = lead.phone.replace(/\D/g, '');
         if (!cleanedPhone) continue;
 
+        if (!lead.cpf) {
+          throw new Error(`O lead "${lead.name}" não possui um CPF preenchido.`);
+        }
+        const cleanedCpf = lead.cpf.replace(/\D/g, '');
+        if (cleanedCpf.length !== 11) {
+          throw new Error(`O CPF "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos).`);
+        }
+
+        // Upsert baseado em Telefone OU CPF para ignorar/atualizar duplicatas
         const existing = await tx.lead.findFirst({
           where: {
-            phone: cleanedPhone,
+            OR: [
+              { phone: cleanedPhone },
+              { cpf: cleanedCpf }
+            ],
             companyId: companyId
           }
         });
@@ -60,10 +72,11 @@ export async function POST(request: Request) {
             where: { id: existing.id },
             data: {
               name: lead.name,
+              phone: cleanedPhone,
               city: lead.city || existing.city,
               state: lead.state || existing.state,
               estimatedValue: lead.estimatedValue || existing.estimatedValue,
-              cpf: lead.cpf ? lead.cpf.replace(/\D/g, '') : existing.cpf,
+              cpf: cleanedCpf,
               branchId: lead.branchId || existing.branchId
             }
           });
@@ -79,7 +92,7 @@ export async function POST(request: Request) {
               priority: lead.priority,
               estimatedValue: lead.estimatedValue,
               source: lead.source,
-              cpf: lead.cpf ? lead.cpf.replace(/\D/g, '') : null,
+              cpf: cleanedCpf,
               branchId: lead.branchId || null,
               companyId: companyId
             }
@@ -90,11 +103,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ message: `Sucesso. Importados: ${imported}, Atualizados: ${updated}` });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error importing leads:', error);
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
     }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

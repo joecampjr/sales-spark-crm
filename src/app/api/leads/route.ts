@@ -13,7 +13,7 @@ const CreateLeadSchema = z.object({
   estimatedValue: z.number().nullable().optional(),
   source: z.string(),
   sellerId: z.string().nullable().optional(),
-  cpf: z.string().nullable().optional(),
+  cpf: z.string().min(11, 'CPF é obrigatório'),
   branchId: z.string().nullable().optional(),
 });
 
@@ -22,6 +22,30 @@ export async function GET(request: Request) {
     const session = await getSession();
     if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Libera leads finalizados há mais de 30 dias (status vendido, perdido, contato_nao_atualizado)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    if (session.companyId) {
+      await prisma.lead.updateMany({
+        where: {
+          companyId: session.companyId,
+          status: {
+            in: ['vendido', 'perdido', 'contato_nao_atualizado']
+          },
+          updatedAt: {
+            lte: thirtyDaysAgo
+          },
+          sellerId: {
+            not: null
+          }
+        },
+        data: {
+          sellerId: null, // Volta para o banco de leads (sem responsável)
+          status: 'novo'  // Volta a ser um lead novo/ativo no banco
+        }
+      });
     }
 
     const { searchParams } = new URL(request.url);
@@ -153,6 +177,26 @@ export async function POST(request: Request) {
       }
     }
 
+    // CPF obrigatório e validação de duplicidade
+    if (!data.cpf) {
+      return NextResponse.json({ error: 'CPF é obrigatório.' }, { status: 400 });
+    }
+    const cleanedCpf = data.cpf.replace(/\D/g, '');
+    if (cleanedCpf.length !== 11) {
+      return NextResponse.json({ error: 'CPF inválido (deve conter 11 dígitos).' }, { status: 400 });
+    }
+    data.cpf = cleanedCpf;
+
+    const existingLeadCpf = await prisma.lead.findFirst({
+      where: {
+        cpf: cleanedCpf,
+        companyId: session.companyId || null,
+      }
+    });
+    if (existingLeadCpf) {
+      return NextResponse.json({ error: 'Um lead com este CPF já está cadastrado nesta empresa.' }, { status: 400 });
+    }
+
     // Se atribuiu um vendedor, valida o limite de 5 leads ativos
     if (data.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
@@ -160,11 +204,6 @@ export async function POST(request: Request) {
           sellerId: data.sellerId,
           status: {
             notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
-          },
-          interactions: {
-            none: {
-              result: 'Reativado'
-            }
           }
         }
       });

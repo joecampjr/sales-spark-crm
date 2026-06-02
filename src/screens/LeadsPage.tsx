@@ -195,14 +195,17 @@ export default function LeadsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsedData)
       });
-      if (!res.ok) throw new Error('Erro na importação');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro na importação');
+      }
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success(data.message || 'Leads importados!');
     },
-    onError: () => toast.error('Erro ao importar CSV.')
+    onError: (error: any) => toast.error(error.message || 'Erro ao importar CSV.')
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -213,18 +216,27 @@ export default function LeadsPage() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const mapped = results.data.map((row: any) => ({
-          name: row['Nome'] || row['name'] || 'Sem Nome',
-          phone: row['Telefone'] || row['phone'] || String(Math.random()),
-          city: row['Cidade'] || row['city'] || '',
-          state: row['Estado'] || row['state'] || '',
-          status: row['Status'] || row['status'] || 'novo',
-          priority: row['Prioridade'] || row['priority'] || 'media',
-          estimatedValue: parseFloat(row['Valor Estimado'] || row['estimatedValue']) || 0,
-          source: row['Origem'] || row['source'] || 'CSV Import',
-          cpf: row['CPF'] || row['cpf'] || null,
-          branchId: row['Filial ID'] || row['branchId'] || null
-        }));
+        const mapped = results.data.map((row: any) => {
+          const getValue = (keys: string[]) => {
+            const foundKey = Object.keys(row).find(k => 
+              keys.map(x => x.toLowerCase().trim()).includes(k.toLowerCase().trim())
+            );
+            return foundKey ? String(row[foundKey]).trim() : '';
+          };
+          
+          return {
+            name: getValue(['Nome', 'name', 'nome']) || 'Sem Nome',
+            phone: getValue(['Telefone', 'phone', 'telefone']),
+            city: getValue(['Cidade', 'city', 'cidade']),
+            state: getValue(['Estado', 'state', 'estado']),
+            status: getValue(['Status', 'status']) || 'novo',
+            priority: getValue(['Prioridade', 'priority', 'prioridade']) || 'media',
+            estimatedValue: parseFloat(getValue(['Valor Estimado', 'estimatedValue', 'valor_estimado'])) || 0,
+            source: getValue(['Origem', 'source', 'origem']) || 'CSV Import',
+            cpf: getValue(['CPF', 'cpf']),
+            branchId: getValue(['Filial ID', 'branchId', 'filial_id']) || null
+          };
+        });
         importMutation.mutate(mapped);
         setIsImportModalOpen(false);
       }
@@ -301,9 +313,11 @@ export default function LeadsPage() {
               <Upload className="w-3.5 h-3.5 mr-1.5" /> {importMutation.isPending ? 'Importando...' : 'Importar CSV'}
             </Button>
           )}
-          <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open('/api/leads/export', '_blank')}>
-            <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar
-          </Button>
+          {!isVendedor && (
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open('/api/leads/export', '_blank')}>
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Exportar
+            </Button>
+          )}
 
           <Dialog open={isModalOpen} onOpenChange={(open) => {
             setIsModalOpen(open);
@@ -336,9 +350,10 @@ export default function LeadsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>CPF</Label>
+                    <Label>CPF <span className="text-destructive">*</span></Label>
                     <Input 
                       name="cpf" 
+                      required
                       placeholder="000.000.000-00" 
                       value={newCpf}
                       onChange={(e) => setNewCpf(maskCpf(e.target.value))}
@@ -389,13 +404,22 @@ export default function LeadsPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
-                    <select name="sellerId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                      <option value="">Nenhum (Sem responsável)</option>
-                      {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                    <Label>Vendedor Responsável</Label>
+                    {isVendedor ? (
+                      <>
+                        <select disabled className="flex h-10 w-full rounded-md border border-input bg-muted px-3 py-2 text-sm">
+                          <option value={userSeller?.id}>{userSeller?.name || 'Seu Nome'}</option>
+                        </select>
+                        <input type="hidden" name="sellerId" value={userSeller?.id || ''} />
+                      </>
+                    ) : (
+                      <select name="sellerId" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Nenhum (Sem responsável)</option>
+                        {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                   {!isVendedor && (
                     <div className="space-y-2">
@@ -583,9 +607,10 @@ export default function LeadsPage() {
                     />
                 </div>
                 <div className="space-y-2">
-                  <Label>CPF</Label>
+                  <Label>CPF <span className="text-destructive">*</span></Label>
                   <Input 
                     name="cpf" 
+                    required={!isVendedor}
                     placeholder="000.000.000-00" 
                     value={editCpf}
                     onChange={(e) => setEditCpf(maskCpf(e.target.value))}

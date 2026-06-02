@@ -321,7 +321,20 @@ export default function ContatosPage() {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-sm text-foreground">{lead.seller?.name || '-'}</td>
-                    <td className="py-4 px-6"><StatusBadge status={lead.status} /></td>
+                    <td className="py-4 px-6">
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <StatusBadge status={lead.status} />
+                        {['perdido', 'vendido'].includes(lead.status) && lastInteraction?.result && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase leading-none tracking-wider select-none ${
+                            lead.status === 'perdido'
+                              ? 'bg-destructive/10 text-destructive border-destructive/20'
+                              : 'bg-success/10 text-success border-success/20'
+                          }`}>
+                            {lastInteraction.result}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-4 px-6 text-xs text-muted-foreground">
                       {lastInteraction 
                         ? new Date(lastInteraction.createdAt).toLocaleString('pt-BR')

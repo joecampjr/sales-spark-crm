@@ -82,6 +82,28 @@ export default function VisitasPage() {
     }
   });
 
+  const { data: mySeller = null } = useQuery({
+    queryKey: ['mySeller', user?.id],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers/me');
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!user
+  });
+
+  const activeLeads = Array.isArray(leads)
+    ? leads.filter((l: any) => {
+        const isActive = !['vendido', 'perdido', 'contato_nao_atualizado'].includes(l.status);
+        if (!isActive) return false;
+
+        if (isSeller && mySeller) {
+          return l.sellerId === mySeller.id;
+        }
+        return true;
+      })
+    : [];
+
   // Mutations
   const createMutation = useMutation({
     mutationFn: async (newData: any) => {
@@ -235,7 +257,7 @@ export default function VisitasPage() {
                   <Label>Lead</Label>
                   <select name="leadId" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                     <option value="">Selecione...</option>
-                    {Array.isArray(leads) && leads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {activeLeads.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
