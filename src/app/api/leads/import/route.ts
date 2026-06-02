@@ -46,15 +46,13 @@ export async function POST(request: Request) {
         // Remove formatação do telefone para consistência no banco e na busca
         const cleanedPhone = lead.phone.replace(/\D/g, '');
         if (!cleanedPhone) continue;
-
         if (!lead.cpf) {
-          throw new Error(`O lead "${lead.name}" não possui um CPF preenchido.`);
+          throw new Error(`O lead "${lead.name}" não possui um CPF/CNPJ preenchido.`);
         }
         const cleanedCpf = lead.cpf.replace(/\D/g, '');
-        if (cleanedCpf.length !== 11) {
-          throw new Error(`O CPF "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos).`);
+        if (cleanedCpf.length !== 11 && cleanedCpf.length !== 14) {
+          throw new Error(`O CPF/CNPJ "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos para CPF ou 14 dígitos para CNPJ).`);
         }
-
         // Resolve branchId (pode vir como UUID ou como Nome da filial, ex: "VN")
         let finalBranchId: string | null = null;
         if (lead.branchId) {

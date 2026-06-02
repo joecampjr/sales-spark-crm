@@ -25,19 +25,22 @@ export function maskPhone(value: string) {
   }
   return v;
 }
-
 export function maskCpf(value: string) {
   if (!value) return "";
-  let v = value.replace(/\D/g, "");
-  if (v.length > 11) v = v.slice(0, 11);
-  
-  if (v.length > 9) {
-    v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{1,2}).*/, "$1.$2.$3-$4");
-  } else if (v.length > 6) {
-    v = v.replace(/^(\d{3})(\d{3})(\d{1,3}).*/, "$1.$2.$3");
-  } else if (v.length > 3) {
-    v = v.replace(/^(\d{3})(\d{1,3}).*/, "$1.$2");
+  const v = value.replace(/\D/g, "");
+  if (v.length <= 11) {
+    // CPF: 999.999.999-99
+    return v
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  } else {
+    // CNPJ: 99.999.999/9999-99
+    return v
+      .slice(0, 14)
+      .replace(/^(\d{2})(\d)/, "$1.$2")
+      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+      .replace(/\.(\d{3})(\d)/, ".$1/$2")
+      .replace(/(\d{4})(\d)/, "$1-$2");
   }
-  return v;
 }
-

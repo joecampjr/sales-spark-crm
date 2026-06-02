@@ -71,15 +71,14 @@ export async function PATCH(
         return NextResponse.json({ error: 'Vendedores só possuem permissão para atualizar o status do lead ou vinculá-lo.' }, { status: 403 });
       }
     }
-
-    // CPF obrigatório e validação de duplicidade (se fornecido ou editado)
+    // CPF/CNPJ obrigatório e validação de duplicidade (se fornecido ou editado)
     if (data.cpf !== undefined) {
       if (!data.cpf) {
-        return NextResponse.json({ error: 'CPF é obrigatório.' }, { status: 400 });
+        return NextResponse.json({ error: 'CPF/CNPJ é obrigatório.' }, { status: 400 });
       }
       const cleanedCpf = data.cpf.replace(/\D/g, '');
-      if (cleanedCpf.length !== 11) {
-        return NextResponse.json({ error: 'CPF inválido (deve conter 11 dígitos).' }, { status: 400 });
+      if (cleanedCpf.length !== 11 && cleanedCpf.length !== 14) {
+        return NextResponse.json({ error: 'CPF/CNPJ inválido (CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos).' }, { status: 400 });
       }
       data.cpf = cleanedCpf;
 
@@ -92,11 +91,10 @@ export async function PATCH(
           }
         });
         if (existingLeadCpf) {
-          return NextResponse.json({ error: 'Um lead com este CPF já está cadastrado nesta empresa.' }, { status: 400 });
+          return NextResponse.json({ error: 'Um lead com este CPF/CNPJ já está cadastrado nesta empresa.' }, { status: 400 });
         }
       }
     }
-
     // Se atribuiu ou alterou o vendedor, valida o limite de 5 leads ativos
     if (data.sellerId && data.sellerId !== lead.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
