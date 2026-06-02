@@ -4,12 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { 
   Target, TrendingUp, DollarSign, Phone, AlertTriangle, 
-  CheckCircle, Clock, Building2, Users2, ShieldAlert, 
-  Coins, ArrowUpRight, Ban
+  CheckCircle, Clock, Building2, Users2, Coins, Ban
 } from 'lucide-react';
 import { KPICard } from '@/components/crm/KPICard';
 import { StatusBadge } from '@/components/crm/StatusBadge';
-import { mockKPIs, mockLeads, mockChartData, mockVendedores } from '@/data/mockData';
 import { CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, BarChart, Bar } from 'recharts';
 import { LeadStatus } from '@/types/crm';
 
@@ -29,10 +27,39 @@ export default function DashboardPage() {
     enabled: user?.role === 'SUPERADMIN'
   });
 
-  const progressPercent = ((mockKPIs.vendasMes / mockKPIs.metaMes) * 100).toFixed(0);
+  // Query de Métricas da Operação Comercial (rodada condicionalmente para outros papéis)
+  const { data: metrics, isLoading: isMetricsLoading, error } = useQuery({
+    queryKey: ['metrics'],
+    queryFn: async () => {
+      const res = await fetch('/api/metrics');
+      if (!res.ok) throw new Error('Falha ao carregar métricas da operação');
+      return res.json();
+    },
+    enabled: user?.role !== 'SUPERADMIN' && !!user
+  });
 
   // RENDER DO SUPER ADMIN (PAINEL GLOBAL DO SAAS)
   if (user?.role === 'SUPERADMIN') {
+    if (isSaasLoading) {
+      return (
+        <div className="space-y-6 animate-pulse">
+          <div>
+            <div className="h-7 w-48 bg-muted rounded-md mb-2" />
+            <div className="h-4 w-72 bg-muted rounded-md" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-card border border-border/50 rounded-xl" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 h-[340px] bg-card border border-border/50 rounded-xl" />
+            <div className="h-[340px] bg-card border border-border/50 rounded-xl" />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6 animate-fade-in">
         <div>
@@ -47,28 +74,28 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <KPICard 
             title="Receita Recorrente (MRR)" 
-            value={isSaasLoading ? "..." : `R$ ${saasMetrics?.mrr?.toLocaleString('pt-BR') || 0},00`} 
+            value={`R$ ${saasMetrics?.mrr?.toLocaleString('pt-BR') || 0},00`} 
             change={15.4} 
             icon={Coins} 
             variant="success" 
           />
           <KPICard 
             title="Total de Empresas" 
-            value={isSaasLoading ? "..." : saasMetrics?.totalCompanies?.toString() || "0"} 
+            value={saasMetrics?.totalCompanies?.toString() || "0"} 
             change={8.7} 
             icon={Building2} 
             variant="primary" 
           />
           <KPICard 
             title="Usuários Ativos" 
-            value={isSaasLoading ? "..." : saasMetrics?.totalUsers?.toLocaleString('pt-BR') || "0"} 
+            value={saasMetrics?.totalUsers?.toLocaleString('pt-BR') || "0"} 
             change={12.1} 
             icon={Users2} 
             variant="warning" 
           />
           <KPICard 
             title="Leads Gerenciados" 
-            value={isSaasLoading ? "..." : saasMetrics?.totalLeads?.toLocaleString('pt-BR') || "0"} 
+            value={saasMetrics?.totalLeads?.toLocaleString('pt-BR') || "0"} 
             change={18.3} 
             icon={Target} 
           />
@@ -114,9 +141,7 @@ export default function DashboardPage() {
           {/* Distribuição de Usuários por Cliente */}
           <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
             <h3 className="text-sm font-semibold text-foreground mb-4">Engajamento (Usuários por Empresa)</h3>
-            {isSaasLoading ? (
-              <p className="text-sm text-muted-foreground">Carregando dados...</p>
-            ) : saasMetrics?.usersByCompany?.length === 0 ? (
+            {saasMetrics?.usersByCompany?.length === 0 ? (
               <p className="text-sm text-muted-foreground">Nenhuma empresa para listar.</p>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
@@ -168,88 +193,164 @@ export default function DashboardPage() {
     );
   }
 
-  // RENDER DO CLIENTE / OPERAÇÃO NORMAL
+  // Skeletons para carregamento das métricas gerais
+  if (isMetricsLoading) {
+    return (
+      <div className="space-y-6 animate-pulse">
+        <div>
+          <div className="h-7 w-48 bg-muted rounded-md mb-2" />
+          <div className="h-4 w-72 bg-muted rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-32 bg-card border border-border/50 rounded-xl" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 h-[340px] bg-card border border-border/50 rounded-xl" />
+          <div className="h-[340px] bg-card border border-border/50 rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !metrics) {
+    return (
+      <div className="p-6 bg-destructive/10 border border-destructive/20 text-destructive rounded-xl">
+        <h3 className="font-semibold text-lg">Erro ao carregar o dashboard</h3>
+        <p className="text-sm mt-1">Não foi possível carregar as métricas da operação em tempo real. Verifique sua conexão.</p>
+      </div>
+    );
+  }
+
+  const { kpis, leadsPorMes, motivosPerda, vendedoresPerformance, leadsRecentes, alertas } = metrics;
+  const progressPercent = kpis.metaMes > 0 ? ((kpis.vendasMes / kpis.metaMes) * 100).toFixed(0) : "0";
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Visão geral da sua operação comercial</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {user?.role === 'VENDEDOR' 
+              ? 'Seu desempenho comercial e progresso pessoal' 
+              : 'Visão operacional e resultados da equipe em tempo real'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 bg-card border border-border/50 px-3 py-1.5 rounded-lg shadow-sm">
+          <Clock className="w-4 h-4 text-muted-foreground" />
+          <span className="text-xs font-medium text-foreground">Atualizado agora</span>
+        </div>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total de Leads" value={mockKPIs.totalLeads.toLocaleString()} change={12.5} icon={Target} variant="primary" />
-        <KPICard title="Vendas do Mês" value={`R$ ${(mockKPIs.vendasMes / 1000).toFixed(0)}k`} change={8.2} icon={DollarSign} variant="success" />
-        <KPICard title="Taxa de Conversão" value={`${mockKPIs.taxaConversao}%`} change={-2.1} icon={TrendingUp} variant="warning" />
-        <KPICard title="Contatos Hoje" value={`${mockKPIs.contatosHoje}/${mockKPIs.metaDiaria}`} changeLabel="meta diária" icon={Phone} />
+        <KPICard 
+          title={user?.role === 'VENDEDOR' ? "Meus Leads Ativos" : "Total de Leads"} 
+          value={kpis.totalLeads.toLocaleString()} 
+          icon={Target} 
+          variant="primary" 
+        />
+        <KPICard 
+          title={user?.role === 'VENDEDOR' ? "Minhas Vendas (Mês)" : "Vendas da Filial/Empresa"} 
+          value={`R$ ${kpis.vendasMes.toLocaleString('pt-BR')}`} 
+          icon={DollarSign} 
+          variant="success" 
+        />
+        <KPICard 
+          title="Taxa de Conversão" 
+          value={`${kpis.taxaConversao}%`} 
+          icon={TrendingUp} 
+          variant="warning" 
+        />
+        <KPICard 
+          title="Contatos Hoje" 
+          value={`${kpis.contatosHoje}/${kpis.metaDiaria}`} 
+          changeLabel="meta diária" 
+          icon={Phone} 
+        />
       </div>
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Leads por mês */}
         <div className="lg:col-span-2 bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-          <h3 className="text-sm font-semibold text-foreground mb-4">Leads por Mês</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={mockChartData.leadsPorMes}>
-              <defs>
-                <linearGradient id="colorNovos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorVendidos" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
-              <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
-              <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
-              <Tooltip
-                contentStyle={{
-                  background: 'hsl(0, 0%, 100%)',
-                  border: '1px solid hsl(220, 13%, 91%)',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-              />
-              <Area type="monotone" dataKey="novos" stroke="hsl(221, 83%, 53%)" fill="url(#colorNovos)" strokeWidth={2} />
-              <Area type="monotone" dataKey="vendidos" stroke="hsl(142, 71%, 45%)" fill="url(#colorVendidos)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Evolução Comercial (Últimos 6 Meses)</h3>
+          {leadsPorMes.length === 0 ? (
+            <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
+              Sem dados de evolução para exibir neste período.
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <AreaChart data={leadsPorMes}>
+                <defs>
+                  <linearGradient id="colorNovos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(221, 83%, 53%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorVendidos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" />
+                <XAxis dataKey="mes" tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
+                <YAxis tick={{ fontSize: 12 }} stroke="hsl(220, 9%, 46%)" />
+                <Tooltip
+                  contentStyle={{
+                    background: 'hsl(0, 0%, 100%)',
+                    border: '1px solid hsl(220, 13%, 91%)',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                <Area type="monotone" dataKey="novos" stroke="hsl(221, 83%, 53%)" fill="url(#colorNovos)" strokeWidth={2} name="Novos Leads" />
+                <Area type="monotone" dataKey="vendidos" stroke="hsl(142, 71%, 45%)" fill="url(#colorVendidos)" strokeWidth={2} name="Leads Vendidos" />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Motivos de perda */}
         <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-          <h3 className="text-sm font-semibold text-foreground mb-4">Motivos de Perda</h3>
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={mockChartData.motivosPerda}
-                cx="50%"
-                cy="50%"
-                innerRadius={50}
-                outerRadius={80}
-                dataKey="quantidade"
-                nameKey="motivo"
-              >
-                {mockChartData.motivosPerda.map((_, index) => (
-                  <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+          <h3 className="text-sm font-semibold text-foreground mb-4">Motivos de Perda (Todas Abordagens)</h3>
+          {motivosPerda.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm text-center">
+              Nenhuma perda registrada sob o filtro selecionado.
+            </div>
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={180}>
+                <PieChart>
+                  <Pie
+                    data={motivosPerda}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={45}
+                    outerRadius={70}
+                    dataKey="quantidade"
+                    nameKey="motivo"
+                  >
+                    {motivosPerda.map((_: any, index: number) => (
+                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1.5 mt-2 overflow-y-auto max-h-[100px] pr-1">
+                {motivosPerda.map((item: any, i: number) => (
+                  <div key={item.motivo} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-sm" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-muted-foreground truncate max-w-[130px]">{item.motivo}</span>
+                    </div>
+                    <span className="font-semibold text-foreground">{item.quantidade}x</span>
+                  </div>
                 ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="space-y-2 mt-2">
-            {mockChartData.motivosPerda.slice(0, 3).map((item, i) => (
-              <div key={item.motivo} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i] }} />
-                  <span className="text-muted-foreground">{item.motivo}</span>
-                </div>
-                <span className="font-medium text-foreground">{item.quantidade}</span>
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -258,88 +359,154 @@ export default function DashboardPage() {
         {/* Recent leads */}
         <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Leads Recentes</h3>
-            <a href="/leads" className="text-xs text-primary font-medium hover:underline">Ver todos</a>
+            <h3 className="text-sm font-semibold text-foreground">Meus Leads Recentes</h3>
+            <a href="/leads" className="text-xs text-primary font-semibold hover:underline">Ver todos</a>
           </div>
-          <div className="space-y-3">
-            {mockLeads.slice(0, 5).map((lead) => (
-              <div key={lead.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <span className="text-xs font-semibold text-foreground">{lead.nome.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{lead.nome}</p>
-                    <p className="text-xs text-muted-foreground">{lead.cidade}/{lead.estado}</p>
-                  </div>
-                </div>
-                <StatusBadge status={lead.status as LeadStatus} />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Vendedores performance */}
-        <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Desempenho Vendedores</h3>
-            <a href="/ranking" className="text-xs text-primary font-medium hover:underline">Ranking</a>
-          </div>
-          <div className="space-y-4">
-            {mockVendedores.map((v, i) => (
-              <div key={v.id} className="space-y-2">
-                <div className="flex items-center justify-between">
+          {leadsRecentes.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              Nenhum lead sob seu escopo no momento.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {leadsRecentes.map((lead: any) => (
+                <div key={lead.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 hover:bg-muted/10 px-1 rounded transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center">
-                      <span className="text-[10px] font-bold text-primary-foreground">{i + 1}</span>
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                      <span className="text-xs font-bold">{lead.nome.charAt(0).toUpperCase()}</span>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-foreground">{v.nome}</p>
-                      <p className="text-xs text-muted-foreground">{v.filial}</p>
+                      <p className="text-sm font-semibold text-foreground">{lead.nome}</p>
+                      <p className="text-xs text-muted-foreground">{lead.cidade}/{lead.estado}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-foreground">{v.vendas}/{v.metaVendas}</p>
-                    <p className="text-xs text-muted-foreground">vendas</p>
-                  </div>
+                  <StatusBadge status={lead.status as LeadStatus} />
                 </div>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full gradient-primary transition-all duration-500"
-                    style={{ width: `${Math.min((v.vendas / v.metaVendas) * 100, 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Vendedores performance / Leaderboard */}
+        <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-foreground">
+              {user?.role === 'VENDEDOR' ? "Meu Desempenho e Metas" : "Desempenho da Equipe"}
+            </h3>
+            {user?.role !== 'VENDEDOR' && (
+              <a href="/ranking" className="text-xs text-primary font-semibold hover:underline">Visualizar Ranking</a>
+            )}
           </div>
+          {vendedoresPerformance.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground text-sm">
+              Sem dados de vendedores disponíveis.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {vendedoresPerformance.map((v: any, i: number) => {
+                const isCurrentUser = user?.name === v.nome;
+                return (
+                  <div key={v.id} className={`space-y-2 p-2 rounded-lg transition-colors ${isCurrentUser ? 'bg-primary/5 border border-primary/10' : ''}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center">
+                          <span className="text-[10px] font-bold text-primary-foreground">{i + 1}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                            {v.nome}
+                            {isCurrentUser && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Você</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{v.filial}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-foreground">{v.vendas}/{v.metaVendas}</p>
+                        <p className="text-xs text-muted-foreground">vendas no mês</p>
+                      </div>
+                    </div>
+                    <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full gradient-primary transition-all duration-500"
+                        style={{ width: `${Math.min((v.vendas / v.metaVendas) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Alerts */}
       <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-        <h3 className="text-sm font-semibold text-foreground mb-4">Alertas Comerciais</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-warning/5 border border-warning/20">
-            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0" />
+        <h3 className="text-sm font-semibold text-foreground mb-4">Alertas e Monitoramento Comercial</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          
+          {/* Card 1: Leads Sem Responsável */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 hover:bg-amber-500/10 transition-colors">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-foreground">7 leads sem responsável</p>
-              <p className="text-xs text-muted-foreground">Aguardando distribuição</p>
+              <p className="text-sm font-bold text-foreground">{alertas.leadsSemResponsavel} leads pendentes</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {user?.role === 'VENDEDOR' 
+                  ? 'Aguardando vendedor na sua filial.' 
+                  : 'Aguardando atribuição na filial.'}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-            <Clock className="w-5 h-5 text-destructive flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">12 leads parados</p>
-              <p className="text-xs text-muted-foreground">Sem atualização há 5+ dias</p>
+
+          {/* Card 2: Progresso da Meta */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors">
+            <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+            <div className="w-full">
+              <p className="text-sm font-bold text-foreground">Meta {progressPercent}% Atingida</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                R$ {kpis.vendasMes.toLocaleString('pt-BR')} de R$ {kpis.metaMes.toLocaleString('pt-BR')}
+              </p>
+              <div className="w-full h-1.5 bg-emerald-500/10 rounded-full mt-2 overflow-hidden">
+                <div 
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${Math.min(Number(progressPercent), 100)}%` }}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-success/5 border border-success/20">
-            <Clock className="w-5 h-5 text-success flex-shrink-0" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Meta {progressPercent}% atingida</p>
-              <p className="text-xs text-muted-foreground">R$ 342k de R$ 500k</p>
+
+          {/* Card 3: Leads Parados por Tempo de Inatividade */}
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-destructive/5 border border-destructive/20 hover:bg-destructive/10 transition-colors">
+            <Clock className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="w-full">
+              <p className="text-sm font-bold text-foreground">{alertas.totalParados} leads inativos</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Sem ligações ou visitas agendadas.</p>
+              
+              {/* Distribuição por faixas de atraso */}
+              <div className="grid grid-cols-5 gap-1.5 mt-2.5">
+                <div className="text-center p-1 rounded bg-amber-500/10 border border-amber-500/20" title="Leads parados há 5 dias">
+                  <p className="text-[9px] text-amber-600 font-bold">5d</p>
+                  <p className="text-[11px] font-extrabold text-foreground">{alertas.parados5Dias}</p>
+                </div>
+                <div className="text-center p-1 rounded bg-orange-500/10 border border-orange-500/20" title="Leads parados há 10 dias">
+                  <p className="text-[9px] text-orange-600 font-bold">10d</p>
+                  <p className="text-[11px] font-extrabold text-foreground">{alertas.parados10Dias}</p>
+                </div>
+                <div className="text-center p-1 rounded bg-red-400/10 border border-red-400/20" title="Leads parados há 15 dias">
+                  <p className="text-[9px] text-red-500 font-bold">15d</p>
+                  <p className="text-[11px] font-extrabold text-foreground">{alertas.parados15Dias}</p>
+                </div>
+                <div className="text-center p-1 rounded bg-red-500/10 border border-red-500/20" title="Leads parados há 20 dias">
+                  <p className="text-[9px] text-red-600 font-bold">20d</p>
+                  <p className="text-[11px] font-extrabold text-foreground">{alertas.parados20Dias}</p>
+                </div>
+                <div className="text-center p-1 rounded bg-red-700/10 border border-red-700/20" title="Leads parados há 25+ dias">
+                  <p className="text-[9px] text-red-700 font-bold">25d+</p>
+                  <p className="text-[11px] font-extrabold text-foreground">{alertas.parados25Dias}</p>
+                </div>
+              </div>
+
             </div>
           </div>
+
         </div>
       </div>
     </div>
