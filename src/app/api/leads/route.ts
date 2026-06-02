@@ -24,28 +24,48 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Libera leads finalizados há mais de 30 dias (status vendido, perdido, contato_nao_atualizado)
+    // Libera leads finalizados há mais de 30 dias (status perdido, contato_nao_atualizado)
+    // Apenas se nunca foram reativados e o status não for vendido (que fica fixo)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     if (session.companyId) {
-      await prisma.lead.updateMany({
+      const leadsToRelease = await prisma.lead.findMany({
         where: {
           companyId: session.companyId,
           status: {
-            in: ['vendido', 'perdido', 'contato_nao_atualizado']
+            in: ['perdido', 'contato_nao_atualizado']
           },
           updatedAt: {
             lte: thirtyDaysAgo
           },
           sellerId: {
             not: null
+          },
+          interactions: {
+            none: {
+              result: 'Reativado'
+            }
           }
         },
-        data: {
-          sellerId: null, // Volta para o banco de leads (sem responsável)
-          status: 'novo'  // Volta a ser um lead novo/ativo no banco
+        select: {
+          id: true
         }
       });
+
+      if (leadsToRelease.length > 0) {
+        const ids = leadsToRelease.map(l => l.id);
+        await prisma.lead.updateMany({
+          where: {
+            id: {
+              in: ids
+            }
+          },
+          data: {
+            sellerId: null,
+            status: 'novo'
+          }
+        });
+      }
     }
 
     const { searchParams } = new URL(request.url);
@@ -195,8 +215,8 @@ export async function POST(request: Request) {
     if (existingLeadCpf) {
       return NextResponse.json({ error: 'Um lead com este CPF/CNPJ já está cadastrado nesta empresa.' }, { status: 400 });
     }
-    // Se atribuiu um vendedor, valida o limite de 5 leads ativos
-    if (data.sellerId) {
+    // Se atribuiu um vendedor, e quem está fazendo a ação é VENDEDOR, valida o limite de 5 leads ativos
+    if (session.role === 'VENDEDOR' && data.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
         where: {
           sellerId: data.sellerId,
