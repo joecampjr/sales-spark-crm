@@ -55,6 +55,40 @@ export async function POST(request: Request) {
           throw new Error(`O CPF "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos).`);
         }
 
+        // Resolve branchId (pode vir como UUID ou como Nome da filial, ex: "VN")
+        let finalBranchId: string | null = null;
+        if (lead.branchId) {
+          const trimmedBranch = lead.branchId.trim();
+          if (trimmedBranch) {
+            // 1. Tenta buscar por ID (UUID)
+            const branchById = await tx.branch.findFirst({
+              where: {
+                id: trimmedBranch,
+                companyId: companyId
+              }
+            });
+            if (branchById) {
+              finalBranchId = branchById.id;
+            } else {
+              // 2. Tenta buscar por Nome (ex: "VN")
+              const branchByName = await tx.branch.findFirst({
+                where: {
+                  name: {
+                    equals: trimmedBranch,
+                    mode: 'insensitive'
+                  },
+                  companyId: companyId
+                }
+              });
+              if (branchByName) {
+                finalBranchId = branchByName.id;
+              } else {
+                throw new Error(`A filial "${trimmedBranch}" não foi encontrada no sistema.`);
+              }
+            }
+          }
+        }
+
         // Upsert baseado em Telefone OU CPF para ignorar/atualizar duplicatas
         const existing = await tx.lead.findFirst({
           where: {
@@ -77,7 +111,7 @@ export async function POST(request: Request) {
               state: lead.state || existing.state,
               estimatedValue: lead.estimatedValue || existing.estimatedValue,
               cpf: cleanedCpf,
-              branchId: lead.branchId || existing.branchId
+              branchId: lead.branchId ? finalBranchId : existing.branchId
             }
           });
           updated++;
@@ -93,7 +127,7 @@ export async function POST(request: Request) {
               estimatedValue: lead.estimatedValue,
               source: lead.source,
               cpf: cleanedCpf,
-              branchId: lead.branchId || null,
+              branchId: finalBranchId,
               companyId: companyId
             }
           });
