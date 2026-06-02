@@ -25,14 +25,10 @@ export async function getSession() {
   if (!sessionVal) return null;
   try {
     const decrypted = await decrypt(sessionVal);
-    // Se o usuário logado não possuir companyId na sessão mas for ADMIN, GERENTE ou VENDEDOR,
-    // buscamos a primeira empresa disponível no banco como fallback para evitar bloqueios nas APIs.
+    // Se o usuário logado não possuir companyId na sessão e não for SUPERADMIN,
+    // invalidamos a sessão para evitar vazamento de dados entre inquilinos (Fail-Closed).
     if (decrypted && !decrypted.companyId && decrypted.role !== 'SUPERADMIN') {
-      const { prisma } = await import('@/lib/prisma');
-      const firstCompany = await prisma.company.findFirst();
-      if (firstCompany) {
-        decrypted.companyId = firstCompany.id;
-      }
+      return null;
     }
     return decrypted;
   } catch (e) {
