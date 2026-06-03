@@ -1,6 +1,18 @@
 import { useState, useRef } from 'react';
-import { Search, Plus, MoreHorizontal, Download, Upload, Pencil, Trash2 } from 'lucide-react';
+import { 
+  Search, Plus, MoreHorizontal, Download, Upload, Pencil, Trash2,
+  History, ClipboardList, Calendar, Phone, MessageSquare, MapPin, 
+  RefreshCw, User, Clock
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/crm/StatusBadge';
 import { LeadStatus, LEAD_STATUS_LABELS, PRIORITY_LABELS } from '@/types/crm';
@@ -33,6 +45,9 @@ export default function LeadsPage() {
   const isVendedor = user?.role === 'VENDEDOR';
 
   const queryClient = useQueryClient();
+  const [selectedLeadForHistory, setSelectedLeadForHistory] = useState<any>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -93,6 +108,17 @@ export default function LeadsPage() {
       if (!res.ok) throw new Error('Falha ao carregar leads');
       return res.json();
     }
+  });
+
+  const { data: historyInteractions = [], isLoading: isLoadingHistory } = useQuery({
+    queryKey: ['interactions', selectedLeadForHistory?.id],
+    queryFn: async () => {
+      if (!selectedLeadForHistory?.id) return [];
+      const res = await fetch(`/api/interactions?leadId=${selectedLeadForHistory.id}`);
+      if (!res.ok) throw new Error('Falha ao carregar histórico');
+      return res.json();
+    },
+    enabled: !!selectedLeadForHistory?.id
   });
 
   const { data: sellers = [] } = useQuery({
@@ -616,7 +642,14 @@ export default function LeadsPage() {
               ) : leads.length === 0 ? (
                 <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
               ) : leads.map((lead: any) => (
-                <tr key={lead.id} className="table-row-hover border-b border-border/30 last:border-0 cursor-pointer">
+                <tr 
+                  key={lead.id} 
+                  className="table-row-hover border-b border-border/30 last:border-0 cursor-pointer"
+                  onClick={() => {
+                    setSelectedLeadForHistory(lead);
+                    setIsHistoryOpen(true);
+                  }}
+                >
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -682,11 +715,17 @@ export default function LeadsPage() {
                   <td className="py-3 px-4">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="p-1 rounded hover:bg-muted">
+                        <button className="p-1 rounded hover:bg-muted" onClick={(e) => e.stopPropagation()}>
                           <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setSelectedLeadForHistory(lead);
+                          setIsHistoryOpen(true);
+                        }}>
+                          <History className="w-4 h-4 mr-2" /> Ver Histórico
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setEditingLead(lead);
                           setIsEditModalOpen(true);
@@ -981,6 +1020,114 @@ export default function LeadsPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Historico Sheet */}
+      <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
+        <SheetContent className="sm:max-w-[500px] flex flex-col h-full bg-card border-l border-border animate-slide-in">
+          <SheetHeader className="pb-4 border-b border-border/50">
+            <SheetTitle className="text-xl font-bold flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-primary" /> Histórico do Cliente
+            </SheetTitle>
+            {selectedLeadForHistory && (
+              <div className="mt-2 text-left">
+                <h3 className="font-semibold text-lg text-foreground leading-tight">{selectedLeadForHistory.name}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">{selectedLeadForHistory.phone}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <StatusBadge status={selectedLeadForHistory.status} />
+                  {selectedLeadForHistory.city && (
+                    <span className="text-[10px] font-semibold bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                      📍 {selectedLeadForHistory.city}/{selectedLeadForHistory.state}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </SheetHeader>
+
+          <ScrollArea className="flex-1 mt-4 pr-3">
+            {isLoadingHistory ? (
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+                <Clock className="w-8 h-8 animate-spin text-primary/40" />
+                <p className="text-sm">Carregando histórico...</p>
+              </div>
+            ) : historyInteractions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground gap-3">
+                <Clock className="w-10 h-10 text-muted-foreground/30" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Sem interações</p>
+                  <p className="text-xs max-w-xs mt-1">Este cliente ainda não possui nenhuma ação ou contato registrado no sistema.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60">
+                {historyInteractions.map((item: any) => {
+                  const getHistoryIcon = (type: string) => {
+                    switch (type.toLowerCase()) {
+                      case 'ligação':
+                      case 'ligacao':
+                        return <Phone className="w-3.5 h-3.5 text-blue-500" />;
+                      case 'whatsapp':
+                        return <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />;
+                      case 'visita':
+                        return <MapPin className="w-3.5 h-3.5 text-amber-500" />;
+                      case 'sistema':
+                      case 'reativação':
+                      case 'reativacao':
+                        return <RefreshCw className="w-3.5 h-3.5 text-indigo-500" />;
+                      default:
+                        return <User className="w-3.5 h-3.5 text-muted-foreground" />;
+                    }
+                  };
+
+                  const getResultBadge = (result: string) => {
+                    const r = result.toLowerCase();
+                    if (r.includes('vendido') || r.includes('sucesso') || r.includes('comprou')) {
+                      return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] hover:bg-emerald-500/15">Vendido</Badge>;
+                    }
+                    if (r.includes('caro') || r.includes('perdido') || r.includes('sem interesse') || r.includes('recusada') || r.includes('cancelado')) {
+                      return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 text-[10px] hover:bg-destructive/15">{result}</Badge>;
+                    }
+                    if (r.includes('agend') || r.includes('interessa')) {
+                      return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] hover:bg-blue-500/15">{result}</Badge>;
+                    }
+                    return <Badge variant="outline" className="text-muted-foreground text-[10px]">{result}</Badge>;
+                  };
+
+                  return (
+                    <div key={item.id} className="relative group">
+                      {/* Timeline dot */}
+                      <div className="absolute -left-[23px] top-1.5 w-6 h-6 rounded-full bg-card border-2 border-border/80 flex items-center justify-center shadow-sm group-hover:border-primary/50 transition-colors z-10">
+                        {getHistoryIcon(item.type)}
+                      </div>
+
+                      <div className="bg-muted/30 hover:bg-muted/50 border border-border/40 hover:border-border/80 p-4 rounded-xl space-y-2.5 transition-all shadow-sm">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                              {item.type} {getResultBadge(item.result)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <User className="w-2.5 h-2.5" /> Registrado por {item.seller?.name || 'Sistema'}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-medium text-muted-foreground shrink-0 bg-muted/60 px-1.5 py-0.5 rounded border border-border/20">
+                            {new Date(item.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                          </span>
+                        </div>
+
+                        {item.notes && (
+                          <div className="text-xs text-muted-foreground bg-card/60 p-2.5 rounded-lg border border-border/20 leading-relaxed font-normal italic">
+                            &ldquo;{item.notes}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
