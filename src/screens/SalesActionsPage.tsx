@@ -40,6 +40,7 @@ export default function SalesActionsPage() {
   // Permissions
   const canCreate = user?.role === 'ADMIN' || user?.role === 'GERENTE';
   const canAuthorize = user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
+  const canDelete = user?.role === 'SUPERADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPERVISOR';
 
   // Queries
   const { data: actions = [], isLoading } = useQuery({
@@ -103,6 +104,26 @@ export default function SalesActionsPage() {
       queryClient.invalidateQueries({ queryKey: ['sales-actions'] });
       setIsReportModalOpen(false);
       toast.success('Relatório enviado com sucesso!');
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/sales-actions/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao excluir ação de venda');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales-actions'] });
+      toast.success('Ação de venda excluída com sucesso!');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Falha ao excluir ação de venda.');
     }
   });
 
@@ -403,7 +424,18 @@ export default function SalesActionsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem>Ver Detalhes</DropdownMenuItem>
-                  {canCreate && action.status === 'aguardando_autorizacao' && <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>}
+                  {canDelete && (
+                    <DropdownMenuItem 
+                      className="text-destructive font-semibold cursor-pointer"
+                      onClick={() => {
+                        if (confirm('Tem certeza de que deseja excluir esta ação de vendas permanentemente?')) {
+                          deleteMutation.mutate(action.id);
+                        }
+                      }}
+                    >
+                      Excluir
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
