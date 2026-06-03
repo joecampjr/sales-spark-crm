@@ -222,21 +222,6 @@ export async function POST(request: Request) {
     if (existingLeadCpf) {
       return NextResponse.json({ error: 'Um lead com este CPF/CNPJ já está cadastrado nesta empresa.' }, { status: 400 });
     }
-    // Se atribuiu um vendedor, e quem está fazendo a ação é VENDEDOR, valida o limite de 5 leads ativos
-    if (session.role === 'VENDEDOR' && data.sellerId) {
-      const activeLeadsCount = await prisma.lead.count({
-        where: {
-          sellerId: data.sellerId,
-          status: {
-            notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
-          }
-        }
-      });
-      if (activeLeadsCount >= 5) {
-        return NextResponse.json({ error: 'Este vendedor já possui o limite de 5 leads ativos.' }, { status: 400 });
-      }
-    }
-
     // Verifica se já existe um lead com o mesmo telefone nesta empresa
     if (data.phone) {
       const existingLead = await prisma.lead.findFirst({
