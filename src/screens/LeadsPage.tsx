@@ -360,11 +360,10 @@ export default function LeadsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>CPF <span className="text-destructive">*</span></Label>
+                    <Label>CPF</Label>
                     <Input 
                       name="cpf" 
-                      required
-                      placeholder="000.000.000-00" 
+                      placeholder="000.000.000-00 (Opcional)" 
                       value={newCpf}
                       onChange={(e) => setNewCpf(maskCpf(e.target.value))}
                     />
@@ -636,11 +635,10 @@ export default function LeadsPage() {
                     />
                 </div>
                 <div className="space-y-2">
-                  <Label>CPF <span className="text-destructive">*</span></Label>
+                  <Label>CPF</Label>
                   <Input 
                     name="cpf" 
-                    required={!isVendedor}
-                    placeholder="000.000.000-00" 
+                    placeholder="000.000.000-00 (Opcional)" 
                     value={editCpf}
                     onChange={(e) => setEditCpf(maskCpf(e.target.value))}
                     disabled={isVendedor}

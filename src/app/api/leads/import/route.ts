@@ -12,7 +12,7 @@ const ImportSchema = z.array(z.object({
   priority: z.string().optional().default('media'),
   estimatedValue: z.number().optional().nullable(),
   source: z.string().optional().default('CSV'),
-  cpf: z.string(),
+  cpf: z.string().optional().nullable(),
   branchId: z.string().optional().nullable(),
 }));
 
@@ -46,12 +46,15 @@ export async function POST(request: Request) {
         // Remove formatação do telefone para consistência no banco e na busca
         const cleanedPhone = lead.phone.replace(/\D/g, '');
         if (!cleanedPhone) continue;
-        if (!lead.cpf) {
-          throw new Error(`O lead "${lead.name}" não possui um CPF/CNPJ preenchido.`);
-        }
-        const cleanedCpf = lead.cpf.replace(/\D/g, '');
-        if (cleanedCpf.length !== 11 && cleanedCpf.length !== 14) {
-          throw new Error(`O CPF/CNPJ "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos para CPF ou 14 dígitos para CNPJ).`);
+        let cleanedCpf: string | null = null;
+        if (lead.cpf) {
+          const rawCpf = lead.cpf.replace(/\D/g, '');
+          if (rawCpf) {
+            if (rawCpf.length !== 11 && rawCpf.length !== 14) {
+              throw new Error(`O CPF/CNPJ "${lead.cpf}" do lead "${lead.name}" é inválido (deve conter 11 dígitos para CPF ou 14 dígitos para CNPJ).`);
+            }
+            cleanedCpf = rawCpf;
+          }
         }
         // Resolve branchId (pode vir como UUID ou como Nome da filial, ex: "VN")
         let finalBranchId: string | null = null;
@@ -87,13 +90,14 @@ export async function POST(request: Request) {
           }
         }
 
-        // Upsert baseado em Telefone OU CPF para ignorar/atualizar duplicatas
+        // Upsert baseado em Telefone OU CPF (se fornecido) para ignorar/atualizar duplicatas
+        const orConditions: any[] = [{ phone: cleanedPhone }];
+        if (cleanedCpf) {
+          orConditions.push({ cpf: cleanedCpf });
+        }
         const existing = await tx.lead.findFirst({
           where: {
-            OR: [
-              { phone: cleanedPhone },
-              { cpf: cleanedCpf }
-            ],
+            OR: orConditions,
             companyId: companyId
           }
         });

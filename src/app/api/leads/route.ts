@@ -13,7 +13,7 @@ const CreateLeadSchema = z.object({
   estimatedValue: z.number().nullable().optional(),
   source: z.string(),
   sellerId: z.string().nullable().optional(),
-  cpf: z.string().min(11, 'CPF é obrigatório'),
+  cpf: z.string().nullable().optional(),
   branchId: z.string().nullable().optional(),
 });
 
@@ -203,24 +203,25 @@ export async function POST(request: Request) {
         finalBranchId = userSeller.branchId;
       }
     }
-    // CPF/CNPJ obrigatório e validação de duplicidade
-    if (!data.cpf) {
-      return NextResponse.json({ error: 'CPF/CNPJ é obrigatório.' }, { status: 400 });
-    }
-    const cleanedCpf = data.cpf.replace(/\D/g, '');
-    if (cleanedCpf.length !== 11 && cleanedCpf.length !== 14) {
-      return NextResponse.json({ error: 'CPF/CNPJ inválido (CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos).' }, { status: 400 });
-    }
-    data.cpf = cleanedCpf;
-
-    const existingLeadCpf = await prisma.lead.findFirst({
-      where: {
-        cpf: cleanedCpf,
-        companyId: session.companyId || null,
+    // CPF/CNPJ validação de duplicidade (se fornecido)
+    if (data.cpf) {
+      const cleanedCpf = data.cpf.replace(/\D/g, '');
+      if (cleanedCpf.length !== 11 && cleanedCpf.length !== 14) {
+        return NextResponse.json({ error: 'CPF/CNPJ inválido (CPF deve ter 11 dígitos e CNPJ deve ter 14 dígitos).' }, { status: 400 });
       }
-    });
-    if (existingLeadCpf) {
-      return NextResponse.json({ error: 'Um lead com este CPF/CNPJ já está cadastrado nesta empresa.' }, { status: 400 });
+      data.cpf = cleanedCpf;
+
+      const existingLeadCpf = await prisma.lead.findFirst({
+        where: {
+          cpf: cleanedCpf,
+          companyId: session.companyId || null,
+        }
+      });
+      if (existingLeadCpf) {
+        return NextResponse.json({ error: 'Um lead com este CPF/CNPJ já está cadastrado nesta empresa.' }, { status: 400 });
+      }
+    } else {
+      data.cpf = null;
     }
     // Verifica se já existe um lead com o mesmo telefone nesta empresa
     if (data.phone) {
