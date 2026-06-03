@@ -47,6 +47,10 @@ export default function LeadsPage() {
   const [newCpf, setNewCpf] = useState('');
   const [editCpf, setEditCpf] = useState('');
 
+  // Form status tracking states
+  const [newStatus, setNewStatus] = useState('novo');
+  const [editStatus, setEditStatus] = useState('novo');
+
   const downloadTemplate = () => {
     const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID'];
     const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '12345678909', ''];
@@ -270,10 +274,15 @@ export default function LeadsPage() {
     const fd = new FormData(e.currentTarget);
 
     if (isVendedor) {
-      updateMutation.mutate({
+      const status = fd.get('status');
+      const payload: any = {
         id: editingLead.id,
-        status: fd.get('status'),
-      });
+        status,
+      };
+      if (status === 'vendido') {
+        payload.estimatedValue = Number(fd.get('estimatedValue')) || 0;
+      }
+      updateMutation.mutate(payload);
       return;
     }
 
@@ -323,6 +332,7 @@ export default function LeadsPage() {
             setIsModalOpen(open);
             if (open) {
               setNewCpf('');
+              setNewStatus('novo');
             }
           }}>
             <DialogTrigger asChild>
@@ -369,7 +379,12 @@ export default function LeadsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <select name="status" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <select 
+                      name="status" 
+                      value={newStatus}
+                      onChange={(e) => setNewStatus(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                    >
                       <option value="novo">Novo</option>
                       <option value="em_negociacao">Em Negociação</option>
                       <option value="contato_realizado">Contato Realizado</option>
@@ -388,8 +403,21 @@ export default function LeadsPage() {
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Valor Estimado</Label>
-                    <Input type="number" name="estimatedValue" placeholder="15000" />
+                    <Label>
+                      {newStatus === 'vendido' ? (
+                        <>Valor da Venda (R$) <span className="text-destructive">*</span></>
+                      ) : (
+                        'Valor Estimado'
+                      )}
+                    </Label>
+                    <Input 
+                      type="number" 
+                      name="estimatedValue" 
+                      min={newStatus === 'vendido' ? "0.01" : undefined}
+                      step="0.01"
+                      required={newStatus === 'vendido'}
+                      placeholder={newStatus === 'vendido' ? "Ex: 1500.50" : "15000"} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Origem</Label>
@@ -582,6 +610,7 @@ export default function LeadsPage() {
         setIsEditModalOpen(open);
         if (open && editingLead) {
           setEditCpf(editingLead.cpf ? maskCpf(editingLead.cpf) : '');
+          setEditStatus(editingLead.status || 'novo');
         }
       }}>
         <DialogContent>
@@ -627,7 +656,12 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
-                  <select name="status" defaultValue={editingLead.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                  <select 
+                    name="status" 
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
                     <option value="novo">Novo</option>
                     <option value="em_negociacao">Em Negociação</option>
                     <option value="contato_realizado">Contato Realizado</option>
@@ -646,8 +680,23 @@ export default function LeadsPage() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Valor Estimado</Label>
-                  <Input type="number" name="estimatedValue" defaultValue={editingLead.estimatedValue} disabled={isVendedor} />
+                  <Label>
+                    {editStatus === 'vendido' ? (
+                      <>Valor da Venda (R$) <span className="text-destructive">*</span></>
+                    ) : (
+                      'Valor Estimado'
+                    )}
+                  </Label>
+                  <Input 
+                    type="number" 
+                    name="estimatedValue" 
+                    defaultValue={editingLead.estimatedValue} 
+                    disabled={isVendedor && editStatus !== 'vendido'} 
+                    required={editStatus === 'vendido'}
+                    min={editStatus === 'vendido' ? "0.01" : undefined}
+                    step="0.01"
+                    placeholder={editStatus === 'vendido' ? "Ex: 1500.50" : "15000"} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Origem</Label>

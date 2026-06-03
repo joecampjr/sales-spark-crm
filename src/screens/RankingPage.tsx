@@ -26,7 +26,7 @@ export default function RankingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {vendedores.map((v: any, i: number) => {
             const medals = ['🥇', '🥈', '🥉'];
-            const metaMensalPercent = v.monthlyGoal > 0 ? (v.salesCount / v.monthlyGoal) * 100 : 0;
+            const metaMensalPercent = v.monthlyGoal > 0 ? (v.salesValue / v.monthlyGoal) * 100 : 0;
             return (
               <div
                 key={v.id}
@@ -72,8 +72,10 @@ export default function RankingPage() {
                 </div>
                 <div className="mt-4 pt-3 border-t border-border/30">
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">Meta mensal</span>
-                    <span className="font-medium text-foreground">{metaMensalPercent.toFixed(0)}%</span>
+                    <span className="text-muted-foreground font-medium">
+                      Meta: {v.salesValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })} / {v.monthlyGoal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                    </span>
+                    <span className="font-semibold text-foreground">{metaMensalPercent.toFixed(0)}%</span>
                   </div>
                   <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
                     <div

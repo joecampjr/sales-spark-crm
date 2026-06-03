@@ -69,6 +69,18 @@ export async function GET() {
         }
       });
 
+      // 1b. Somar o valor total vendido
+      const salesSum = await prisma.lead.aggregate({
+        where: {
+          sellerId: seller.id,
+          status: 'vendido'
+        },
+        _sum: {
+          estimatedValue: true
+        }
+      });
+      const salesValue = salesSum._sum.estimatedValue || 0;
+
       // 2. Contar leads ativos (status diferente de vendido, perdido, contato_nao_atualizado)
       const activeLeads = await prisma.lead.count({
         where: {
@@ -99,6 +111,7 @@ export async function GET() {
       return {
         ...seller,
         salesCount,
+        salesValue,
         activeLeads,
         conversionRate,
         contactsToday

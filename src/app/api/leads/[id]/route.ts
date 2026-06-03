@@ -40,6 +40,13 @@ export async function PATCH(
 
     const data = UpdateLeadSchema.parse(body);
 
+    // Validação obrigatória de valor de venda ao marcar como vendido
+    if (data.status === 'vendido') {
+      if (data.estimatedValue === undefined || data.estimatedValue === null || data.estimatedValue <= 0) {
+        return NextResponse.json({ error: 'O valor da venda é obrigatório e deve ser maior que zero quando o status é Vendido.' }, { status: 400 });
+      }
+    }
+
     const lead = await prisma.lead.findUnique({
       where: { id }
     });
@@ -63,12 +70,15 @@ export async function PATCH(
         return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
       }
 
-      // 3. Vendedor só pode alterar status e sellerId
+      // 3. Vendedor só pode alterar status, sellerId, e o valor estimado (se status for vendido ou já for vendido)
       const allowedFields = ['status', 'sellerId'];
+      if (data.status === 'vendido' || lead.status === 'vendido') {
+        allowedFields.push('estimatedValue');
+      }
       const fieldsBeingUpdated = Object.keys(data).filter(k => (data as any)[k] !== undefined);
       const isUpdatingRestrictedFields = fieldsBeingUpdated.some(k => !allowedFields.includes(k));
       if (isUpdatingRestrictedFields) {
-        return NextResponse.json({ error: 'Vendedores só possuem permissão para atualizar o status do lead ou vinculá-lo.' }, { status: 403 });
+        return NextResponse.json({ error: 'Vendedores só possuem permissão para atualizar o status do lead, vinculá-lo ou informar o valor da venda.' }, { status: 403 });
       }
     }
     // CPF/CNPJ obrigatório e validação de duplicidade (se fornecido ou editado)

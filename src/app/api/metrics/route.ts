@@ -212,19 +212,23 @@ export async function GET() {
 
     const vendedoresPerformance = await Promise.all(
       sellersList.map(async (s) => {
-        const sales = await prisma.lead.count({
+        const salesSum = await prisma.lead.aggregate({
           where: {
             sellerId: s.id,
             status: 'vendido',
             updatedAt: { gte: startOfMonth }
+          },
+          _sum: {
+            estimatedValue: true
           }
         });
+        const salesValue = salesSum._sum.estimatedValue || 0;
         return {
           id: s.id,
           nome: s.name,
           filial: s.branch?.name || 'Sem Filial',
-          vendas: sales,
-          metaVendas: s.monthlyGoal > 0 ? s.monthlyGoal : 10,
+          vendas: salesValue,
+          metaVendas: s.monthlyGoal > 0 ? s.monthlyGoal : 50000,
         };
       })
     );

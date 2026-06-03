@@ -182,6 +182,13 @@ export async function POST(request: Request) {
 
     const data = CreateLeadSchema.parse(body);
 
+    // Validação obrigatória de valor de venda ao marcar como vendido
+    if (data.status === 'vendido') {
+      if (data.estimatedValue === undefined || data.estimatedValue === null || data.estimatedValue <= 0) {
+        return NextResponse.json({ error: 'O valor da venda é obrigatório e deve ser maior que zero quando o status é Vendido.' }, { status: 400 });
+      }
+    }
+
     let finalBranchId = data.branchId || null;
 
     // Se for VENDEDOR, restringe atribuição apenas a si mesmo ou nulo, e herda a filial dele

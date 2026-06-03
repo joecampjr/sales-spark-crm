@@ -108,6 +108,7 @@ export async function POST(request: Request) {
               city: lead.city || existing.city,
               state: lead.state || existing.state,
               estimatedValue: lead.estimatedValue || existing.estimatedValue,
+              status: 'novo',
               cpf: cleanedCpf,
               branchId: lead.branchId ? finalBranchId : existing.branchId
             }
@@ -120,7 +121,7 @@ export async function POST(request: Request) {
               phone: cleanedPhone,
               city: lead.city,
               state: lead.state,
-              status: lead.status,
+              status: 'novo',
               priority: lead.priority,
               estimatedValue: lead.estimatedValue,
               source: lead.source,

@@ -91,11 +91,11 @@ export default function ContatosPage() {
 
   // Mutações
   const updateLeadStatusMutation = useMutation({
-    mutationFn: async ({ leadId, status }: { leadId: string; status: string }) => {
+    mutationFn: async ({ leadId, status, estimatedValue }: { leadId: string; status: string; estimatedValue?: number }) => {
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, estimatedValue })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -163,6 +163,8 @@ export default function ContatosPage() {
     const notes = fd.get('notes') as string;
     const scheduledFor = fd.get('scheduledFor') as string;
     const type = fd.get('type') as string;
+    const estimatedValueInput = fd.get('estimatedValue');
+    const estimatedValue = estimatedValueInput ? Number(estimatedValueInput) : undefined;
 
     try {
       // 1. Cria a nova interação
@@ -178,7 +180,8 @@ export default function ContatosPage() {
       // 2. Atualiza o status do Lead
       await updateLeadStatusMutation.mutateAsync({
         leadId: selectedLead.id,
-        status: formStatus
+        status: formStatus,
+        estimatedValue
       });
 
       // 3. Atualiza queries e notifica
@@ -460,6 +463,23 @@ export default function ContatosPage() {
                     <option value="contato_nao_atualizado">Contato Não Atualizado (Fecha espaço limite)</option>
                   </select>
                 </div>
+
+                {formStatus === 'vendido' && (
+                  <div className="space-y-2 col-span-2 animate-fade-in">
+                    <Label htmlFor="estimatedValue" className="font-semibold text-sm">Valor da Venda (R$) <span className="text-destructive">*</span></Label>
+                    <Input 
+                      id="estimatedValue"
+                      name="estimatedValue" 
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      placeholder="Ex: 1500.50"
+                      className="bg-background border-primary/40 focus:border-primary font-medium"
+                      defaultValue={selectedLead.estimatedValue || ''}
+                    />
+                  </div>
+                )}
 
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="scheduledFor" className="font-semibold text-sm">Agendar Retorno (Próximo Contato - Opcional)</Label>

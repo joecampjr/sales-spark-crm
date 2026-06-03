@@ -253,7 +253,7 @@ export default function DashboardPage() {
         />
         <KPICard 
           title={user?.role === 'VENDEDOR' ? "Minhas Vendas (Mês)" : "Vendas da Filial/Empresa"} 
-          value={`R$ ${kpis.vendasMes.toLocaleString('pt-BR')}`} 
+          value={kpis.vendasMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} 
           icon={DollarSign} 
           variant="success" 
         />
@@ -420,8 +420,10 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-bold text-foreground">{v.vendas}/{v.metaVendas}</p>
-                        <p className="text-xs text-muted-foreground">vendas no mês</p>
+                        <p className="text-xs font-bold text-foreground">
+                          {v.vendas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })} / {v.metaVendas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">vendas no mês</p>
                       </div>
                     </div>
                     <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
@@ -461,8 +463,8 @@ export default function DashboardPage() {
             <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
             <div className="w-full">
               <p className="text-sm font-bold text-foreground">Meta {progressPercent}% Atingida</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                R$ {kpis.vendasMes.toLocaleString('pt-BR')} de R$ {kpis.metaMes.toLocaleString('pt-BR')}
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium">
+                {kpis.vendasMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} de {kpis.metaMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
               </p>
               <div className="w-full h-1.5 bg-emerald-500/10 rounded-full mt-2 overflow-hidden">
                 <div 
