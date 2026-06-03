@@ -50,6 +50,8 @@ export default function LeadsPage() {
   // Form status tracking states
   const [newStatus, setNewStatus] = useState('novo');
   const [editStatus, setEditStatus] = useState('novo');
+  const [newPaymentMode, setNewPaymentMode] = useState('a_vista');
+  const [editPaymentMode, setEditPaymentMode] = useState('a_vista');
 
   const downloadTemplate = () => {
     const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID'];
@@ -261,6 +263,9 @@ export default function LeadsPage() {
       status: fd.get('status'),
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
+      paymentMode: fd.get('paymentMode') || null,
+      downPayment: fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null,
+      saleType: fd.get('saleType') || null,
       source: fd.get('source'),
       cpf: fd.get('cpf') || null,
       branchId: fd.get('branchId') || null,
@@ -281,6 +286,9 @@ export default function LeadsPage() {
       };
       if (status === 'vendido') {
         payload.estimatedValue = Number(fd.get('estimatedValue')) || 0;
+        payload.paymentMode = fd.get('paymentMode') || null;
+        payload.downPayment = fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null;
+        payload.saleType = fd.get('saleType') || null;
       }
       updateMutation.mutate(payload);
       return;
@@ -295,6 +303,9 @@ export default function LeadsPage() {
       status: fd.get('status'),
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
+      paymentMode: fd.get('paymentMode') || null,
+      downPayment: fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null,
+      saleType: fd.get('saleType') || null,
       source: fd.get('source'),
       cpf: fd.get('cpf') || null,
       branchId: fd.get('branchId') || null,
@@ -333,6 +344,7 @@ export default function LeadsPage() {
             if (open) {
               setNewCpf('');
               setNewStatus('novo');
+              setNewPaymentMode('a_vista');
             }
           }}>
             <DialogTrigger asChild>
@@ -418,6 +430,49 @@ export default function LeadsPage() {
                       placeholder={newStatus === 'vendido' ? "Ex: 1500.50" : "15000"} 
                     />
                   </div>
+                  {newStatus === 'vendido' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label>Modo de Pagamento <span className="text-destructive">*</span></Label>
+                        <select 
+                          name="paymentMode" 
+                          value={newPaymentMode}
+                          onChange={(e) => setNewPaymentMode(e.target.value)}
+                          required 
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="a_vista">À vista</option>
+                          <option value="carne">Carnê</option>
+                          <option value="cartao">Cartão</option>
+                          <option value="pix">Pix</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Tipo de Venda <span className="text-destructive">*</span></Label>
+                        <select 
+                          name="saleType" 
+                          required 
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="interna">Interna</option>
+                          <option value="externa">Externa</option>
+                        </select>
+                      </div>
+                      {newPaymentMode === 'carne' && (
+                        <div className="space-y-2 col-span-2">
+                          <Label>Valor da Entrada (R$) <span className="text-destructive">*</span></Label>
+                          <Input 
+                            type="number" 
+                            name="downPayment" 
+                            min="0"
+                            step="0.01"
+                            required
+                            placeholder="Ex: 500.00 (Digite 0 se não houver)" 
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="space-y-2">
                     <Label>Origem</Label>
                     <select name="source" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
@@ -610,6 +665,7 @@ export default function LeadsPage() {
         if (open && editingLead) {
           setEditCpf(editingLead.cpf ? maskCpf(editingLead.cpf) : '');
           setEditStatus(editingLead.status || 'novo');
+          setEditPaymentMode(editingLead.paymentMode || 'a_vista');
         }
       }}>
         <DialogContent>
@@ -696,6 +752,51 @@ export default function LeadsPage() {
                     placeholder={editStatus === 'vendido' ? "Ex: 1500.50" : "15000"} 
                   />
                 </div>
+                {editStatus === 'vendido' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Modo de Pagamento <span className="text-destructive">*</span></Label>
+                      <select 
+                        name="paymentMode" 
+                        value={editPaymentMode}
+                        onChange={(e) => setEditPaymentMode(e.target.value)}
+                        required 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="a_vista">À vista</option>
+                        <option value="carne">Carnê</option>
+                        <option value="cartao">Cartão</option>
+                        <option value="pix">Pix</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Tipo de Venda <span className="text-destructive">*</span></Label>
+                      <select 
+                        name="saleType" 
+                        required 
+                        defaultValue={editingLead.saleType || 'interna'}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="interna">Interna</option>
+                        <option value="externa">Externa</option>
+                      </select>
+                    </div>
+                    {editPaymentMode === 'carne' && (
+                      <div className="space-y-2 col-span-2">
+                        <Label>Valor da Entrada (R$) <span className="text-destructive">*</span></Label>
+                        <Input 
+                          type="number" 
+                          name="downPayment" 
+                          defaultValue={editingLead.downPayment || 0}
+                          min="0"
+                          step="0.01"
+                          required
+                          placeholder="Ex: 500.00 (Digite 0 se não houver)" 
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
                 <div className="space-y-2">
                   <Label>Origem</Label>
                   <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>

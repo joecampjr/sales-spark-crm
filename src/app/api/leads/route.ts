@@ -11,6 +11,9 @@ const CreateLeadSchema = z.object({
   status: z.string(),
   priority: z.string(),
   estimatedValue: z.number().nullable().optional(),
+  paymentMode: z.string().nullable().optional(),
+  downPayment: z.number().nullable().optional(),
+  saleType: z.string().nullable().optional(),
   source: z.string(),
   sellerId: z.string().nullable().optional(),
   cpf: z.string().nullable().optional(),
@@ -187,6 +190,23 @@ export async function POST(request: Request) {
       if (data.estimatedValue === undefined || data.estimatedValue === null || data.estimatedValue <= 0) {
         return NextResponse.json({ error: 'O valor da venda é obrigatório e deve ser maior que zero quando o status é Vendido.' }, { status: 400 });
       }
+      if (!data.paymentMode) {
+        return NextResponse.json({ error: 'O modo de pagamento é obrigatório quando o status é Vendido.' }, { status: 400 });
+      }
+      if (!['a_vista', 'carne', 'cartao', 'pix'].includes(data.paymentMode)) {
+        return NextResponse.json({ error: 'Modo de pagamento inválido.' }, { status: 400 });
+      }
+      if (data.paymentMode === 'carne') {
+        if (data.downPayment === undefined || data.downPayment === null || data.downPayment < 0) {
+          return NextResponse.json({ error: 'O valor da entrada é obrigatório (maior ou igual a zero) para pagamento via Carnê.' }, { status: 400 });
+        }
+      }
+      if (!data.saleType) {
+        return NextResponse.json({ error: 'O tipo de venda (interna ou externa) é obrigatório quando o status é Vendido.' }, { status: 400 });
+      }
+      if (!['interna', 'externa'].includes(data.saleType)) {
+        return NextResponse.json({ error: 'Tipo de venda inválido. Deve ser interna ou externa.' }, { status: 400 });
+      }
     }
 
     let finalBranchId = data.branchId || null;
@@ -245,6 +265,9 @@ export async function POST(request: Request) {
         status: data.status,
         priority: data.priority,
         estimatedValue: data.estimatedValue,
+        paymentMode: data.paymentMode || null,
+        downPayment: data.downPayment || null,
+        saleType: data.saleType || null,
         source: data.source,
         cpf: data.cpf || null,
         branchId: finalBranchId,

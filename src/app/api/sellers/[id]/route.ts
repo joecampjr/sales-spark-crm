@@ -14,6 +14,8 @@ const UpdateSellerSchema = z.object({
   monthlyGoal: z.number().optional(),
   contactsTarget: z.number().optional(),
   commissionRate: z.number().optional(),
+  commissionRateInternal: z.number().optional(),
+  commissionRateExternal: z.number().optional(),
   branchId: z.string().optional().nullable(),
   status: z.string().optional(),
 });
@@ -75,6 +77,8 @@ export async function PATCH(
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,
+          commissionRateInternal: data.commissionRateInternal,
+          commissionRateExternal: data.commissionRateExternal,
           branchId: finalBranchId === '' ? null : finalBranchId || undefined,
           status: data.status,
         }

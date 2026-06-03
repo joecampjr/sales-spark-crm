@@ -142,7 +142,9 @@ export default function SellersPage() {
       region: fd.get('region'),
       monthlyGoal: Number(fd.get('monthlyGoal')),
       contactsTarget: Number(fd.get('contactsTarget')) || 10,
-      commissionRate: Number(fd.get('commissionRate')) || 0,
+      commissionRate: Number(fd.get('commissionRateInternal')) || 0,
+      commissionRateInternal: Number(fd.get('commissionRateInternal')) || 0,
+      commissionRateExternal: Number(fd.get('commissionRateExternal')) || 0,
       branchId: fd.get('branchId') || null,
       status: fd.get('status'),
     };
@@ -254,8 +256,12 @@ export default function SellersPage() {
                   <Input name="monthlyGoal" type="number" defaultValue={50000} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Comissão (%)</Label>
-                  <Input name="commissionRate" type="number" step="0.1" defaultValue={5} />
+                  <Label>Comissão Interna (%)</Label>
+                  <Input name="commissionRateInternal" type="number" step="0.1" defaultValue={5} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Comissão Externa (%)</Label>
+                  <Input name="commissionRateExternal" type="number" step="0.1" defaultValue={5} />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Meta de Contatos Diários</Label>
@@ -327,7 +333,10 @@ export default function SellersPage() {
                     </div>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <Badge variant="outline" className="text-blue-500 border-blue-500/20">{seller.commissionRate}%</Badge>
+                    <div className="flex flex-col items-center gap-1">
+                      <Badge variant="outline" className="text-blue-500 border-blue-500/20 text-[10px]">Int: {seller.commissionRateInternal}%</Badge>
+                      <Badge variant="outline" className="text-emerald-500 border-emerald-500/20 text-[10px]">Ext: {seller.commissionRateExternal}%</Badge>
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex flex-col">
@@ -410,8 +419,12 @@ export default function SellersPage() {
                 <h4 className="text-sm font-bold flex items-center gap-2"><Wallet className="w-4 h-4 text-success" /> Comissionamento e Metas</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Taxa de Comissão</span>
-                    <Badge className="bg-success/20 text-success border-0">{selectedSeller.commissionRate}%</Badge>
+                    <span className="text-muted-foreground">Comissão Interna</span>
+                    <Badge className="bg-success/20 text-success border-0">{selectedSeller.commissionRateInternal}%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Comissão Externa</span>
+                    <Badge className="bg-success/20 text-success border-0">{selectedSeller.commissionRateExternal}%</Badge>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Meta Mensal de Faturamento</span>
@@ -505,8 +518,12 @@ export default function SellersPage() {
                   <Input name="monthlyGoal" type="number" defaultValue={editingSeller.monthlyGoal} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Comissão (%)</Label>
-                  <Input name="commissionRate" type="number" step="0.1" defaultValue={editingSeller.commissionRate} />
+                  <Label>Comissão Interna (%)</Label>
+                  <Input name="commissionRateInternal" type="number" step="0.1" defaultValue={editingSeller.commissionRateInternal} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Comissão Externa (%)</Label>
+                  <Input name="commissionRateExternal" type="number" step="0.1" defaultValue={editingSeller.commissionRateExternal} />
                 </div>
               </div>
               <div className="flex justify-end pt-4">

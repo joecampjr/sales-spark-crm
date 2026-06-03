@@ -17,6 +17,8 @@ const UpdateUserSchema = z.object({
   monthlyGoal: z.number().optional().nullable(),
   contactsTarget: z.number().optional().nullable(),
   commissionRate: z.number().optional().nullable(),
+  commissionRateInternal: z.number().optional().nullable(),
+  commissionRateExternal: z.number().optional().nullable(),
 });
 
 export async function PATCH(
@@ -81,6 +83,8 @@ export async function PATCH(
               monthlyGoal: data.monthlyGoal !== undefined ? (data.monthlyGoal ?? 0) : undefined,
               contactsTarget: data.contactsTarget !== undefined ? (data.contactsTarget ?? 10) : undefined,
               commissionRate: data.commissionRate !== undefined ? (data.commissionRate ?? 0) : undefined,
+              commissionRateInternal: data.commissionRateInternal !== undefined ? (data.commissionRateInternal ?? 0) : undefined,
+              commissionRateExternal: data.commissionRateExternal !== undefined ? (data.commissionRateExternal ?? 0) : undefined,
               branchId: finalBranchId,
             }
           });
@@ -95,6 +99,8 @@ export async function PATCH(
               monthlyGoal: data.monthlyGoal ?? 50000,
               contactsTarget: data.contactsTarget ?? 10,
               commissionRate: data.commissionRate ?? 5,
+              commissionRateInternal: data.commissionRateInternal ?? 5,
+              commissionRateExternal: data.commissionRateExternal ?? 5,
               branchId: user.branchId || null,
               status: 'ativo',
               companyId: user.companyId,

@@ -14,6 +14,8 @@ const SellerSchema = z.object({
   monthlyGoal: z.number().optional().default(0),
   contactsTarget: z.number().optional().default(10),
   commissionRate: z.number().optional().default(0),
+  commissionRateInternal: z.number().optional().default(0),
+  commissionRateExternal: z.number().optional().default(0),
   branchId: z.string().optional().nullable(),
   status: z.string().optional().default('ativo'),
 });
@@ -203,6 +205,8 @@ export async function POST(request: Request) {
           monthlyGoal: data.monthlyGoal,
           contactsTarget: data.contactsTarget,
           commissionRate: data.commissionRate,
+          commissionRateInternal: data.commissionRateInternal,
+          commissionRateExternal: data.commissionRateExternal,
           branchId: finalBranchId,
           status: data.status,
           salesCount: 0,

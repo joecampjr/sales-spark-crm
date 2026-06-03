@@ -151,7 +151,9 @@ export default function UsersPage() {
       data.phone = fd.get('phone') || null;
       data.region = fd.get('region') || 'São Paulo - Capital';
       data.monthlyGoal = Number(fd.get('monthlyGoal')) || 0;
-      data.commissionRate = Number(fd.get('commissionRate')) || 0;
+      data.commissionRate = Number(fd.get('commissionRateInternal')) || 0;
+      data.commissionRateInternal = Number(fd.get('commissionRateInternal')) || 0;
+      data.commissionRateExternal = Number(fd.get('commissionRateExternal')) || 0;
       data.contactsTarget = Number(fd.get('contactsTarget')) || 10;
     }
 
@@ -281,8 +283,12 @@ export default function UsersPage() {
                       <Input name="monthlyGoal" type="number" defaultValue={50000} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Comissão (%)</Label>
-                      <Input name="commissionRate" type="number" step="0.1" defaultValue={5} />
+                      <Label>Comissão Interna (%)</Label>
+                      <Input name="commissionRateInternal" type="number" step="0.1" defaultValue={5} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comissão Externa (%)</Label>
+                      <Input name="commissionRateExternal" type="number" step="0.1" defaultValue={5} />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Label>Meta de Contatos Diários</Label>
@@ -455,8 +461,12 @@ export default function UsersPage() {
                       <Input name="monthlyGoal" type="number" defaultValue={editingUser.seller?.monthlyGoal || 0} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Comissão (%)</Label>
-                      <Input name="commissionRate" type="number" step="0.1" defaultValue={editingUser.seller?.commissionRate || 0} />
+                      <Label>Comissão Interna (%)</Label>
+                      <Input name="commissionRateInternal" type="number" step="0.1" defaultValue={editingUser.seller?.commissionRateInternal || 0} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Comissão Externa (%)</Label>
+                      <Input name="commissionRateExternal" type="number" step="0.1" defaultValue={editingUser.seller?.commissionRateExternal || 0} />
                     </div>
                     <div className="space-y-2 col-span-2">
                       <Label>Meta de Contatos Diários</Label>

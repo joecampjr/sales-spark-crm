@@ -17,6 +17,8 @@ const UserSchema = z.object({
   monthlyGoal: z.number().optional().nullable(),
   contactsTarget: z.number().optional().nullable(),
   commissionRate: z.number().optional().nullable(),
+  commissionRateInternal: z.number().optional().nullable(),
+  commissionRateExternal: z.number().optional().nullable(),
 });
 
 export async function GET() {
@@ -116,6 +118,8 @@ export async function POST(request: Request) {
             monthlyGoal: data.monthlyGoal ?? 50000,
             contactsTarget: data.contactsTarget ?? 10,
             commissionRate: data.commissionRate ?? 5,
+            commissionRateInternal: data.commissionRateInternal ?? 5,
+            commissionRateExternal: data.commissionRateExternal ?? 5,
             branchId: finalBranchId,
             status: 'ativo',
             companyId: session.companyId || null,

@@ -34,6 +34,7 @@ export default function ContatosPage() {
   // States for automatic status mapping in update form
   const [formResult, setFormResult] = useState('Interessado');
   const [formStatus, setFormStatus] = useState('em_negociacao');
+  const [formPaymentMode, setFormPaymentMode] = useState('a_vista');
 
   // Queries
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
@@ -91,11 +92,11 @@ export default function ContatosPage() {
 
   // Mutações
   const updateLeadStatusMutation = useMutation({
-    mutationFn: async ({ leadId, status, estimatedValue }: { leadId: string; status: string; estimatedValue?: number }) => {
+    mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string }) => {
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, estimatedValue })
+        body: JSON.stringify({ status, estimatedValue, paymentMode, downPayment, saleType })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -145,6 +146,7 @@ export default function ContatosPage() {
     const initialResult = lastInteraction?.result || 'Interessado';
     setFormResult(initialResult);
     setFormStatus(lead.status || 'em_negociacao');
+    setFormPaymentMode(lead.paymentMode || 'a_vista');
     setIsUpdateModalOpen(true);
   };
 
@@ -165,6 +167,10 @@ export default function ContatosPage() {
     const type = fd.get('type') as string;
     const estimatedValueInput = fd.get('estimatedValue');
     const estimatedValue = estimatedValueInput ? Number(estimatedValueInput) : undefined;
+    const paymentMode = fd.get('paymentMode') as string || undefined;
+    const downPaymentInput = fd.get('downPayment');
+    const downPayment = downPaymentInput !== null && downPaymentInput !== undefined && downPaymentInput !== '' ? Number(downPaymentInput) : undefined;
+    const saleType = fd.get('saleType') as string || undefined;
 
     try {
       // 1. Cria a nova interação
@@ -181,7 +187,10 @@ export default function ContatosPage() {
       await updateLeadStatusMutation.mutateAsync({
         leadId: selectedLead.id,
         status: formStatus,
-        estimatedValue
+        estimatedValue,
+        paymentMode,
+        downPayment,
+        saleType
       });
 
       // 3. Atualiza queries e notifica
@@ -465,20 +474,70 @@ export default function ContatosPage() {
                 </div>
 
                 {formStatus === 'vendido' && (
-                  <div className="space-y-2 col-span-2 animate-fade-in">
-                    <Label htmlFor="estimatedValue" className="font-semibold text-sm">Valor da Venda (R$) <span className="text-destructive">*</span></Label>
-                    <Input 
-                      id="estimatedValue"
-                      name="estimatedValue" 
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      required
-                      placeholder="Ex: 1500.50"
-                      className="bg-background border-primary/40 focus:border-primary font-medium"
-                      defaultValue={selectedLead.estimatedValue || ''}
-                    />
-                  </div>
+                  <>
+                    <div className="space-y-2 col-span-2 animate-fade-in">
+                      <Label htmlFor="estimatedValue" className="font-semibold text-sm">Valor da Venda (R$) <span className="text-destructive">*</span></Label>
+                      <Input 
+                        id="estimatedValue"
+                        name="estimatedValue" 
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                        placeholder="Ex: 1500.50"
+                        className="bg-background border-primary/40 focus:border-primary font-medium"
+                        defaultValue={selectedLead.estimatedValue || ''}
+                      />
+                    </div>
+
+                    <div className="space-y-2 col-span-1 animate-fade-in">
+                      <Label htmlFor="paymentMode" className="font-semibold text-sm">Modo de Pagamento <span className="text-destructive">*</span></Label>
+                      <select 
+                        id="paymentMode"
+                        name="paymentMode" 
+                        value={formPaymentMode}
+                        onChange={(e) => setFormPaymentMode(e.target.value)}
+                        required 
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="a_vista">À vista</option>
+                        <option value="carne">Carnê</option>
+                        <option value="cartao">Cartão</option>
+                        <option value="pix">Pix</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2 col-span-1 animate-fade-in">
+                      <Label htmlFor="saleType" className="font-semibold text-sm">Tipo de Venda <span className="text-destructive">*</span></Label>
+                      <select 
+                        id="saleType"
+                        name="saleType" 
+                        required 
+                        defaultValue={selectedLead.saleType || 'interna'}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="interna">Interna</option>
+                        <option value="externa">Externa</option>
+                      </select>
+                    </div>
+
+                    {formPaymentMode === 'carne' && (
+                      <div className="space-y-2 col-span-2 animate-fade-in">
+                        <Label htmlFor="downPayment" className="font-semibold text-sm">Valor da Entrada (R$) <span className="text-destructive">*</span></Label>
+                        <Input 
+                          id="downPayment"
+                          name="downPayment" 
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          required
+                          placeholder="Ex: 500.00 (Digite 0 se não houver)"
+                          className="bg-background border-primary/40 focus:border-primary font-medium"
+                          defaultValue={selectedLead.downPayment || 0}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <div className="space-y-2 col-span-2">
