@@ -120,6 +120,8 @@ model Lead {
   saleType       String?
   source         String
   cpf            String?
+  birthday       String?
+  avgDelayDays   Int?
 
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])

@@ -14,6 +14,11 @@ const ImportSchema = z.array(z.object({
   source: z.string().optional().default('CSV'),
   cpf: z.string().optional().nullable(),
   branchId: z.string().optional().nullable(),
+  paymentMode: z.string().optional().nullable(),
+  downPayment: z.number().optional().nullable(),
+  saleType: z.string().optional().nullable(),
+  birthday: z.string().optional().nullable(),
+  avgDelayDays: z.number().optional().nullable(),
 }));
 
 export async function POST(request: Request) {
@@ -102,6 +107,20 @@ export async function POST(request: Request) {
           }
         });
         
+        let cleanedBirthday: string | null = null;
+        if (lead.birthday) {
+          const bMatch = lead.birthday.match(/^(\d{1,2})\/(\d{1,2})/);
+          if (bMatch) {
+            const day = bMatch[1].padStart(2, '0');
+            const month = bMatch[2].padStart(2, '0');
+            const dayNum = parseInt(day);
+            const monthNum = parseInt(month);
+            if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+              cleanedBirthday = `${day}/${month}`;
+            }
+          }
+        }
+
         if (existing) {
           // Atualiza dados
           await tx.lead.update({
@@ -114,7 +133,12 @@ export async function POST(request: Request) {
               estimatedValue: lead.estimatedValue || existing.estimatedValue,
               status: 'novo',
               cpf: cleanedCpf,
-              branchId: lead.branchId ? finalBranchId : existing.branchId
+              branchId: lead.branchId ? finalBranchId : existing.branchId,
+              paymentMode: lead.paymentMode || existing.paymentMode,
+              downPayment: lead.downPayment || existing.downPayment,
+              saleType: lead.saleType || existing.saleType,
+              birthday: cleanedBirthday || existing.birthday,
+              avgDelayDays: lead.avgDelayDays || existing.avgDelayDays,
             }
           });
           updated++;
@@ -131,7 +155,12 @@ export async function POST(request: Request) {
               source: lead.source,
               cpf: cleanedCpf,
               branchId: finalBranchId,
-              companyId: companyId
+              companyId: companyId,
+              paymentMode: lead.paymentMode,
+              downPayment: lead.downPayment,
+              saleType: lead.saleType,
+              birthday: cleanedBirthday,
+              avgDelayDays: lead.avgDelayDays,
             }
           });
           imported++;

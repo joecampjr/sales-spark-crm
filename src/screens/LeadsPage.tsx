@@ -46,6 +46,14 @@ export default function LeadsPage() {
   // CPF states
   const [newCpf, setNewCpf] = useState('');
   const [editCpf, setEditCpf] = useState('');
+  const [newBirthday, setNewBirthday] = useState('');
+  const [editBirthday, setEditBirthday] = useState('');
+
+  const maskBirthday = (val: string) => {
+    const clean = val.replace(/\D/g, '');
+    if (clean.length <= 2) return clean;
+    return `${clean.slice(0, 2)}/${clean.slice(2, 4)}`;
+  };
 
   // Form status tracking states
   const [newStatus, setNewStatus] = useState('novo');
@@ -54,8 +62,14 @@ export default function LeadsPage() {
   const [editPaymentMode, setEditPaymentMode] = useState('a_vista');
 
   const downloadTemplate = () => {
-    const headers = ['Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID'];
-    const example = ['João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '12345678909', ''];
+    const headers = [
+      'Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID',
+      'Modo de Pagamento', 'Valor da Entrada', 'Tipo de Venda', 'Aniversario', 'Media de dias de atraso'
+    ];
+    const example = [
+      'João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '12345678909', '',
+      '', '', '', '25/12', ''
+    ];
     const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
       + headers.join(";") + "\n" 
       + example.join(";");
@@ -240,7 +254,12 @@ export default function LeadsPage() {
             estimatedValue: parseFloat(getValue(['Valor Estimado', 'estimatedValue', 'valor_estimado'])) || 0,
             source: getValue(['Origem', 'source', 'origem']) || 'CSV Import',
             cpf: getValue(['CPF', 'cpf']),
-            branchId: getValue(['Filial ID', 'branchId', 'filial_id']) || null
+            branchId: getValue(['Filial ID', 'branchId', 'filial_id']) || null,
+            paymentMode: getValue(['Modo de Pagamento', 'paymentMode', 'modo_pagamento']) || null,
+            downPayment: getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada']) !== '' ? parseFloat(getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada'])) : null,
+            saleType: getValue(['Tipo de Venda', 'saleType', 'tipo_venda']) || null,
+            birthday: getValue(['Aniversário', 'birthday', 'aniversario']) || null,
+            avgDelayDays: getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso']) !== '' ? parseInt(getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso'])) : null,
           };
         });
         importMutation.mutate(mapped);
@@ -270,6 +289,8 @@ export default function LeadsPage() {
       cpf: fd.get('cpf') || null,
       branchId: fd.get('branchId') || null,
       sellerId: fd.get('sellerId') || null,
+      birthday: fd.get('birthday') || null,
+      avgDelayDays: fd.get('avgDelayDays') !== null && fd.get('avgDelayDays') !== '' ? Number(fd.get('avgDelayDays')) : null,
     });
   };
 
@@ -310,6 +331,8 @@ export default function LeadsPage() {
       cpf: fd.get('cpf') || null,
       branchId: fd.get('branchId') || null,
       sellerId: fd.get('sellerId') || null,
+      birthday: fd.get('birthday') || null,
+      avgDelayDays: fd.get('avgDelayDays') !== null && fd.get('avgDelayDays') !== '' ? Number(fd.get('avgDelayDays')) : null,
     });
   };
 
@@ -343,6 +366,7 @@ export default function LeadsPage() {
             setIsModalOpen(open);
             if (open) {
               setNewCpf('');
+              setNewBirthday('');
               setNewStatus('novo');
               setNewPaymentMode('a_vista');
             }
@@ -514,6 +538,25 @@ export default function LeadsPage() {
                       </select>
                     </div>
                   )}
+                  <div className="space-y-2">
+                    <Label>Dia do Aniversário (DD/MM)</Label>
+                    <Input 
+                      name="birthday" 
+                      placeholder="Ex: 25/12 (Opcional)" 
+                      maxLength={5}
+                      value={newBirthday}
+                      onChange={(e) => setNewBirthday(maskBirthday(e.target.value))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Média de dias de atraso</Label>
+                    <Input 
+                      name="avgDelayDays" 
+                      type="number" 
+                      min="0"
+                      placeholder="Ex: 5 (Opcional)" 
+                    />
+                  </div>
                 </div>
                 <div className="flex w-full justify-end pt-4">
                   <Button type="submit" disabled={createMutation.isPending}>
@@ -581,7 +624,19 @@ export default function LeadsPage() {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-foreground">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground">{lead.phone}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{lead.phone}</span>
+                          {lead.birthday && (
+                            <span className="text-[10px] bg-primary/5 text-primary border border-primary/10 px-1 rounded flex items-center gap-1" title="Aniversário do cliente">
+                              🎂 {lead.birthday}
+                            </span>
+                          )}
+                          {lead.avgDelayDays !== null && lead.avgDelayDays !== undefined && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/10 px-1 rounded flex items-center gap-1" title="Média de dias de atraso">
+                              ⏱️ {lead.avgDelayDays}d atraso
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -664,6 +719,7 @@ export default function LeadsPage() {
         setIsEditModalOpen(open);
         if (open && editingLead) {
           setEditCpf(editingLead.cpf ? maskCpf(editingLead.cpf) : '');
+          setEditBirthday(editingLead.birthday || '');
           setEditStatus(editingLead.status || 'novo');
           setEditPaymentMode(editingLead.paymentMode || 'a_vista');
         }
@@ -829,6 +885,28 @@ export default function LeadsPage() {
                     </select>
                   </div>
                 )}
+                <div className="space-y-2">
+                  <Label>Dia do Aniversário (DD/MM)</Label>
+                  <Input 
+                    name="birthday" 
+                    placeholder="Ex: 25/12 (Opcional)" 
+                    maxLength={5}
+                    value={editBirthday}
+                    onChange={(e) => setEditBirthday(maskBirthday(e.target.value))}
+                    disabled={isVendedor}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Média de dias de atraso</Label>
+                  <Input 
+                    name="avgDelayDays" 
+                    type="number" 
+                    min="0"
+                    defaultValue={editingLead.avgDelayDays || ''} 
+                    placeholder="Ex: 5 (Opcional)" 
+                    disabled={isVendedor}
+                  />
+                </div>
               </div>
               <div className="flex w-full justify-end pt-4">
                 <Button type="submit" disabled={updateMutation.isPending}>
@@ -881,8 +959,13 @@ export default function LeadsPage() {
                 <li>Filial ID <span className="text-muted-foreground font-normal">(ID do sistema da filial, opcional)</span></li>
                 <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido, contato_nao_atualizado)</span></li>
                 <li>Prioridade <span className="text-muted-foreground font-normal">(baixa, media, alta, urgente)</span></li>
-                <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números)</span></li>
+                <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
                 <li>Origem</li>
+                <li>Modo de Pagamento <span className="text-muted-foreground font-normal">(a_vista, carne, cartao, pix, opcional)</span></li>
+                <li>Valor da Entrada <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
+                <li>Tipo de Venda <span className="text-muted-foreground font-normal">(interna, externa, opcional)</span></li>
+                <li>Aniversario <span className="text-muted-foreground font-normal">(formato DD/MM, opcional)</span></li>
+                <li>Media de dias de atraso <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
               </ul>
               <p>Recomendamos baixar nossa planilha modelo para evitar erros de formatação.</p>
             </div>

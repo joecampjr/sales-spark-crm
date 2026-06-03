@@ -18,6 +18,8 @@ const CreateLeadSchema = z.object({
   sellerId: z.string().nullable().optional(),
   cpf: z.string().nullable().optional(),
   branchId: z.string().nullable().optional(),
+  birthday: z.string().nullable().optional(),
+  avgDelayDays: z.number().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -185,6 +187,24 @@ export async function POST(request: Request) {
 
     const data = CreateLeadSchema.parse(body);
 
+    let cleanedBirthday: string | null = null;
+    if (data.birthday) {
+      const bMatch = data.birthday.match(/^(\d{1,2})\/(\d{1,2})/);
+      if (bMatch) {
+        const day = bMatch[1].padStart(2, '0');
+        const month = bMatch[2].padStart(2, '0');
+        const dayNum = parseInt(day);
+        const monthNum = parseInt(month);
+        if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+          cleanedBirthday = `${day}/${month}`;
+        } else {
+          return NextResponse.json({ error: 'Data de aniversário inválida. Use o formato DD/MM.' }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Formato de aniversário inválido. Use o formato DD/MM.' }, { status: 400 });
+      }
+    }
+
     // Validação obrigatória de valor de venda ao marcar como vendido
     if (data.status === 'vendido') {
       if (data.estimatedValue === undefined || data.estimatedValue === null || data.estimatedValue <= 0) {
@@ -273,6 +293,8 @@ export async function POST(request: Request) {
         branchId: finalBranchId,
         sellerId: data.sellerId || null,
         companyId: session.companyId || null,
+        birthday: cleanedBirthday,
+        avgDelayDays: data.avgDelayDays || null,
       }
     });
 

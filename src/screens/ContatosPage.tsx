@@ -319,7 +319,19 @@ export default function ContatosPage() {
                     <td className="py-4 px-6">
                       <div>
                         <p className="font-semibold text-foreground text-sm">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{lead.phone}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-muted-foreground">{lead.phone}</span>
+                          {lead.birthday && (
+                            <span className="text-[10px] bg-primary/5 text-primary border border-primary/10 px-1.5 py-0.5 rounded flex items-center gap-1 leading-none" title="Aniversário do cliente">
+                              🎂 {lead.birthday}
+                            </span>
+                          )}
+                          {lead.avgDelayDays !== null && lead.avgDelayDays !== undefined && (
+                            <span className="text-[10px] bg-amber-500/10 text-amber-600 border border-amber-500/10 px-1.5 py-0.5 rounded flex items-center gap-1 leading-none" title="Média de dias de atraso">
+                              ⏱️ {lead.avgDelayDays}d atraso
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="py-4 px-6">

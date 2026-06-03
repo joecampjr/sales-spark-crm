@@ -18,6 +18,8 @@ const UpdateLeadSchema = z.object({
   sellerId: z.string().nullable().optional(),
   cpf: z.string().optional(),
   branchId: z.string().nullable().optional(),
+  birthday: z.string().nullable().optional(),
+  avgDelayDays: z.number().nullable().optional(),
 });
 
 export async function PATCH(
@@ -39,6 +41,26 @@ export async function PATCH(
     }
     if (body.cpf) {
       body.cpf = body.cpf.replace(/\D/g, '');
+    }
+    if (body.birthday !== undefined) {
+      if (body.birthday === null || body.birthday === '') {
+        body.birthday = null;
+      } else {
+        const bMatch = body.birthday.match(/^(\d{1,2})\/(\d{1,2})/);
+        if (bMatch) {
+          const day = bMatch[1].padStart(2, '0');
+          const month = bMatch[2].padStart(2, '0');
+          const dayNum = parseInt(day);
+          const monthNum = parseInt(month);
+          if (dayNum >= 1 && dayNum <= 31 && monthNum >= 1 && monthNum <= 12) {
+            body.birthday = `${day}/${month}`;
+          } else {
+            return NextResponse.json({ error: 'Data de aniversário inválida. Use o formato DD/MM.' }, { status: 400 });
+          }
+        } else {
+          return NextResponse.json({ error: 'Formato de aniversário inválido. Use o formato DD/MM.' }, { status: 400 });
+        }
+      }
     }
 
     const data = UpdateLeadSchema.parse(body);

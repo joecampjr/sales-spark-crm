@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Search, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -86,8 +87,73 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
           link: '/leads'
         });
       });
+
+      // Aniversariantes do dia entre os contatos vinculados
+      const today = new Date();
+      const currentDay = String(today.getDate()).padStart(2, '0');
+      const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+      const todayDdMm = `${currentDay}/${currentMonth}`;
+
+      const birthdayLeads = leads.filter((l: any) => l.sellerId !== null && l.birthday === todayDdMm);
+      birthdayLeads.forEach((l: any) => {
+        notifications.push({
+          id: `birthday-${l.id}-${todayDdMm}`,
+          title: `Aniversário: ${l.name} 🎉`,
+          description: `Hoje é aniversário do cliente ${l.name}! Dê os parabéns.`,
+          time: todayDdMm,
+          type: 'birthday',
+          link: '/contatos'
+        });
+      });
     }
   }
+
+  // Solicita permissão para notificações push nativas do navegador
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
+  // Monitora aniversários e dispara Push + Toast uma vez ao dia por cliente
+  useEffect(() => {
+    if (leads.length > 0 && isVendedor) {
+      const today = new Date();
+      const currentDay = String(today.getDate()).padStart(2, '0');
+      const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
+      const todayDdMm = `${currentDay}/${currentMonth}`;
+
+      const birthdayLeads = leads.filter(
+        (l: any) => l.sellerId !== null && l.birthday === todayDdMm
+      );
+
+      birthdayLeads.forEach((lead: any) => {
+        const storageKey = `notified-birthday-${lead.id}-${todayDdMm}`;
+        if (!localStorage.getItem(storageKey)) {
+          // 1. Toast visual no CRM
+          toast.info(`Hoje é aniversário do cliente ${lead.name}! 🥳`, {
+            duration: 10000,
+          });
+
+          // 2. Push notification nativa
+          if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+              new Notification(`Aniversário de Cliente 🎉`, {
+                body: `Hoje é aniversário do seu cliente ${lead.name}. Lembre-se de enviar os parabéns!`,
+                icon: '/favicon.ico'
+              });
+            } catch (err) {
+              console.error('Falha ao disparar push notification:', err);
+            }
+          }
+
+          localStorage.setItem(storageKey, 'true');
+        }
+      });
+    }
+  }, [leads, isVendedor]);
 
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-30">
