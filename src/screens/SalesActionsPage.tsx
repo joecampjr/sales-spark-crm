@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Zap, MapPin, Calendar, Users, Target, FileText, CheckCircle2, XCircle, Clock, MoreHorizontal, ShieldCheck, ShieldAlert, Plus, Send } from 'lucide-react';
+import { Search, Zap, MapPin, Calendar, Users, Target, FileText, CheckCircle2, XCircle, Clock, MoreHorizontal, ShieldCheck, ShieldAlert, AlertTriangle, Plus, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function SalesActionsPage() {
   const queryClient = useQueryClient();
@@ -36,6 +46,10 @@ export default function SalesActionsPage() {
   const [isJustifyModalOpen, setIsJustifyModalOpen] = useState(false);
   const [justifyTarget, setJustifyTarget] = useState<{ id: string; action: 'authorize' | 'reject' } | null>(null);
   const [justification, setJustification] = useState('');
+
+  // Delete Action states
+  const [actionToDelete, setActionToDelete] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   // Permissions
   const canCreate = user?.role === 'ADMIN' || user?.role === 'GERENTE';
@@ -428,9 +442,8 @@ export default function SalesActionsPage() {
                     <DropdownMenuItem 
                       className="text-destructive font-semibold cursor-pointer"
                       onClick={() => {
-                        if (confirm('Tem certeza de que deseja excluir esta ação de vendas permanentemente?')) {
-                          deleteMutation.mutate(action.id);
-                        }
+                        setActionToDelete(action.id);
+                        setIsDeleteConfirmOpen(true);
                       }}
                     >
                       Excluir
@@ -549,6 +562,37 @@ export default function SalesActionsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* AlertDialog de Confirmação de Exclusão */}
+      <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <AlertDialogContent className="border border-destructive/20 bg-background">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Excluir Ação de Vendas
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground mt-2">
+              Tem certeza de que deseja excluir esta ação de vendas permanentemente? Esta operação não pode ser desfeita e removerá todos os dados do relatório e as metas associadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => { setActionToDelete(null); setIsDeleteConfirmOpen(false); }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              className="bg-destructive hover:bg-destructive/90 text-white" 
+              onClick={() => {
+                if (actionToDelete) {
+                  deleteMutation.mutate(actionToDelete);
+                }
+                setActionToDelete(null);
+                setIsDeleteConfirmOpen(false);
+              }}
+            >
+              Confirmar Exclusão
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

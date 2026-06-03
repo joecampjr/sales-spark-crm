@@ -66,6 +66,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    
+    // Sanitiza CPF e telefone antes de validar e salvar
+    if (body.phone) {
+      body.phone = body.phone.replace(/\D/g, '');
+    }
+    if (body.cpf) {
+      body.cpf = body.cpf.replace(/\D/g, '');
+    }
+
     const data = UserSchema.parse(body);
 
     if (!data.password) {

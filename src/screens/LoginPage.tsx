@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { maskCpf } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const [cpf, setCpf] = useState('');
@@ -34,7 +35,7 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } else {
-      alert(result.message || 'Erro ao fazer login. Verifique seu CPF e Senha.');
+      toast.error(result.message || 'Erro ao fazer login. Verifique seu CPF e Senha.');
     }
   };
 
@@ -43,7 +44,7 @@ export default function LoginPage() {
     const result = await selectProfile(userId, tempToken);
     setLoading(false);
     if (!result.success) {
-      alert(result.message || 'Erro ao carregar o perfil de acesso.');
+      toast.error(result.message || 'Erro ao carregar o perfil de acesso.');
     }
   };
 
