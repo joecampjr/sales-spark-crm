@@ -750,6 +750,10 @@ export default function LeadsPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => {
                           setEditingLead(lead);
+                          setEditCpf(lead.cpf ? maskCpf(lead.cpf) : '');
+                          setEditBirthday(lead.birthday || '');
+                          setEditStatus(lead.status || 'novo');
+                          setEditPaymentMode(lead.paymentMode || 'a_vista');
                           setIsEditModalOpen(true);
                         }}>
                           <Pencil className="w-4 h-4 mr-2" /> Editar

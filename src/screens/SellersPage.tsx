@@ -353,7 +353,11 @@ export default function SellersPage() {
                         <DropdownMenuItem onClick={() => { setSelectedSeller(seller); setIsSheetOpen(true); }}>
                           <ExternalLink className="w-4 h-4 mr-2" /> Perfil Completo
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setEditingSeller(seller); setIsEditModalOpen(true); }}>
+                        <DropdownMenuItem onClick={() => { 
+                          setEditingSeller(seller); 
+                          setEditCpf(seller.user?.cpf ? maskCpf(seller.user.cpf) : '');
+                          setIsEditModalOpen(true); 
+                        }}>
                           <Pencil className="w-4 h-4 mr-2" /> Editar Dados
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onClick={() => { setSellerToDelete(seller); setIsDeleteDialogOpen(true); }}>
@@ -434,7 +438,16 @@ export default function SellersPage() {
               </div>
 
               <div className="pt-4">
-                <Button variant="outline" className="w-full" onClick={() => { setIsSheetOpen(false); setEditingSeller(selectedSeller); setIsEditModalOpen(true); }}>
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={() => { 
+                    setIsSheetOpen(false); 
+                    setEditingSeller(selectedSeller); 
+                    setEditCpf(selectedSeller.user?.cpf ? maskCpf(selectedSeller.user.cpf) : '');
+                    setIsEditModalOpen(true); 
+                  }}
+                >
                   <Pencil className="w-4 h-4 mr-2" /> Editar Perfil Completo
                 </Button>
               </div>
