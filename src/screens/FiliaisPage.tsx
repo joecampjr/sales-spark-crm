@@ -152,7 +152,7 @@ export default function FiliaisPage() {
               <Plus className="w-3.5 h-3.5 mr-1.5" /> Nova Filial
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Cadastrar Nova Unidade</DialogTitle></DialogHeader>
             <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
@@ -267,9 +267,8 @@ export default function FiliaisPage() {
         ))}
       </div>
 
-      {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Editar Unidade</DialogTitle></DialogHeader>
           {editingBranch && (
             <form onSubmit={(e) => handleSubmit(e, true)} className="space-y-4 mt-4">

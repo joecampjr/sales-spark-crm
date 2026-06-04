@@ -412,7 +412,7 @@ export default function LeadsPage() {
                 <Plus className="w-3.5 h-3.5 mr-1.5" /> Novo Lead
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Adicionar Novo Lead</DialogTitle>
               </DialogHeader>
@@ -785,7 +785,7 @@ export default function LeadsPage() {
           setEditPaymentMode(editingLead.paymentMode || 'a_vista');
         }
       }}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Lead</DialogTitle>
           </DialogHeader>
@@ -1004,7 +1004,7 @@ export default function LeadsPage() {
 
       {/* Import Modal */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Importar Leads via CSV</DialogTitle>
           </DialogHeader>
