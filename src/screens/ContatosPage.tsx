@@ -556,6 +556,7 @@ export default function ContatosPage() {
                     <option value="novo">Novo</option>
                     <option value="em_negociacao">Em Negociação</option>
                     <option value="contato_realizado">Contato Realizado</option>
+                    <option value="aguardando_produto">Aguardando Produto Chegar (Não ocupa limite)</option>
                     <option value="vendido">Vendido (Fecha espaço limite)</option>
                     <option value="perdido">Perdido (Fecha espaço limite)</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado (Fecha espaço limite)</option>

@@ -459,6 +459,7 @@ export default function LeadsPage() {
                       <option value="novo">Novo</option>
                       <option value="em_negociacao">Em Negociação</option>
                       <option value="contato_realizado">Contato Realizado</option>
+                      <option value="aguardando_produto">Aguardando Produto Chegar</option>
                       <option value="vendido">Vendido</option>
                       <option value="perdido">Perdido</option>
                       <option value="contato_nao_atualizado">Contato Não Atualizado</option>
@@ -617,7 +618,7 @@ export default function LeadsPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'vendido', 'perdido', 'contato_nao_atualizado'].map((s) => (
+          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'aguardando_produto', 'vendido', 'perdido', 'contato_nao_atualizado'].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -840,6 +841,7 @@ export default function LeadsPage() {
                     <option value="novo">Novo</option>
                     <option value="em_negociacao">Em Negociação</option>
                     <option value="contato_realizado">Contato Realizado</option>
+                    <option value="aguardando_produto">Aguardando Produto Chegar</option>
                     <option value="vendido">Vendido</option>
                     <option value="perdido">Perdido</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado</option>

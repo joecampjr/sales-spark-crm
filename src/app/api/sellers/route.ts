@@ -88,7 +88,7 @@ export async function GET() {
         where: {
           sellerId: seller.id,
           status: {
-            notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+            notIn: ['vendido', 'perdido', 'contato_nao_atualizado', 'aguardando_produto']
           }
         }
       });

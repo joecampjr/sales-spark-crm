@@ -151,7 +151,7 @@ export async function PATCH(
         where: {
           sellerId: data.sellerId,
           status: {
-            notIn: ['vendido', 'perdido', 'contato_nao_atualizado']
+            notIn: ['vendido', 'perdido', 'contato_nao_atualizado', 'aguardando_produto']
           }
         }
       });

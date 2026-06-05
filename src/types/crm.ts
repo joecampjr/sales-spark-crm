@@ -7,6 +7,7 @@ export type LeadStatus =
   | 'aguardando_primeiro_contato'
   | 'contato_realizado'
   | 'em_negociacao'
+  | 'aguardando_produto'
   | 'aguardando_retorno'
   | 'precisa_visita'
   | 'visita_agendada'
@@ -110,6 +111,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   aguardando_primeiro_contato: 'Aguardando 1º Contato',
   contato_realizado: 'Contato Realizado',
   em_negociacao: 'Em Negociação',
+  aguardando_produto: 'Aguardando Produto Chegar',
   aguardando_retorno: 'Aguardando Retorno',
   precisa_visita: 'Precisa de Visita',
   visita_agendada: 'Visita Agendada',
@@ -126,6 +128,7 @@ export const LEAD_STATUS_COLORS: Record<LeadStatus, string> = {
   aguardando_primeiro_contato: 'bg-warning/10 text-warning',
   contato_realizado: 'bg-primary/10 text-primary',
   em_negociacao: 'bg-accent/10 text-accent',
+  aguardando_produto: 'bg-amber-500/10 text-amber-600 border border-amber-500/10',
   aguardando_retorno: 'bg-warning/10 text-warning',
   precisa_visita: 'bg-warning/10 text-warning',
   visita_agendada: 'bg-info/10 text-info',
