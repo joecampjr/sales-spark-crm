@@ -166,6 +166,8 @@ export default function ContatosPage() {
     // Mapeamento Inteligente
     if (resultVal === 'Vendido / Sucesso') {
       setFormStatus('vendido');
+    } else if (resultVal === 'Aguardando produto chegar') {
+      setFormStatus('aguardando_produto');
     } else if (['Muito caro', 'Não gostou da qualidade', 'Não tinha o produto desejado', 'Comprou do concorrente', 'Não respondeu', 'Não atendeu'].includes(resultVal)) {
       setFormStatus('perdido');
     } else if (resultVal === 'Contato não atualizado') {
@@ -530,6 +532,7 @@ export default function ContatosPage() {
                     <option value="Interessado">Interessado</option>
                     <option value="Em negociação">Em negociação</option>
                     <option value="Vendido / Sucesso">Vendido / Sucesso</option>
+                    <option value="Aguardando produto chegar">Aguardando produto chegar</option>
                     <option value="Agendou visita">Agendou visita</option>
                     <option value="Solicitou orçamento">Solicitou orçamento</option>
                     <option value="Muito caro">Muito caro</option>
@@ -740,6 +743,9 @@ export default function ContatosPage() {
                     }
                     if (r.includes('agend') || r.includes('interessa')) {
                       return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] hover:bg-blue-500/15">{result}</Badge>;
+                    }
+                    if (r.includes('aguardando') || r.includes('produto')) {
+                      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] hover:bg-amber-500/15">{result}</Badge>;
                     }
                     return <Badge variant="outline" className="text-muted-foreground text-[10px]">{result}</Badge>;
                   };

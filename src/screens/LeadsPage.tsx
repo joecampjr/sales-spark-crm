@@ -1117,6 +1117,9 @@ export default function LeadsPage() {
                     if (r.includes('agend') || r.includes('interessa')) {
                       return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] hover:bg-blue-500/15">{result}</Badge>;
                     }
+                    if (r.includes('aguardando') || r.includes('produto')) {
+                      return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] hover:bg-amber-500/15">{result}</Badge>;
+                    }
                     return <Badge variant="outline" className="text-muted-foreground text-[10px]">{result}</Badge>;
                   };
 
