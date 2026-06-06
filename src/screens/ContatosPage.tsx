@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { 
   Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, 
   Calendar, Trash2, Pencil, RotateCcw, AlertCircle, Plus, Check,
-  History, ClipboardList, MapPin, RefreshCw, User, Clock 
+  History, ClipboardList, MapPin, RefreshCw, User, Clock, Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -274,11 +274,35 @@ export default function ContatosPage() {
     }
   };
 
+  const getContactMethodLabel = (type: string) => {
+    switch (type?.toLowerCase()) {
+      case 'ligacao':
+      case 'ligação':
+        return 'Ligação';
+      case 'whatsapp':
+        return 'WhatsApp';
+      case 'email':
+      case 'e-mail':
+        return 'E-mail';
+      case 'visita':
+        return 'Visita externa';
+      case 'loja_fisica':
+      case 'loja física':
+        return 'Loja Física';
+      case 'sistema':
+        return 'Reativado';
+      default:
+        return type;
+    }
+  };
+
   const getIcon = (tipo: string) => {
-    switch (tipo) {
+    switch (tipo?.toLowerCase()) {
       case 'ligacao': return <Phone className="w-3.5 h-3.5 text-blue-500 animate-pulse" />;
       case 'whatsapp': return <MessageSquare className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />;
       case 'email': return <Mail className="w-3.5 h-3.5 text-amber-500 animate-pulse" />;
+      case 'visita': return <MapPin className="w-3.5 h-3.5 text-amber-500 animate-pulse" />;
+      case 'loja_fisica': return <Building2 className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />;
       case 'sistema': return <RotateCcw className="w-3.5 h-3.5 text-slate-500" />;
       default: return <UserPlus className="w-3.5 h-3.5 text-slate-400" />;
     }
@@ -397,8 +421,8 @@ export default function ContatosPage() {
                         <div className="p-1.5 rounded-lg bg-muted/60">
                           {getIcon(lastInteraction?.type || 'novo')}
                         </div>
-                        <span className="text-xs font-medium capitalize">
-                          {lastInteraction?.type === 'sistema' ? 'Reativado' : (lastInteraction?.type || 'Nenhum')}
+                        <span className="text-xs font-medium">
+                          {lastInteraction ? getContactMethodLabel(lastInteraction.type) : 'Nenhum'}
                         </span>
                       </div>
                     </td>
@@ -515,7 +539,8 @@ export default function ContatosPage() {
                     <option value="ligacao">Ligação</option>
                     <option value="whatsapp">WhatsApp</option>
                     <option value="email">E-mail</option>
-                    <option value="visita">Visita</option>
+                    <option value="visita">Visita externa</option>
+                    <option value="loja_fisica">Loja Física</option>
                   </select>
                 </div>
 
@@ -724,6 +749,9 @@ export default function ContatosPage() {
                         return <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />;
                       case 'visita':
                         return <MapPin className="w-3.5 h-3.5 text-amber-500" />;
+                      case 'loja_fisica':
+                      case 'loja física':
+                        return <Building2 className="w-3.5 h-3.5 text-indigo-500" />;
                       case 'sistema':
                       case 'reativação':
                       case 'reativacao':
@@ -761,7 +789,7 @@ export default function ContatosPage() {
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              {item.type} {getResultBadge(item.result)}
+                              {getContactMethodLabel(item.type)} {getResultBadge(item.result)}
                             </span>
                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <User className="w-2.5 h-2.5" /> Registrado por {item.seller?.name || 'Sistema'}

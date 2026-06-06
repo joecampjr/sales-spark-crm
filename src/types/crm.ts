@@ -20,7 +20,7 @@ export type LeadStatus =
 
 export type LeadPriority = 'baixa' | 'media' | 'alta' | 'urgente';
 
-export type ContactType = 'ligacao' | 'whatsapp' | 'visita' | 'email' | 'outro';
+export type ContactType = 'ligacao' | 'whatsapp' | 'visita' | 'loja_fisica' | 'email' | 'outro';
 
 export interface User {
   id: string;

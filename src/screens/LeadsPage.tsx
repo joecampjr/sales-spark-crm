@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { 
   Search, Plus, MoreHorizontal, Download, Upload, Pencil, Trash2,
   History, ClipboardList, Calendar, Phone, MessageSquare, MapPin, 
-  RefreshCw, User, Clock
+  RefreshCw, User, Clock, Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -1088,6 +1088,28 @@ export default function LeadsPage() {
             ) : (
               <div className="relative pl-6 space-y-6 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[2px] before:bg-border/60">
                 {historyInteractions.map((item: any) => {
+                  const getContactMethodLabel = (type: string) => {
+                    switch (type?.toLowerCase()) {
+                      case 'ligacao':
+                      case 'ligação':
+                        return 'Ligação';
+                      case 'whatsapp':
+                        return 'WhatsApp';
+                      case 'email':
+                      case 'e-mail':
+                        return 'E-mail';
+                      case 'visita':
+                        return 'Visita externa';
+                      case 'loja_fisica':
+                      case 'loja física':
+                        return 'Loja Física';
+                      case 'sistema':
+                        return 'Reativado';
+                      default:
+                        return type;
+                    }
+                  };
+
                   const getHistoryIcon = (type: string) => {
                     switch (type.toLowerCase()) {
                       case 'ligação':
@@ -1097,6 +1119,9 @@ export default function LeadsPage() {
                         return <MessageSquare className="w-3.5 h-3.5 text-emerald-500" />;
                       case 'visita':
                         return <MapPin className="w-3.5 h-3.5 text-amber-500" />;
+                      case 'loja_fisica':
+                      case 'loja física':
+                        return <Building2 className="w-3.5 h-3.5 text-indigo-500" />;
                       case 'sistema':
                       case 'reativação':
                       case 'reativacao':
@@ -1134,7 +1159,7 @@ export default function LeadsPage() {
                         <div className="flex justify-between items-start gap-2">
                           <div className="flex flex-col gap-1">
                             <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                              {item.type} {getResultBadge(item.result)}
+                              {getContactMethodLabel(item.type)} {getResultBadge(item.result)}
                             </span>
                             <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <User className="w-2.5 h-2.5" /> Registrado por {item.seller?.name || 'Sistema'}
