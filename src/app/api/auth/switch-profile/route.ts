@@ -51,6 +51,7 @@ export async function POST(request: Request) {
       name: targetUser.name,
       role: targetUser.role,
       companyId: targetUser.companyId,
+      branchId: targetUser.branchId,
       expires
     });
 
@@ -70,7 +71,8 @@ export async function POST(request: Request) {
         name: targetUser.name,
         email: targetUser.email,
         role: targetUser.role,
-        companyId: targetUser.companyId
+        companyId: targetUser.companyId,
+        branchId: targetUser.branchId
       }
     });
 

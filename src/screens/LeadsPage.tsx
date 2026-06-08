@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { 
   Search, Plus, MoreHorizontal, Download, Upload, Pencil, Trash2,
   History, ClipboardList, Calendar, Phone, MessageSquare, MapPin, 
-  RefreshCw, User, Clock, Building2
+  RefreshCw, User, Clock, Building2, ArrowUpDown, ChevronUp, ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -53,6 +53,7 @@ const WhatsAppIcon = ({ className = "w-3.5 h-3.5" }: { className?: string }) => 
 export default function LeadsPage() {
   const { user } = useAuth();
   const isVendedor = user?.role === 'VENDEDOR';
+  const isGerente = user?.role === 'GERENTE';
 
   const queryClient = useQueryClient();
   const [selectedLeadForHistory, setSelectedLeadForHistory] = useState<any>(null);
@@ -60,11 +61,21 @@ export default function LeadsPage() {
 
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [filterName, setFilterName] = useState('');
+  const [filterPhone, setFilterPhone] = useState('');
+  const [filterCpf, setFilterCpf] = useState('');
+  const [filterBranchId, setFilterBranchId] = useState('todos');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [leadToDelete, setLeadToDelete] = useState<any>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  // Bulk selection states
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
+
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,6 +84,9 @@ export default function LeadsPage() {
   const [editCpf, setEditCpf] = useState('');
   const [newBirthday, setNewBirthday] = useState('');
   const [editBirthday, setEditBirthday] = useState('');
+
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>({ key: 'createdAt', direction: 'desc' });
 
   const maskBirthday = (val: string) => {
     const clean = val.replace(/\D/g, '');
@@ -109,11 +123,15 @@ export default function LeadsPage() {
   };
 
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['leads', search, statusFilter],
+    queryKey: ['leads', search, statusFilter, filterName, filterPhone, filterCpf, filterBranchId],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (statusFilter !== 'todos') params.append('status', statusFilter);
+      if (filterName) params.append('filterName', filterName);
+      if (filterPhone) params.append('filterPhone', filterPhone);
+      if (filterCpf) params.append('filterCpf', filterCpf);
+      if (filterBranchId && filterBranchId !== 'todos') params.append('filterBranchId', filterBranchId);
       const res = await fetch(`/api/leads?${params.toString()}`);
       if (!res.ok) throw new Error('Falha ao carregar leads');
       return res.json();
@@ -164,6 +182,20 @@ export default function LeadsPage() {
   const assignableSellers = isVendedor
     ? (userSeller ? [userSeller] : [])
     : sellers;
+
+  const userBranchId = isVendedor ? mySeller?.branchId : user?.branchId;
+  const userBranch = branches.find((b: any) => b.id === userBranchId);
+  const userBranchName = userBranch ? userBranch.name : 'Sede / Geral';
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'VENDEDOR' && mySeller) {
+        setFilterBranchId(mySeller.branchId || 'sem_filial');
+      } else if (user.role === 'GERENTE' && user.branchId) {
+        setFilterBranchId(user.branchId || 'sem_filial');
+      }
+    }
+  }, [user, mySeller]);
 
   const handleVincular = (leadId: string) => {
     if (!userSeller) {
@@ -244,6 +276,28 @@ export default function LeadsPage() {
     onError: (error: any) => toast.error(error.message || 'Falha ao deletar o lead.')
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const res = await fetch('/api/leads/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro na exclusão em lote');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      setSelectedLeadIds([]);
+      setIsBulkDeleteDialogOpen(false);
+      toast.success(data.message || 'Leads excluídos com sucesso!');
+    },
+    onError: (error: any) => toast.error(error.message || 'Falha ao excluir leads.')
+  });
+
   const importMutation = useMutation({
     mutationFn: async (parsedData: any[]) => {
       const res = await fetch('/api/leads/import', {
@@ -298,8 +352,24 @@ export default function LeadsPage() {
             avgDelayDays: getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso']) !== '' ? parseInt(getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso'])) : null,
           };
         });
-        importMutation.mutate(mapped);
+
         setIsImportModalOpen(false);
+
+        toast(`Deseja importar ${mapped.length} leads do arquivo selecionado?`, {
+          action: {
+            label: "Confirmar",
+            onClick: () => {
+              importMutation.mutate(mapped);
+            }
+          },
+          cancel: {
+            label: "Cancelar",
+            onClick: () => {
+              toast.dismiss();
+            }
+          },
+          duration: 10000,
+        });
       }
     });
 
@@ -377,6 +447,60 @@ export default function LeadsPage() {
       deleteMutation.mutate(leadToDelete.id);
     }
   };
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedLeads = [...leads].sort((a: any, b: any) => {
+    if (!sortConfig) return 0;
+    let aValue: any = a[sortConfig.key];
+    let bValue: any = b[sortConfig.key];
+
+    if (sortConfig.key === 'branch') {
+      aValue = a.branch?.name || '';
+      bValue = b.branch?.name || '';
+    } else if (sortConfig.key === 'seller') {
+      aValue = a.seller?.name || '';
+      bValue = b.seller?.name || '';
+    } else if (sortConfig.key === 'priority') {
+      const priorityOrder = { baixa: 1, media: 2, alta: 3, urgente: 4 };
+      aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+      bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+    } else if (sortConfig.key === 'status') {
+      aValue = a.status || '';
+      bValue = b.status || '';
+    }
+
+    if (aValue === null || aValue === undefined) return 1;
+    if (bValue === null || bValue === undefined) return -1;
+
+    if (typeof aValue === 'string') {
+      return sortConfig.direction === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    } else {
+      return sortConfig.direction === 'asc'
+        ? (aValue > bValue ? 1 : -1)
+        : (bValue > aValue ? 1 : -1);
+    }
+  });
+
+  const columns = [
+    { label: 'Nome', key: 'name' },
+    { label: 'Cidade', key: 'city' },
+    { label: 'Filial', key: 'branch' },
+    { label: 'Status', key: 'status' },
+    { label: 'Prioridade', key: 'priority' },
+    { label: 'Vendedor', key: 'seller' },
+    { label: 'Valor Est.', key: 'estimatedValue' },
+    { label: 'Origem', key: 'source' },
+    { label: 'Entrada', key: 'createdAt' },
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -606,12 +730,12 @@ export default function LeadsPage() {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search and Main Status Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, cidade..."
+            placeholder="Busca geral por nome, cidade..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-card border-border h-9 text-sm"
@@ -634,33 +758,137 @@ export default function LeadsPage() {
         </div>
       </div>
 
+      {/* Advanced Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-card border border-border/40 p-4 rounded-xl shadow-sm">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Nome do Cliente</Label>
+          <Input
+            placeholder="Filtrar por nome"
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+            className="bg-card border-border h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Telefone</Label>
+          <Input
+            placeholder="Filtrar por telefone"
+            value={filterPhone}
+            onChange={(e) => setFilterPhone(maskPhone(e.target.value))}
+            className="bg-card border-border h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">CPF</Label>
+          <Input
+            placeholder="Filtrar por CPF"
+            value={filterCpf}
+            onChange={(e) => setFilterCpf(maskCpf(e.target.value))}
+            className="bg-card border-border h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Filial</Label>
+          <select
+            value={filterBranchId}
+            onChange={(e) => setFilterBranchId(e.target.value)}
+            disabled={isVendedor || isGerente}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isVendedor || isGerente ? (
+              <option value={userBranchId || 'sem_filial'}>
+                {userBranchName}
+              </option>
+            ) : (
+              <>
+                <option value="todos">Todas as Filiais</option>
+                <option value="sem_filial">Sem Filial (Sede / Geral)</option>
+                {branches.map((b: any) => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </>
+            )}
+          </select>
+        </div>
+      </div>
+
       {/* Table */}
       <div className="bg-card border border-border/50 rounded-xl overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
-                {['Nome', 'Cidade', 'Filial', 'Status', 'Prioridade', 'Vendedor', 'Valor Est.', 'Origem', 'Entrada', ''].map((h) => (
-                  <th key={h} className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    {h}
+                {!isVendedor && (
+                  <th className="py-3 px-4 w-10">
+                    <input 
+                      type="checkbox"
+                      checked={leads.length > 0 && selectedLeadIds.length === leads.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedLeadIds(leads.map((l: any) => l.id));
+                        } else {
+                          setSelectedLeadIds([]);
+                        }
+                      }}
+                      className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                    />
+                  </th>
+                )}
+                {columns.map((col) => (
+                  <th 
+                    key={col.key} 
+                    onClick={() => requestSort(col.key)}
+                    className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider cursor-pointer hover:bg-muted/40 select-none group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {col.label}
+                      {sortConfig?.key === col.key ? (
+                        sortConfig.direction === 'asc' ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-primary" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-primary" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+                      )}
+                    </div>
                   </th>
                 ))}
+                <th className="py-3 px-4"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
-              ) : leads.length === 0 ? (
-                <tr><td colSpan={10} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
-              ) : leads.map((lead: any) => (
+                <tr><td colSpan={isVendedor ? 10 : 11} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
+              ) : sortedLeads.length === 0 ? (
+                <tr><td colSpan={isVendedor ? 10 : 11} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
+              ) : sortedLeads.map((lead: any) => (
                 <tr 
                   key={lead.id} 
-                  className="table-row-hover border-b border-border/30 last:border-0 cursor-pointer"
+                  className={`table-row-hover border-b border-border/30 last:border-0 cursor-pointer ${
+                    selectedLeadIds.includes(lead.id) ? 'bg-primary/5' : ''
+                  }`}
                   onClick={() => {
                     setSelectedLeadForHistory(lead);
                     setIsHistoryOpen(true);
                   }}
                 >
+                  {!isVendedor && (
+                    <td className="py-3 px-4 w-10" onClick={(e) => e.stopPropagation()}>
+                      <input 
+                        type="checkbox"
+                        checked={selectedLeadIds.includes(lead.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedLeadIds(prev => [...prev, lead.id]);
+                          } else {
+                            setSelectedLeadIds(prev => prev.filter(id => id !== lead.id));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      />
+                    </td>
+                  )}
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -1007,6 +1235,56 @@ export default function LeadsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir múltiplos leads?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente os
+              <span className="font-semibold text-foreground"> {selectedLeadIds.length} </span>
+              leads selecionados e todos os seus dados associados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => bulkDeleteMutation.mutate(selectedLeadIds)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleteMutation.isPending ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Floating Action Bar for Bulk Delete */}
+      {selectedLeadIds.length > 0 && !isVendedor && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border/80 px-6 py-3 rounded-full shadow-lg flex items-center gap-6 z-50 animate-fade-in">
+          <span className="text-sm font-medium text-foreground">
+            {selectedLeadIds.length} lead(s) selecionado(s)
+          </span>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 rounded-full text-xs"
+              onClick={() => setSelectedLeadIds([])}
+            >
+              Limpar Seleção
+            </Button>
+            <Button 
+              variant="destructive" 
+              size="sm" 
+              className="h-8 rounded-full text-xs"
+              onClick={() => setIsBulkDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Excluir Selecionados
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Import Modal */}
       <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>

@@ -45,6 +45,7 @@ export async function POST(request: Request) {
       name: user.name,
       role: user.role,
       companyId: user.companyId,
+      branchId: user.branchId,
       expires
     });
 
@@ -62,7 +63,8 @@ export async function POST(request: Request) {
       name: user.name,
       email: user.email,
       role: user.role,
-      companyId: user.companyId
+      companyId: user.companyId,
+      branchId: user.branchId
     });
 
   } catch (error) {

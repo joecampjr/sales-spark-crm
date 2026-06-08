@@ -76,6 +76,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('search') || '';
     const statusFilter = searchParams.get('status') || 'todos';
+    const filterName = searchParams.get('filterName') || '';
+    const filterPhone = searchParams.get('filterPhone') || '';
+    const filterCpf = searchParams.get('filterCpf') || '';
+    const filterBranchId = searchParams.get('filterBranchId') || '';
 
     const where: any = {};
     if (session.companyId) {
@@ -127,18 +131,47 @@ export async function GET(request: Request) {
       }
     }
 
+    if (!where.AND) {
+      where.AND = [];
+    }
+
     if (search) {
-      const searchCondition = {
+      where.AND.push({
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { city: { contains: search, mode: 'insensitive' } },
         ]
-      };
-      if (where.AND) {
-        where.AND.push(searchCondition);
-      } else {
-        where.AND = [searchCondition];
+      });
+    }
+
+    if (filterName) {
+      where.AND.push({ name: { contains: filterName, mode: 'insensitive' } });
+    }
+
+    if (filterPhone) {
+      const cleanPhone = filterPhone.replace(/\D/g, '');
+      if (cleanPhone) {
+        where.AND.push({ phone: { contains: cleanPhone } });
       }
+    }
+
+    if (filterCpf) {
+      const cleanCpf = filterCpf.replace(/\D/g, '');
+      if (cleanCpf) {
+        where.AND.push({ cpf: { contains: cleanCpf } });
+      }
+    }
+
+    if (filterBranchId && filterBranchId !== 'todos') {
+      if (filterBranchId === 'sem_filial') {
+        where.AND.push({ branchId: null });
+      } else {
+        where.AND.push({ branchId: filterBranchId });
+      }
+    }
+
+    if (where.AND.length === 0) {
+      delete where.AND;
     }
 
     if (statusFilter && statusFilter !== 'todos') {
