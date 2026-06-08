@@ -14,8 +14,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (session.role === 'VENDEDOR') {
-      return NextResponse.json({ error: 'Vendedores não têm permissão para excluir leads.' }, { status: 403 });
+    if (session.role === 'VENDEDOR' || session.role === 'GERENTE') {
+      return NextResponse.json({ error: 'Não autorizado. Apenas supervisores e superiores podem excluir leads.' }, { status: 403 });
     }
 
     const body = await request.json();

@@ -54,6 +54,7 @@ export default function LeadsPage() {
   const { user } = useAuth();
   const isVendedor = user?.role === 'VENDEDOR';
   const isGerente = user?.role === 'GERENTE';
+  const canDelete = user?.role === 'SUPERVISOR' || user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
 
   const queryClient = useQueryClient();
   const [selectedLeadForHistory, setSelectedLeadForHistory] = useState<any>(null);
@@ -818,7 +819,7 @@ export default function LeadsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border/50">
-                {!isVendedor && (
+                {canDelete && (
                   <th className="py-3 px-4 w-10">
                     <input 
                       type="checkbox"
@@ -859,9 +860,9 @@ export default function LeadsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={isVendedor ? 10 : 11} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
+                <tr><td colSpan={canDelete ? 11 : 10} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
               ) : sortedLeads.length === 0 ? (
-                <tr><td colSpan={isVendedor ? 10 : 11} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
+                <tr><td colSpan={canDelete ? 11 : 10} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
               ) : sortedLeads.map((lead: any) => (
                 <tr 
                   key={lead.id} 
@@ -873,7 +874,7 @@ export default function LeadsPage() {
                     setIsHistoryOpen(true);
                   }}
                 >
-                  {!isVendedor && (
+                  {canDelete && (
                     <td className="py-3 px-4 w-10" onClick={(e) => e.stopPropagation()}>
                       <input 
                         type="checkbox"
@@ -987,7 +988,7 @@ export default function LeadsPage() {
                         }}>
                           <Pencil className="w-4 h-4 mr-2" /> Editar
                         </DropdownMenuItem>
-                        {!isVendedor && (
+                        {canDelete && (
                           <DropdownMenuItem 
                             className="text-destructive focus:text-destructive"
                             onClick={() => {
@@ -1260,7 +1261,7 @@ export default function LeadsPage() {
       </AlertDialog>
 
       {/* Floating Action Bar for Bulk Delete */}
-      {selectedLeadIds.length > 0 && !isVendedor && (
+      {selectedLeadIds.length > 0 && canDelete && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-card border border-border/80 px-6 py-3 rounded-full shadow-lg flex items-center gap-6 z-50 animate-fade-in">
           <span className="text-sm font-medium text-foreground">
             {selectedLeadIds.length} lead(s) selecionado(s)
