@@ -351,6 +351,8 @@ export default function LeadsPage() {
             saleType: getValue(['Tipo de Venda', 'saleType', 'tipo_venda']) || null,
             birthday: getValue(['Aniversário', 'birthday', 'aniversario']) || null,
             avgDelayDays: getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso']) !== '' ? parseInt(getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso'])) : null,
+            route: getValue(['Rota', 'route', 'rota']) || null,
+            lastPurchaseDate: getValue(['Data da última compra', 'lastPurchaseDate', 'data_ultima_compra', 'data_compra']) || null,
           };
         });
 
@@ -398,6 +400,8 @@ export default function LeadsPage() {
       sellerId: fd.get('sellerId') || null,
       birthday: fd.get('birthday') || null,
       avgDelayDays: fd.get('avgDelayDays') !== null && fd.get('avgDelayDays') !== '' ? Number(fd.get('avgDelayDays')) : null,
+      route: fd.get('route') || null,
+      lastPurchaseDate: fd.get('lastPurchaseDate') || null,
     });
   };
 
@@ -440,6 +444,8 @@ export default function LeadsPage() {
       sellerId: fd.get('sellerId') || null,
       birthday: fd.get('birthday') || null,
       avgDelayDays: fd.get('avgDelayDays') !== null && fd.get('avgDelayDays') !== '' ? Number(fd.get('avgDelayDays')) : null,
+      route: fd.get('route') || null,
+      lastPurchaseDate: fd.get('lastPurchaseDate') || null,
     });
   };
 
@@ -717,6 +723,20 @@ export default function LeadsPage() {
                       type="number" 
                       min="0"
                       placeholder="Ex: 5 (Opcional)" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rota</Label>
+                    <Input 
+                      name="route" 
+                      placeholder="Ex: Rota Centro (Opcional)" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Data da última compra</Label>
+                    <Input 
+                      name="lastPurchaseDate" 
+                      type="date" 
                     />
                   </div>
                 </div>
@@ -1203,6 +1223,24 @@ export default function LeadsPage() {
                     disabled={isVendedor}
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Rota</Label>
+                  <Input 
+                    name="route" 
+                    defaultValue={editingLead.route || ''} 
+                    placeholder="Ex: Rota Centro (Opcional)" 
+                    disabled={isVendedor}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Data da última compra</Label>
+                  <Input 
+                    name="lastPurchaseDate" 
+                    type="date" 
+                    defaultValue={editingLead.lastPurchaseDate ? editingLead.lastPurchaseDate.substring(0, 10) : ''} 
+                    disabled={isVendedor}
+                  />
+                </div>
               </div>
               <div className="flex w-full justify-end pt-4">
                 <Button type="submit" disabled={updateMutation.isPending}>
@@ -1346,6 +1384,24 @@ export default function LeadsPage() {
                     </span>
                   )}
                 </div>
+                {(selectedLeadForHistory.route || selectedLeadForHistory.lastPurchaseDate) && (
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-border/50 text-xs">
+                    {selectedLeadForHistory.route && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Rota: </span>
+                        <span className="text-foreground font-medium">{selectedLeadForHistory.route}</span>
+                      </div>
+                    )}
+                    {selectedLeadForHistory.lastPurchaseDate && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Última compra: </span>
+                        <span className="text-foreground font-medium">
+                          {new Date(selectedLeadForHistory.lastPurchaseDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </SheetHeader>

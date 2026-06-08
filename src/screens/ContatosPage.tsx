@@ -719,6 +719,24 @@ export default function ContatosPage() {
                     </span>
                   )}
                 </div>
+                {(selectedLeadForHistory.route || selectedLeadForHistory.lastPurchaseDate) && (
+                  <div className="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-border/50 text-xs">
+                    {selectedLeadForHistory.route && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Rota: </span>
+                        <span className="text-foreground font-medium">{selectedLeadForHistory.route}</span>
+                      </div>
+                    )}
+                    {selectedLeadForHistory.lastPurchaseDate && (
+                      <div>
+                        <span className="font-semibold text-muted-foreground">Última compra: </span>
+                        <span className="text-foreground font-medium">
+                          {new Date(selectedLeadForHistory.lastPurchaseDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </SheetHeader>

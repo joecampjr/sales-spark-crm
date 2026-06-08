@@ -20,6 +20,8 @@ const CreateLeadSchema = z.object({
   branchId: z.string().nullable().optional(),
   birthday: z.string().nullable().optional(),
   avgDelayDays: z.number().nullable().optional(),
+  route: z.string().nullable().optional(),
+  lastPurchaseDate: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -328,6 +330,10 @@ export async function POST(request: Request) {
         companyId: session.companyId || null,
         birthday: cleanedBirthday,
         avgDelayDays: data.avgDelayDays || null,
+        route: data.route || null,
+        lastPurchaseDate: data.status === 'vendido' 
+          ? new Date() 
+          : (data.lastPurchaseDate ? new Date(data.lastPurchaseDate) : null),
       }
     });
 

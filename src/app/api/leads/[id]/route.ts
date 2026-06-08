@@ -20,6 +20,8 @@ const UpdateLeadSchema = z.object({
   branchId: z.string().nullable().optional(),
   birthday: z.string().nullable().optional(),
   avgDelayDays: z.number().nullable().optional(),
+  route: z.string().nullable().optional(),
+  lastPurchaseDate: z.string().nullable().optional(),
 });
 
 export async function PATCH(
@@ -164,11 +166,19 @@ export async function PATCH(
       whereClause.companyId = session.companyId;
     }
 
+    const updateData: any = { ...data };
+    if (data.lastPurchaseDate !== undefined) {
+      updateData.lastPurchaseDate = (data.lastPurchaseDate === null || data.lastPurchaseDate === '')
+        ? null
+        : new Date(data.lastPurchaseDate);
+    }
+    if (data.status === 'vendido' && lead.status !== 'vendido' && data.lastPurchaseDate === undefined) {
+      updateData.lastPurchaseDate = new Date();
+    }
+
     const updatedLead = await prisma.lead.updateMany({
       where: whereClause,
-      data: {
-        ...data,
-      },
+      data: updateData,
     });
 
     if (updatedLead.count === 0) {

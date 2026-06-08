@@ -19,6 +19,8 @@ const ImportSchema = z.array(z.object({
   saleType: z.string().optional().nullable(),
   birthday: z.string().optional().nullable(),
   avgDelayDays: z.number().optional().nullable(),
+  route: z.string().optional().nullable(),
+  lastPurchaseDate: z.string().optional().nullable(),
 }));
 
 export async function POST(request: Request) {
@@ -121,6 +123,14 @@ export async function POST(request: Request) {
           }
         }
 
+        let finalLastPurchaseDate: Date | null = null;
+        if (lead.lastPurchaseDate) {
+          const parsedDate = new Date(lead.lastPurchaseDate);
+          if (!isNaN(parsedDate.getTime())) {
+            finalLastPurchaseDate = parsedDate;
+          }
+        }
+
         if (existing) {
           // Atualiza dados
           await tx.lead.update({
@@ -131,7 +141,7 @@ export async function POST(request: Request) {
               city: lead.city || existing.city,
               state: lead.state || existing.state,
               estimatedValue: lead.estimatedValue || existing.estimatedValue,
-              status: 'novo',
+              status: lead.status || existing.status,
               cpf: cleanedCpf,
               branchId: lead.branchId ? finalBranchId : existing.branchId,
               paymentMode: lead.paymentMode || existing.paymentMode,
@@ -139,6 +149,8 @@ export async function POST(request: Request) {
               saleType: lead.saleType || existing.saleType,
               birthday: cleanedBirthday || existing.birthday,
               avgDelayDays: lead.avgDelayDays || existing.avgDelayDays,
+              route: lead.route || existing.route,
+              lastPurchaseDate: finalLastPurchaseDate !== null ? finalLastPurchaseDate : existing.lastPurchaseDate,
             }
           });
           updated++;
@@ -149,7 +161,7 @@ export async function POST(request: Request) {
               phone: cleanedPhone,
               city: lead.city,
               state: lead.state,
-              status: 'novo',
+              status: lead.status || 'novo',
               priority: lead.priority,
               estimatedValue: lead.estimatedValue,
               source: lead.source,
@@ -161,6 +173,8 @@ export async function POST(request: Request) {
               saleType: lead.saleType,
               birthday: cleanedBirthday,
               avgDelayDays: lead.avgDelayDays,
+              route: lead.route || null,
+              lastPurchaseDate: finalLastPurchaseDate,
             }
           });
           imported++;
