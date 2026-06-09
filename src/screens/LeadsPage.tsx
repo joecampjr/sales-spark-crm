@@ -323,56 +323,88 @@ export default function LeadsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const processImportData = (rawData: any[]) => {
+      const mapped = rawData.map((row: any) => {
+        const getValue = (keys: string[]) => {
+          const foundKey = Object.keys(row).find(k => {
+            const cleanKey = k.replace(/^\ufeff/, '').toLowerCase().trim();
+            return keys.map(x => x.toLowerCase().trim()).includes(cleanKey);
+          });
+          return foundKey ? String(row[foundKey]).trim() : '';
+        };
+        
+        return {
+          name: getValue(['Nome', 'name', 'nome', 'cliente', 'nome completo', 'nome_completo', 'nome do cliente']) || 'Sem Nome',
+          phone: getValue(['Telefone', 'phone', 'telefone', 'celular', 'whatsapp', 'contato', 'tel']),
+          city: getValue(['Cidade', 'city', 'cidade', 'municipio', 'localidade']),
+          state: getValue(['Estado', 'state', 'estado', 'uf']),
+          status: getValue(['Status', 'status']) || 'novo',
+          priority: getValue(['Prioridade', 'priority', 'prioridade']) || 'media',
+          estimatedValue: parseFloat(getValue(['Valor Estimado', 'estimatedValue', 'valor_estimado', 'valor', 'preco', 'preço', 'estimativa'])) || 0,
+          source: getValue(['Origem', 'source', 'origem', 'canal', 'meio']) || 'CSV Import',
+          cpf: getValue(['CPF', 'cpf', 'cnpj', 'cpf_cnpj', 'documento']),
+          branchId: getValue(['Filial ID', 'branchId', 'filial_id', 'filial', 'unidade']) || null,
+          paymentMode: getValue(['Modo de Pagamento', 'paymentMode', 'modo_pagamento']) || null,
+          downPayment: getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada']) !== '' ? parseFloat(getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada'])) : null,
+          saleType: getValue(['Tipo de Venda', 'saleType', 'tipo_venda']) || null,
+          birthday: getValue(['Aniversário', 'birthday', 'aniversario', 'nascimento', 'data_nascimento']) || null,
+          avgDelayDays: getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso']) !== '' ? parseInt(getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso'])) : null,
+          route: getValue(['Rota', 'route', 'rota']) || null,
+          lastPurchaseDate: getValue(['Data da última compra', 'lastPurchaseDate', 'data_ultima_compra', 'data_compra']) || null,
+        };
+      });
+
+      // Filtra leads que vieram sem telefone
+      const validLeads = mapped.filter(lead => lead.phone);
+
+      setIsImportModalOpen(false);
+
+      if (validLeads.length === 0) {
+        toast.error('Nenhum lead com telefone válido encontrado no arquivo.');
+        return;
+      }
+
+      toast(`Deseja importar ${validLeads.length} leads do arquivo selecionado?`, {
+        action: {
+          label: "Confirmar",
+          onClick: () => {
+            importMutation.mutate(validLeads);
+          }
+        },
+        cancel: {
+          label: "Cancelar",
+          onClick: () => {
+            toast.dismiss();
+          }
+        },
+        duration: 10000,
+      });
+    };
+
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      transformHeader: (header) => header.replace(/^\ufeff/, '').trim(),
       complete: (results) => {
-        const mapped = results.data.map((row: any) => {
-          const getValue = (keys: string[]) => {
-            const foundKey = Object.keys(row).find(k => 
-              keys.map(x => x.toLowerCase().trim()).includes(k.toLowerCase().trim())
-            );
-            return foundKey ? String(row[foundKey]).trim() : '';
-          };
-          
-          return {
-            name: getValue(['Nome', 'name', 'nome']) || 'Sem Nome',
-            phone: getValue(['Telefone', 'phone', 'telefone']),
-            city: getValue(['Cidade', 'city', 'cidade']),
-            state: getValue(['Estado', 'state', 'estado']),
-            status: getValue(['Status', 'status']) || 'novo',
-            priority: getValue(['Prioridade', 'priority', 'prioridade']) || 'media',
-            estimatedValue: parseFloat(getValue(['Valor Estimado', 'estimatedValue', 'valor_estimado'])) || 0,
-            source: getValue(['Origem', 'source', 'origem']) || 'CSV Import',
-            cpf: getValue(['CPF', 'cpf']),
-            branchId: getValue(['Filial ID', 'branchId', 'filial_id']) || null,
-            paymentMode: getValue(['Modo de Pagamento', 'paymentMode', 'modo_pagamento']) || null,
-            downPayment: getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada']) !== '' ? parseFloat(getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada'])) : null,
-            saleType: getValue(['Tipo de Venda', 'saleType', 'tipo_venda']) || null,
-            birthday: getValue(['Aniversário', 'birthday', 'aniversario']) || null,
-            avgDelayDays: getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso']) !== '' ? parseInt(getValue(['Média de dias de atraso', 'avgDelayDays', 'media_atraso', 'dias_atraso'])) : null,
-            route: getValue(['Rota', 'route', 'rota']) || null,
-            lastPurchaseDate: getValue(['Data da última compra', 'lastPurchaseDate', 'data_ultima_compra', 'data_compra']) || null,
-          };
-        });
-
-        setIsImportModalOpen(false);
-
-        toast(`Deseja importar ${mapped.length} leads do arquivo selecionado?`, {
-          action: {
-            label: "Confirmar",
-            onClick: () => {
-              importMutation.mutate(mapped);
-            }
-          },
-          cancel: {
-            label: "Cancelar",
-            onClick: () => {
-              toast.dismiss();
-            }
-          },
-          duration: 10000,
-        });
+        let data = results.data;
+        if (data.length > 0) {
+          const firstRow = data[0];
+          const keys = Object.keys(firstRow);
+          if (keys.length === 1 && keys[0].includes(';')) {
+            // Re-parse com delimitador ponto e vírgula explicitamente
+            Papa.parse(file, {
+              header: true,
+              skipEmptyLines: true,
+              delimiter: ";",
+              transformHeader: (header) => header.replace(/^\ufeff/, '').trim(),
+              complete: (newResults) => {
+                processImportData(newResults.data);
+              }
+            });
+            return;
+          }
+        }
+        processImportData(data);
       }
     });
 
