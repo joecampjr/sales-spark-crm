@@ -234,25 +234,34 @@ export async function GET() {
     );
     vendedoresPerformance.sort((a, b) => b.vendas - a.vendas);
 
-    // 8. Leads Recentes
-    const leadsRecentesRaw = await prisma.lead.findMany({
-      where: leadWhere,
+    // 8. Últimas Vendas
+    const ultimasVendasRaw = await prisma.lead.findMany({
+      where: {
+        ...leadWhere,
+        status: 'vendido'
+      },
       take: 5,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { updatedAt: 'desc' },
       select: {
         id: true,
         name: true,
-        city: true,
-        state: true,
-        status: true
+        estimatedValue: true,
+        paymentMode: true,
+        updatedAt: true,
+        seller: {
+          select: {
+            name: true
+          }
+        }
       }
     });
-    const leadsRecentes = leadsRecentesRaw.map(l => ({
+    const ultimasVendas = ultimasVendasRaw.map(l => ({
       id: l.id,
-      nome: l.name,
-      cidade: l.city,
-      estado: l.state,
-      status: l.status
+      leadNome: l.name,
+      vendedorNome: l.seller?.name || 'Não atribuído',
+      valor: l.estimatedValue || 0,
+      formaPagamento: l.paymentMode || 'Não informada',
+      data: l.updatedAt
     }));
 
     // 9. Alertas Comerciais
@@ -326,7 +335,7 @@ export async function GET() {
       leadsPorMes,
       motivosPerda,
       vendedoresPerformance,
-      leadsRecentes,
+      ultimasVendas,
       alertas: {
         leadsSemResponsavel,
         parados5Dias,

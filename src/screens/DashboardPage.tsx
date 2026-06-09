@@ -13,6 +13,21 @@ import { LeadStatus } from '@/types/crm';
 
 const CHART_COLORS = ['hsl(221, 83%, 53%)', 'hsl(142, 71%, 45%)', 'hsl(0, 84%, 60%)', 'hsl(38, 92%, 50%)', 'hsl(199, 89%, 48%)'];
 
+const getPaymentModeBadge = (mode: string) => {
+  switch (mode) {
+    case 'a_vista':
+      return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500 border border-blue-500/20">À Vista</span>;
+    case 'carne':
+      return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Carnê</span>;
+    case 'cartao':
+      return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">Cartão</span>;
+    case 'pix':
+      return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">PIX</span>;
+    default:
+      return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">Outro</span>;
+  }
+};
+
 export default function DashboardPage() {
   const { user } = useAuth();
 
@@ -223,7 +238,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { kpis, leadsPorMes, motivosPerda, vendedoresPerformance, leadsRecentes, alertas } = metrics;
+  const { kpis, leadsPorMes, motivosPerda, vendedoresPerformance, ultimasVendas, alertas } = metrics;
   const progressPercent = kpis.metaMes > 0 ? ((kpis.vendasMes / kpis.metaMes) * 100).toFixed(0) : "0";
 
   return (
@@ -356,30 +371,45 @@ export default function DashboardPage() {
 
       {/* Bottom section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent leads */}
+        {/* Recent sales (ultimas vendas) */}
         <div className="bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-foreground">Meus Leads Recentes</h3>
+            <h3 className="text-sm font-semibold text-foreground">Últimas Vendas</h3>
             <a href="/leads" className="text-xs text-primary font-semibold hover:underline">Ver todos</a>
           </div>
-          {leadsRecentes.length === 0 ? (
+          {ultimasVendas.length === 0 ? (
             <div className="py-8 text-center text-muted-foreground text-sm">
-              Nenhum lead sob seu escopo no momento.
+              Nenhuma venda registrada no momento.
             </div>
           ) : (
             <div className="space-y-3">
-              {leadsRecentes.map((lead: any) => (
-                <div key={lead.id} className="flex items-center justify-between py-2 border-b border-border/30 last:border-0 hover:bg-muted/10 px-1 rounded transition-colors">
+              {ultimasVendas.map((sale: any) => (
+                <div key={sale.id} className="flex items-center justify-between py-2.5 border-b border-border/30 last:border-0 hover:bg-muted/10 px-1 rounded transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                      <span className="text-xs font-bold">{lead.nome.charAt(0).toUpperCase()}</span>
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                      <Coins className="w-4 h-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-foreground">{lead.nome}</p>
-                      <p className="text-xs text-muted-foreground">{lead.cidade}/{lead.estado}</p>
+                      <p className="text-sm font-semibold text-foreground">{sale.leadNome}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Users2 className="w-3.5 h-3.5 text-muted-foreground/70" />
+                          {sale.vendedorNome}
+                        </span>
+                        <span className="text-muted-foreground/30">•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-muted-foreground/70" />
+                          {new Date(sale.data).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <StatusBadge status={lead.status as LeadStatus} />
+                  <div className="flex flex-col items-end gap-1">
+                    <p className="text-xs font-bold text-emerald-600">
+                      {sale.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </p>
+                    {getPaymentModeBadge(sale.formaPagamento)}
+                  </div>
                 </div>
               ))}
             </div>
