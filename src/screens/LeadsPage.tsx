@@ -550,11 +550,11 @@ export default function LeadsPage() {
               <form onSubmit={handleCreateSubmit} className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nome</Label>
+                    <Label>Nome <span className="text-destructive">*</span></Label>
                     <Input name="name" required placeholder="Ex: João Pereira" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Telefone</Label>
+                    <Label>Telefone <span className="text-destructive">*</span></Label>
                     <Input 
                       name="phone" 
                       required 
@@ -572,11 +572,11 @@ export default function LeadsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Cidade</Label>
+                    <Label>Cidade <span className="text-destructive">*</span></Label>
                     <Input name="city" required placeholder="São Paulo" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Estado (UF)</Label>
+                    <Label>Estado (UF) <span className="text-destructive">*</span></Label>
                     <Input name="state" required placeholder="SP" maxLength={2} />
                   </div>
                   <div className="space-y-2">
@@ -1047,11 +1047,11 @@ export default function LeadsPage() {
             <form onSubmit={handleEditSubmit} className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nome</Label>
+                  <Label>Nome <span className="text-destructive">*</span></Label>
                   <Input name="name" required defaultValue={editingLead.name} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Telefone</Label>
+                  <Label>Telefone <span className="text-destructive">*</span></Label>
                     <Input 
                       name="phone" 
                       required 
@@ -1072,11 +1072,11 @@ export default function LeadsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Cidade</Label>
+                  <Label>Cidade <span className="text-destructive">*</span></Label>
                   <Input name="city" required defaultValue={editingLead.city} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Estado (UF)</Label>
+                  <Label>Estado (UF) <span className="text-destructive">*</span></Label>
                   <Input name="state" required defaultValue={editingLead.state} maxLength={2} disabled={isVendedor} />
                 </div>
                 <div className="space-y-2">
