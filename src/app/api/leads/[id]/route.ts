@@ -160,6 +160,9 @@ export async function PATCH(
             in: ['CSV', 'CSV Import']
           },
           interactions: {
+            some: {
+              result: 'Vinculado'
+            },
             none: {
               result: 'Reativado'
             }
@@ -192,6 +195,19 @@ export async function PATCH(
 
     if (updatedLead.count === 0) {
       return NextResponse.json({ error: 'Lead não encontrado ou não autorizado' }, { status: 404 });
+    }
+
+    // Se o lead foi vinculado/atribuído pelo próprio vendedor (VENDEDOR), registra a vinculação como interação de sistema
+    if (session.role === 'VENDEDOR' && data.sellerId && data.sellerId !== lead.sellerId) {
+      await prisma.interaction.create({
+        data: {
+          leadId: id,
+          sellerId: data.sellerId,
+          type: 'sistema',
+          result: 'Vinculado',
+          notes: 'Lead vinculado pelo vendedor.'
+        }
+      });
     }
 
     return NextResponse.json(updatedLead);
