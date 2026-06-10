@@ -103,14 +103,14 @@ export default function LeadsPage() {
 
   const downloadTemplate = () => {
     const headers = [
-      'Nome', 'Telefone', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'CPF', 'Filial ID',
-      'Modo de Pagamento', 'Valor da Entrada', 'Tipo de Venda', 'Aniversario', 'Media de dias de atraso'
+      'Nome', 'Telefone', 'CPF', 'Cidade', 'Estado', 'Status', 'Prioridade', 'Valor Estimado', 'Origem', 'Vendedor ID', 'Filial ID',
+      'Aniversario', 'Media de dias de atraso', 'Rota', 'Data da última compra'
     ];
     const example = [
-      'João Silva', '(11) 99999-9999', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '12345678909', '',
-      '', '', '', '25/12', ''
+      'João Silva', '(11) 99999-9999', '12345678909', 'São Paulo', 'SP', 'novo', 'media', '15000', 'Site', '', '',
+      '25/12', '', 'Rota Centro', '10/06/2026'
     ];
-    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" 
+    const csvContent = "data:text/csv;charset=utf-8,\ufeff" 
       + headers.join(";") + "\n" 
       + example.join(";");
     
@@ -343,6 +343,7 @@ export default function LeadsPage() {
           estimatedValue: parseFloat(getValue(['Valor Estimado', 'estimatedValue', 'valor_estimado', 'valor', 'preco', 'preço', 'estimativa'])) || 0,
           source: getValue(['Origem', 'source', 'origem', 'canal', 'meio']) || 'CSV Import',
           cpf: getValue(['CPF', 'cpf', 'cnpj', 'cpf_cnpj', 'documento']),
+          sellerId: getValue(['Vendedor ID', 'sellerId', 'vendedor_id', 'vendedor', 'responsavel']) || null,
           branchId: getValue(['Filial ID', 'branchId', 'filial_id', 'filial', 'unidade']) || null,
           paymentMode: getValue(['Modo de Pagamento', 'paymentMode', 'modo_pagamento']) || null,
           downPayment: getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada']) !== '' ? parseFloat(getValue(['Valor da Entrada', 'downPayment', 'valor_entrada', 'entrada'])) : null,
@@ -1369,19 +1370,19 @@ export default function LeadsPage() {
               <ul className="list-disc list-inside mt-2 mb-4 space-y-1 font-medium text-foreground">
                 <li>Nome</li>
                 <li>Telefone</li>
+                <li>CPF <span className="text-muted-foreground font-normal">(Apenas números, opcional)</span></li>
                 <li>Cidade</li>
                 <li>Estado</li>
-                <li>CPF <span className="text-muted-foreground font-normal">(Apenas números, opcional)</span></li>
-                <li>Filial ID <span className="text-muted-foreground font-normal">(ID do sistema da filial, opcional)</span></li>
                 <li>Status <span className="text-muted-foreground font-normal">(novo, em_negociacao, contato_realizado, vendido, perdido, contato_nao_atualizado)</span></li>
                 <li>Prioridade <span className="text-muted-foreground font-normal">(baixa, media, alta, urgente)</span></li>
                 <li>Valor Estimado <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
                 <li>Origem</li>
-                <li>Modo de Pagamento <span className="text-muted-foreground font-normal">(a_vista, carne, cartao, pix, opcional)</span></li>
-                <li>Valor da Entrada <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
-                <li>Tipo de Venda <span className="text-muted-foreground font-normal">(interna, externa, opcional)</span></li>
+                <li>Vendedor ID <span className="text-muted-foreground font-normal">(ID ou nome do vendedor, opcional)</span></li>
+                <li>Filial ID <span className="text-muted-foreground font-normal">(ID ou nome da filial, opcional)</span></li>
                 <li>Aniversario <span className="text-muted-foreground font-normal">(formato DD/MM, opcional)</span></li>
                 <li>Media de dias de atraso <span className="text-muted-foreground font-normal">(apenas números, opcional)</span></li>
+                <li>Rota <span className="text-muted-foreground font-normal">(opcional)</span></li>
+                <li>Data da última compra <span className="text-muted-foreground font-normal">(formato DD/MM/AAAA, opcional)</span></li>
               </ul>
               <p>Recomendamos baixar nossa planilha modelo para evitar erros de formatação.</p>
             </div>

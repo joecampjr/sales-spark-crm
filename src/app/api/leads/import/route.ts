@@ -14,6 +14,7 @@ const ImportSchema = z.array(z.object({
   source: z.string().optional().default('CSV'),
   cpf: z.string().optional().nullable(),
   branchId: z.string().optional().nullable(),
+  sellerId: z.string().optional().nullable(),
   paymentMode: z.string().optional().nullable(),
   downPayment: z.number().optional().nullable(),
   saleType: z.string().optional().nullable(),
@@ -97,6 +98,40 @@ export async function POST(request: Request) {
           }
         }
 
+        // Resolve sellerId (pode vir como UUID ou como Nome do vendedor)
+        let finalSellerId: string | null = null;
+        if (lead.sellerId) {
+          const trimmedSeller = lead.sellerId.trim();
+          if (trimmedSeller) {
+            // 1. Tenta buscar por ID (UUID)
+            const sellerById = await tx.seller.findFirst({
+              where: {
+                id: trimmedSeller,
+                companyId: companyId
+              }
+            });
+            if (sellerById) {
+              finalSellerId = sellerById.id;
+            } else {
+              // 2. Tenta buscar por Nome
+              const sellerByName = await tx.seller.findFirst({
+                where: {
+                  name: {
+                    equals: trimmedSeller,
+                    mode: 'insensitive'
+                  },
+                  companyId: companyId
+                }
+              });
+              if (sellerByName) {
+                finalSellerId = sellerByName.id;
+              } else {
+                throw new Error(`O vendedor "${trimmedSeller}" não foi encontrado no sistema.`);
+              }
+            }
+          }
+        }
+
         // Upsert baseado em Telefone OU CPF (se fornecido) para ignorar/atualizar duplicatas
         const orConditions: any[] = [{ phone: cleanedPhone }];
         if (cleanedCpf) {
@@ -125,9 +160,22 @@ export async function POST(request: Request) {
 
         let finalLastPurchaseDate: Date | null = null;
         if (lead.lastPurchaseDate) {
-          const parsedDate = new Date(lead.lastPurchaseDate);
-          if (!isNaN(parsedDate.getTime())) {
-            finalLastPurchaseDate = parsedDate;
+          const trimmedDate = lead.lastPurchaseDate.trim();
+          // Check for DD/MM/YYYY format
+          const dmyMatch = trimmedDate.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+          if (dmyMatch) {
+            const day = parseInt(dmyMatch[1]);
+            const month = parseInt(dmyMatch[2]) - 1; // JS months are 0-11
+            const year = parseInt(dmyMatch[3]);
+            const parsedDate = new Date(year, month, day);
+            if (!isNaN(parsedDate.getTime())) {
+              finalLastPurchaseDate = parsedDate;
+            }
+          } else {
+            const parsedDate = new Date(trimmedDate);
+            if (!isNaN(parsedDate.getTime())) {
+              finalLastPurchaseDate = parsedDate;
+            }
           }
         }
 
@@ -144,6 +192,7 @@ export async function POST(request: Request) {
               status: lead.status || existing.status,
               cpf: cleanedCpf,
               branchId: lead.branchId ? finalBranchId : existing.branchId,
+              sellerId: lead.sellerId ? finalSellerId : existing.sellerId,
               paymentMode: lead.paymentMode || existing.paymentMode,
               downPayment: lead.downPayment || existing.downPayment,
               saleType: lead.saleType || existing.saleType,
@@ -167,6 +216,7 @@ export async function POST(request: Request) {
               source: lead.source,
               cpf: cleanedCpf,
               branchId: finalBranchId,
+              sellerId: finalSellerId,
               companyId: companyId,
               paymentMode: lead.paymentMode,
               downPayment: lead.downPayment,
