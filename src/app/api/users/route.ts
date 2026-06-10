@@ -39,7 +39,7 @@ export async function GET() {
         branch: { select: { name: true } },
         seller: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
     
     // Remove as senhas antes de enviar
