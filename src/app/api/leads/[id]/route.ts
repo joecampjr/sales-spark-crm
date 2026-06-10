@@ -147,13 +147,22 @@ export async function PATCH(
       }
     } else if (data.cpf === '') {
       data.cpf = null;
-    }    // Se atribuiu ou alterou o vendedor, e quem está fazendo a ação é VENDEDOR, valida o limite de 5 leads ativos
+    }
+    // Se atribuiu ou alterou o vendedor, e quem está fazendo a ação é VENDEDOR, valida o limite de 5 leads ativos
     if (session.role === 'VENDEDOR' && data.sellerId && data.sellerId !== lead.sellerId) {
       const activeLeadsCount = await prisma.lead.count({
         where: {
           sellerId: data.sellerId,
           status: {
             notIn: ['vendido', 'perdido', 'contato_nao_atualizado', 'aguardando_produto']
+          },
+          source: {
+            in: ['CSV', 'CSV Import']
+          },
+          interactions: {
+            none: {
+              result: 'Reativado'
+            }
           }
         }
       });
