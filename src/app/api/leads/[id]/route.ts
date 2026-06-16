@@ -114,15 +114,9 @@ export async function PATCH(
         return NextResponse.json({ error: 'Você só pode atribuir leads a si mesmo ou deixá-los sem responsável.' }, { status: 403 });
       }
 
-      // 3. Vendedor só pode alterar status, sellerId, e os campos da venda (se status for vendido ou já for vendido)
-      const allowedFields = ['status', 'sellerId'];
-      if (data.status === 'vendido' || lead.status === 'vendido') {
-        allowedFields.push('estimatedValue', 'paymentMode', 'downPayment', 'saleType');
-      }
-      const fieldsBeingUpdated = Object.keys(data).filter(k => (data as any)[k] !== undefined);
-      const isUpdatingRestrictedFields = fieldsBeingUpdated.some(k => !allowedFields.includes(k));
-      if (isUpdatingRestrictedFields) {
-        return NextResponse.json({ error: 'Vendedores só possuem permissão para atualizar o status do lead, vinculá-lo ou informar o valor da venda.' }, { status: 403 });
+      // 3. Vendedor não pode alterar a filial (branchId) do lead
+      if (data.branchId !== undefined && data.branchId !== lead.branchId) {
+        return NextResponse.json({ error: 'Você não tem permissão para alterar a filial deste lead.' }, { status: 403 });
       }
     }
     // CPF/CNPJ validação de duplicidade (se fornecido)

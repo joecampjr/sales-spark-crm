@@ -1081,7 +1081,7 @@ export default function LeadsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome <span className="text-destructive">*</span></Label>
-                  <Input name="name" required defaultValue={editingLead.name} disabled={isVendedor} />
+                  <Input name="name" required defaultValue={editingLead.name} />
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone <span className="text-destructive">*</span></Label>
@@ -1091,7 +1091,6 @@ export default function LeadsPage() {
                       defaultValue={editingLead.phone ? maskPhone(editingLead.phone) : ''}
                       placeholder="(DD) 99999-9999" 
                       onChange={(e) => e.target.value = maskPhone(e.target.value)}
-                      disabled={isVendedor}
                     />
                 </div>
                 <div className="space-y-2">
@@ -1101,16 +1100,15 @@ export default function LeadsPage() {
                     placeholder="000.000.000-00 (Opcional)" 
                     value={editCpf}
                     onChange={(e) => setEditCpf(maskCpf(e.target.value))}
-                    disabled={isVendedor}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Cidade <span className="text-destructive">*</span></Label>
-                  <Input name="city" required defaultValue={editingLead.city} disabled={isVendedor} />
+                  <Input name="city" required defaultValue={editingLead.city} />
                 </div>
                 <div className="space-y-2">
                   <Label>Estado (UF) <span className="text-destructive">*</span></Label>
-                  <Input name="state" required defaultValue={editingLead.state} maxLength={2} disabled={isVendedor} />
+                  <Input name="state" required defaultValue={editingLead.state} maxLength={2} />
                 </div>
                 <div className="space-y-2">
                   <Label>Status</Label>
@@ -1131,7 +1129,7 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
-                  <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
+                  <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="baixa">Baixa</option>
                     <option value="media">Média</option>
                     <option value="alta">Alta</option>
@@ -1150,7 +1148,6 @@ export default function LeadsPage() {
                     type="number" 
                     name="estimatedValue" 
                     defaultValue={editingLead.estimatedValue} 
-                    disabled={isVendedor && editStatus !== 'vendido'} 
                     required={editStatus === 'vendido'}
                     min={editStatus === 'vendido' ? "0.01" : undefined}
                     step="0.01"
@@ -1204,7 +1201,7 @@ export default function LeadsPage() {
                 )}
                 <div className="space-y-2">
                   <Label>Origem</Label>
-                  <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
+                  <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="Loja Física">Loja Física</option>
                     <option value="Visita Externa">Visita Externa</option>
                     <option value="Indicação">Indicação</option>
@@ -1216,7 +1213,7 @@ export default function LeadsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Vendedor Responsável <span className="text-muted-foreground font-normal">(Opcional)</span></Label>
-                  <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50" disabled={isVendedor}>
+                  <select name="sellerId" defaultValue={editingLead.sellerId || ''} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
                     <option value="">Nenhum (Sem responsável)</option>
                     {Array.isArray(assignableSellers) && assignableSellers.map((s: any) => (
                       <option key={s.id} value={s.id}>{s.name}</option>
@@ -1242,7 +1239,6 @@ export default function LeadsPage() {
                     maxLength={5}
                     value={editBirthday}
                     onChange={(e) => setEditBirthday(maskBirthday(e.target.value))}
-                    disabled={isVendedor}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1253,7 +1249,6 @@ export default function LeadsPage() {
                     min="0"
                     defaultValue={editingLead.avgDelayDays || ''} 
                     placeholder="Ex: 5 (Opcional)" 
-                    disabled={isVendedor}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1262,7 +1257,6 @@ export default function LeadsPage() {
                     name="route" 
                     defaultValue={editingLead.route || ''} 
                     placeholder="Ex: Rota Centro (Opcional)" 
-                    disabled={isVendedor}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1271,7 +1265,6 @@ export default function LeadsPage() {
                     name="lastPurchaseDate" 
                     type="date" 
                     defaultValue={editingLead.lastPurchaseDate ? editingLead.lastPurchaseDate.substring(0, 10) : ''} 
-                    disabled={isVendedor}
                   />
                 </div>
               </div>
