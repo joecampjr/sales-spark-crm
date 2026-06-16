@@ -142,8 +142,11 @@ export async function GET(request: Request) {
       }
       const leadsCreatedCount = await prisma.lead.count({ where: createdWhere });
 
-      // 3. Contatos/Interactions in this period
-      const interactionWhere: any = { sellerId: seller.id };
+      // 3. Contatos/Interactions in this period (excluding system logs like automated links)
+      const interactionWhere: any = { 
+        sellerId: seller.id,
+        type: { not: 'sistema' }
+      };
       if (startDate || endDate) {
         interactionWhere.createdAt = {};
         if (startDate) interactionWhere.createdAt.gte = startDate;

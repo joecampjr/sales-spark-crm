@@ -137,6 +137,7 @@ export async function GET(request: Request) {
       contatosHoje = userSeller ? await prisma.interaction.count({
         where: {
           sellerId: userSeller.id,
+          type: { not: 'sistema' },
           createdAt: {
             gte: startDate || startOfToday,
             ...(endDate ? { lte: endDate } : {})
@@ -155,6 +156,7 @@ export async function GET(request: Request) {
       contatosHoje = sellerIds.length > 0 ? await prisma.interaction.count({
         where: {
           sellerId: { in: sellerIds },
+          type: { not: 'sistema' },
           createdAt: {
             gte: startDate || startOfToday,
             ...(endDate ? { lte: endDate } : {})
