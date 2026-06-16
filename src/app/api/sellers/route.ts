@@ -86,12 +86,26 @@ export async function GET(request: Request) {
     startOfToday.setHours(0, 0, 0, 0);
 
     const calculatedSellers = await Promise.all(sellers.map(async (seller) => {
-      // 1. Leads Vinculados (leads assigned to the seller in this period, but NOT created by them)
+      // 1. Leads Vinculados (leads assigned to the seller in this period, but NOT created by them OR explicitly linked)
       const leadWhere: any = { 
         sellerId: seller.id,
-        NOT: [
-          { createdById: seller.userId },
-          { createdById: null, source: { notIn: ['CSV Import', 'CSV'] } }
+        OR: [
+          // Case A: Assigned to them but not created by them (and not falling into manual create fallback)
+          {
+            NOT: [
+              { createdById: seller.userId },
+              { createdById: null, source: { notIn: ['CSV Import', 'CSV'] } }
+            ]
+          },
+          // Case B: Explicitly linked by the seller (has a "Vinculado" interaction)
+          {
+            interactions: {
+              some: {
+                result: 'Vinculado',
+                sellerId: seller.id
+              }
+            }
+          }
         ]
       };
       if (startDate || endDate) {
@@ -102,7 +116,16 @@ export async function GET(request: Request) {
       const leadsLinkedCount = await prisma.lead.count({ where: leadWhere });
 
       // 2. Leads Adicionados (leads created by the seller in this period)
+      // Must NOT have a 'Vinculado' interaction (meaning they did not link it, but created it)
       const createdWhere: any = {
+        NOT: {
+          interactions: {
+            some: {
+              result: 'Vinculado',
+              sellerId: seller.id
+            }
+          }
+        },
         OR: [
           { createdById: seller.userId },
           { 
