@@ -90,6 +90,9 @@ export default function RankingPage() {
   });
 
   const handleSort = (field: string) => {
+    if (['salesCount', 'salesValue', 'conversionRate'].includes(field)) {
+      setRankingMetric(field as any);
+    }
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -98,36 +101,8 @@ export default function RankingPage() {
     }
   };
 
-  // 1. Calculate absolute positions based on selected metric with tie-breaker logic
-  const rankedVendedores = useMemo(() => {
-    const list = [...vendedores];
-    list.sort((a: any, b: any) => {
-      let valA = a[rankingMetric] ?? 0;
-      let valB = b[rankingMetric] ?? 0;
-
-      if (valB !== valA) {
-        return valB - valA; // Descending
-      }
-
-      // Tie-breaker rules
-      if (rankingMetric === 'salesCount') {
-        return (b.salesValue ?? 0) - (a.salesValue ?? 0);
-      } else if (rankingMetric === 'salesValue') {
-        return (b.salesCount ?? 0) - (a.salesCount ?? 0);
-      } else {
-        return (b.salesCount ?? 0) - (a.salesCount ?? 0);
-      }
-    });
-
-    // Assign rankIndex (1-based index)
-    return list.map((item: any, idx: number) => ({
-      ...item,
-      rankIndex: idx + 1,
-    }));
-  }, [vendedores, rankingMetric]);
-
   const sortedVendedores = useMemo(() => {
-    const list = [...rankedVendedores];
+    const list = [...vendedores];
     list.sort((a: any, b: any) => {
       let valA = a[sortField];
       let valB = b[sortField];
@@ -147,10 +122,30 @@ export default function RankingPage() {
       // Numeric comparison
       valA = valA ?? 0;
       valB = valB ?? 0;
-      return sortDirection === 'asc' ? valA - valB : valB - valA;
+
+      if (valA !== valB) {
+        return sortDirection === 'asc' ? valA - valB : valB - valA;
+      }
+
+      // Tie-breaker rules for performance metrics
+      if (sortField === 'salesCount') {
+        return sortDirection === 'asc'
+          ? (a.salesValue ?? 0) - (b.salesValue ?? 0)
+          : (b.salesValue ?? 0) - (a.salesValue ?? 0);
+      } else if (sortField === 'salesValue') {
+        return sortDirection === 'asc'
+          ? (a.salesCount ?? 0) - (b.salesCount ?? 0)
+          : (b.salesCount ?? 0) - (a.salesCount ?? 0);
+      } else if (sortField === 'conversionRate') {
+        return sortDirection === 'asc'
+          ? (a.salesCount ?? 0) - (b.salesCount ?? 0)
+          : (b.salesCount ?? 0) - (a.salesCount ?? 0);
+      }
+
+      return 0;
     });
     return list;
-  }, [rankedVendedores, sortField, sortDirection]);
+  }, [vendedores, sortField, sortDirection]);
 
   const getRankBadge = (rank: number) => {
     switch (rank) {
@@ -329,7 +324,7 @@ export default function RankingPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {sortedVendedores.map((v: any) => {
+                {sortedVendedores.map((v: any, index: number) => {
                   const isCurrentUser = user?.id === v.userId;
                   return (
                     <tr 
@@ -337,7 +332,7 @@ export default function RankingPage() {
                       className={`hover:bg-muted/30 transition-colors duration-150 ${isCurrentUser ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                     >
                       <td className="py-3.5 px-4 text-center align-middle">
-                        {getRankBadge(v.rankIndex)}
+                        {getRankBadge(index + 1)}
                       </td>
                       <td className="py-3.5 px-4 align-middle">
                         <div className="flex items-center gap-2">
