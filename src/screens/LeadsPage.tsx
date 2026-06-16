@@ -1267,6 +1267,31 @@ export default function LeadsPage() {
                     defaultValue={editingLead.lastPurchaseDate ? editingLead.lastPurchaseDate.substring(0, 10) : ''} 
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Produto</Label>
+                  <select
+                    name="productType"
+                    defaultValue={editingLead.productType || ''}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Nenhum (Não especificado)</option>
+                    <option value="cama">Cama</option>
+                    <option value="guarda roupas">Guarda Roupas</option>
+                    <option value="armário">Armário</option>
+                    <option value="mesa">Mesa</option>
+                    <option value="estofado">Estofado</option>
+                    <option value="painel">Painel</option>
+                    <option value="home">Home</option>
+                    <option value="acessórios">Acessórios</option>
+                    <option value="eletrodoméstico">Eletrodoméstico</option>
+                    <option value="antena">Antena</option>
+                    <option value="cadeira">Cadeira</option>
+                    <option value="cabeceira">Cabeceira</option>
+                    <option value="buffet">Buffet</option>
+                    <option value="colchão">Colchão</option>
+                    <option value="outros">Outros</option>
+                  </select>
+                </div>
               </div>
               <div className="flex w-full justify-end pt-4">
                 <Button type="submit" disabled={updateMutation.isPending}>

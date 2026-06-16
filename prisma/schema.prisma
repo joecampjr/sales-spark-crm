@@ -123,6 +123,7 @@ model Lead {
   birthday       String?
   avgDelayDays   Int?
   route          String?
+  productType    String?
   lastPurchaseDate DateTime?
 
   companyId String?
@@ -152,6 +153,7 @@ model Interaction {
 
   type         String
   result       String
+  productType  String?
   notes        String?
   scheduledFor DateTime?
   createdAt    DateTime  @default(now())

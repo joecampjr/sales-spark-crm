@@ -10,6 +10,7 @@ const InteractionSchema = z.object({
   result: z.string(),
   notes: z.string().nullable().optional(),
   scheduledFor: z.string().nullable().optional(), // ISO string
+  productType: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
         notes: data.notes,
         scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
         companyId: session.companyId || null,
+        productType: data.productType || null,
       }
     });
 

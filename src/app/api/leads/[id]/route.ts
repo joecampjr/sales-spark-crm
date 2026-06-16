@@ -21,6 +21,7 @@ const UpdateLeadSchema = z.object({
   birthday: z.string().nullable().optional(),
   avgDelayDays: z.number().nullable().optional(),
   route: z.string().nullable().optional(),
+  productType: z.string().nullable().optional(),
   lastPurchaseDate: z.string().nullable().optional(),
 });
 

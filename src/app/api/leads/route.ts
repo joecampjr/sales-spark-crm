@@ -21,6 +21,7 @@ const CreateLeadSchema = z.object({
   birthday: z.string().nullable().optional(),
   avgDelayDays: z.number().nullable().optional(),
   route: z.string().nullable().optional(),
+  productType: z.string().nullable().optional(),
   lastPurchaseDate: z.string().nullable().optional(),
 });
 
@@ -331,6 +332,7 @@ export async function POST(request: Request) {
         birthday: cleanedBirthday,
         avgDelayDays: data.avgDelayDays || null,
         route: data.route || null,
+        productType: data.productType || null,
         lastPurchaseDate: data.status === 'vendido' 
           ? new Date() 
           : (data.lastPurchaseDate ? new Date(data.lastPurchaseDate) : null),

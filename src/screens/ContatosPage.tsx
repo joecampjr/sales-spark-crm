@@ -61,6 +61,13 @@ export default function ContatosPage() {
   const [formResult, setFormResult] = useState('Interessado');
   const [formStatus, setFormStatus] = useState('em_negociacao');
   const [formPaymentMode, setFormPaymentMode] = useState('a_vista');
+  const [formProductType, setFormProductType] = useState('');
+
+  // Filters state
+  const [filterName, setFilterName] = useState('');
+  const [filterPhone, setFilterPhone] = useState('');
+  const [filterStatus, setFilterStatus] = useState('todos');
+  const [filterProductType, setFilterProductType] = useState('todos');
 
   // Queries
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
@@ -122,18 +129,41 @@ export default function ContatosPage() {
 
   const displayedLeads = activeTab === 'ativos' ? activeLeads : finalizedLeads;
 
-  const filteredLeads = displayedLeads.filter((l: any) => 
-    (l.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-    (l.seller?.name?.toLowerCase() || '').includes(search.toLowerCase())
-  );
+  const showProductType = formResult === 'Aguardando produto chegar' || formResult === 'Não tinha o produto desejado';
+
+  const filteredLeads = displayedLeads.filter((l: any) => {
+    // 1. General search
+    const matchesSearch = !search || 
+      (l.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (l.seller?.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
+      (l.phone || '').includes(search.replace(/\D/g, ''));
+
+    // 2. Filter by name
+    const matchesName = !filterName || 
+      (l.name?.toLowerCase() || '').includes(filterName.toLowerCase());
+
+    // 3. Filter by phone
+    const matchesPhone = !filterPhone || 
+      (l.phone || '').replace(/\D/g, '').includes(filterPhone.replace(/\D/g, ''));
+
+    // 4. Filter by status
+    const matchesStatus = filterStatus === 'todos' || l.status === filterStatus;
+
+    // 5. Filter by product type
+    const matchesProductType = filterProductType === 'todos' || 
+      l.productType === filterProductType || 
+      (filterProductType === 'sem_produto' && !l.productType);
+
+    return matchesSearch && matchesName && matchesPhone && matchesStatus && matchesProductType;
+  });
 
   // Mutações
   const updateLeadStatusMutation = useMutation({
-    mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string }) => {
+    mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType, productType }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string; productType?: string | null }) => {
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, estimatedValue, paymentMode, downPayment, saleType })
+        body: JSON.stringify({ status, estimatedValue, paymentMode, downPayment, saleType, productType })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -186,6 +216,7 @@ export default function ContatosPage() {
     setFormResult(initialResult);
     setFormStatus(lead.status || 'em_negociacao');
     setFormPaymentMode(lead.paymentMode || 'a_vista');
+    setFormProductType(lead.productType || '');
     setIsUpdateModalOpen(true);
   };
 
@@ -211,6 +242,9 @@ export default function ContatosPage() {
     const downPayment = downPaymentInput !== null && downPaymentInput !== undefined && downPaymentInput !== '' ? Number(downPaymentInput) : undefined;
     const saleType = fd.get('saleType') as string || undefined;
 
+    const showProductType = formResult === 'Aguardando produto chegar' || formResult === 'Não tinha o produto desejado';
+    const productType = showProductType ? (fd.get('productType') as string) : null;
+
     try {
       // 1. Cria a nova interação
       await createInteractionMutation.mutateAsync({
@@ -219,7 +253,8 @@ export default function ContatosPage() {
         type,
         result: formResult,
         notes: notes || undefined,
-        scheduledFor: scheduledFor || undefined
+        scheduledFor: scheduledFor || undefined,
+        productType
       });
 
       // 2. Atualiza o status do Lead
@@ -229,7 +264,8 @@ export default function ContatosPage() {
         estimatedValue,
         paymentMode,
         downPayment,
-        saleType
+        saleType,
+        productType
       });
 
       // 3. Atualiza queries e notifica
@@ -351,6 +387,71 @@ export default function ContatosPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 bg-card border-border h-10 text-sm shadow-sm"
           />
+        </div>
+      </div>
+
+      {/* Advanced Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-card border border-border/40 p-4 rounded-xl shadow-sm">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Nome do Cliente</Label>
+          <Input
+            placeholder="Filtrar por nome"
+            value={filterName}
+            onChange={(e) => setFilterName(e.target.value)}
+            className="bg-card border-border h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Telefone</Label>
+          <Input
+            placeholder="Filtrar por telefone"
+            value={filterPhone}
+            onChange={(e) => setFilterPhone(e.target.value)}
+            className="bg-card border-border h-9 text-sm"
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="todos">Todos os Status</option>
+            <option value="novo">Novo</option>
+            <option value="em_negociacao">Em Negociação</option>
+            <option value="contato_realizado">Contato Realizado</option>
+            <option value="aguardando_produto">Aguardando Produto Chegar</option>
+            <option value="vendido">Vendido</option>
+            <option value="perdido">Perdido</option>
+            <option value="contato_nao_atualizado">Contato Não Atualizado</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Tipo de Produto</Label>
+          <select
+            value={filterProductType}
+            onChange={(e) => setFilterProductType(e.target.value)}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="todos">Todos os Produtos</option>
+            <option value="sem_produto">Sem Produto Especificado</option>
+            <option value="cama">Cama</option>
+            <option value="guarda roupas">Guarda Roupas</option>
+            <option value="armário">Armário</option>
+            <option value="mesa">Mesa</option>
+            <option value="estofado">Estofado</option>
+            <option value="painel">Painel</option>
+            <option value="home">Home</option>
+            <option value="acessórios">Acessórios</option>
+            <option value="eletrodoméstico">Eletrodoméstico</option>
+            <option value="antena">Antena</option>
+            <option value="cadeira">Cadeira</option>
+            <option value="cabeceira">Cabeceira</option>
+            <option value="buffet">Buffet</option>
+            <option value="colchão">Colchão</option>
+            <option value="outros">Outros</option>
+          </select>
         </div>
       </div>
 
@@ -668,12 +769,48 @@ export default function ContatosPage() {
                   />
                 </div>
 
+                {showProductType && (
+                  <div className="space-y-2 col-span-2 animate-fade-in">
+                    <Label htmlFor="productType" className="font-semibold text-sm">
+                      Tipo de Produto desejado <span className="text-destructive">*</span>
+                    </Label>
+                    <select
+                      id="productType"
+                      name="productType"
+                      value={formProductType}
+                      onChange={(e) => setFormProductType(e.target.value)}
+                      required
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    >
+                      <option value="">Selecione o tipo de produto...</option>
+                      <option value="cama">Cama</option>
+                      <option value="guarda roupas">Guarda Roupas</option>
+                      <option value="armário">Armário</option>
+                      <option value="mesa">Mesa</option>
+                      <option value="estofado">Estofado</option>
+                      <option value="painel">Painel</option>
+                      <option value="home">Home</option>
+                      <option value="acessórios">Acessórios</option>
+                      <option value="eletrodoméstico">Eletrodoméstico</option>
+                      <option value="antena">Antena</option>
+                      <option value="cadeira">Cadeira</option>
+                      <option value="cabeceira">Cabeceira</option>
+                      <option value="buffet">Buffet</option>
+                      <option value="colchão">Colchão</option>
+                      <option value="outros">Outros</option>
+                    </select>
+                  </div>
+                )}
+
                 <div className="space-y-2 col-span-2">
-                  <Label htmlFor="notes" className="font-semibold text-sm">Relato do Contato / Observações</Label>
+                  <Label htmlFor="notes" className="font-semibold text-sm">
+                    Relato do Contato / Observações {showProductType && <span className="text-destructive">*</span>}
+                  </Label>
                   <Input 
                     id="notes"
                     name="notes" 
-                    placeholder="Ex: Cliente gostou dos preços e quer que ligue na próxima segunda-feira às 10h..." 
+                    placeholder={showProductType ? "Descreva os detalhes (Obrigatório)..." : "Ex: Cliente gostou dos preços e quer que ligue na próxima segunda-feira às 10h..."} 
+                    required={showProductType}
                     className="bg-background"
                   />
                 </div>
