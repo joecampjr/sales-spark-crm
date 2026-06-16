@@ -20,7 +20,12 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   if (!globalForPrisma.pgPool) {
     const connectionString = process.env.DATABASE_URL!;
-    globalForPrisma.pgPool = new Pool({ connectionString });
+    globalForPrisma.pgPool = new Pool({ 
+      connectionString,
+      max: 3, // Limit each dev pool to 3 connections
+      idleTimeoutMillis: 5000, // Close idle connections after 5 seconds
+      connectionTimeoutMillis: 2000, // Connection timeout of 2 seconds
+    });
   }
   if (!globalForPrisma.prisma) {
     const adapter = new PrismaPg(globalForPrisma.pgPool);
