@@ -133,11 +133,22 @@ export async function GET(request: Request) {
     let metaDiaria = 10;
     let metaMes = 100000;
 
+    const finalizedResults = [
+      'Vendido / Sucesso',
+      'Contato não atualizado',
+      'Muito caro',
+      'Não gostou da qualidade',
+      'Não tinha o produto desejado',
+      'Comprou do concorrente',
+      'Não respondeu',
+      'Não atendeu'
+    ];
+
     if (session.role === 'VENDEDOR') {
       contatosHoje = userSeller ? await prisma.interaction.count({
         where: {
           sellerId: userSeller.id,
-          type: { not: 'sistema' },
+          result: { in: finalizedResults },
           createdAt: {
             gte: startDate || startOfToday,
             ...(endDate ? { lte: endDate } : {})
@@ -156,7 +167,7 @@ export async function GET(request: Request) {
       contatosHoje = sellerIds.length > 0 ? await prisma.interaction.count({
         where: {
           sellerId: { in: sellerIds },
-          type: { not: 'sistema' },
+          result: { in: finalizedResults },
           createdAt: {
             gte: startDate || startOfToday,
             ...(endDate ? { lte: endDate } : {})
