@@ -328,6 +328,7 @@ export async function POST(request: Request) {
         cpf: data.cpf || null,
         branchId: finalBranchId,
         sellerId: data.sellerId || null,
+        createdById: session.id,
         companyId: session.companyId || null,
         birthday: cleanedBirthday,
         avgDelayDays: data.avgDelayDays || null,

@@ -208,6 +208,7 @@ export async function POST(request: Request) {
               cpf: cleanedCpf,
               branchId: finalBranchId,
               sellerId: finalSellerId,
+              createdById: session.id,
               companyId: companyId,
               paymentMode: lead.paymentMode,
               downPayment: lead.downPayment,

@@ -20,12 +20,17 @@ const SellerSchema = z.object({
   status: z.string().optional().default('ativo'),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { searchParams } = new URL(request.url);
+    const filterBranchId = searchParams.get('branchId');
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
 
     const where: any = {};
     if (session.companyId) {
@@ -44,6 +49,12 @@ export async function GET() {
       } else {
         where.branchId = 'non-existent-branch-id';
       }
+    } else {
+      // Supervisors, Admins, Superadmins
+      if (filterBranchId && filterBranchId !== 'todos') {
+        const bId = filterBranchId === 'sem_filial' ? null : filterBranchId;
+        where.branchId = bId;
+      }
     }
 
     const sellers = await prisma.seller.findMany({
@@ -59,31 +70,76 @@ export async function GET() {
       }
     });
 
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (startDateParam) {
+      startDate = new Date(startDateParam);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    if (endDateParam) {
+      endDate = new Date(endDateParam);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
     const calculatedSellers = await Promise.all(sellers.map(async (seller) => {
-      // 1. Contar vendas reais do vendedor
-      const salesCount = await prisma.lead.count({
-        where: {
-          sellerId: seller.id,
-          status: 'vendido'
-        }
-      });
+      // 1. Leads Vinculados (leads assigned to the seller in this period)
+      const leadWhere: any = { sellerId: seller.id };
+      if (startDate || endDate) {
+        leadWhere.createdAt = {};
+        if (startDate) leadWhere.createdAt.gte = startDate;
+        if (endDate) leadWhere.createdAt.lte = endDate;
+      }
+      const leadsLinkedCount = await prisma.lead.count({ where: leadWhere });
 
-      // 1b. Somar o valor total vendido
+      // 2. Leads Adicionados (leads created by the seller in this period)
+      const createdWhere: any = {
+        OR: [
+          { createdById: seller.userId },
+          { createdById: null, sellerId: seller.id }
+        ]
+      };
+      if (startDate || endDate) {
+        createdWhere.createdAt = {};
+        if (startDate) createdWhere.createdAt.gte = startDate;
+        if (endDate) createdWhere.createdAt.lte = endDate;
+      }
+      const leadsCreatedCount = await prisma.lead.count({ where: createdWhere });
+
+      // 3. Contatos/Interactions in this period
+      const interactionWhere: any = { sellerId: seller.id };
+      if (startDate || endDate) {
+        interactionWhere.createdAt = {};
+        if (startDate) interactionWhere.createdAt.gte = startDate;
+        if (endDate) interactionWhere.createdAt.lte = endDate;
+      }
+      const interactionsCount = await prisma.interaction.count({ where: interactionWhere });
+
+      // 4. Contar vendas reais do vendedor no período
+      const salesWhere: any = {
+        sellerId: seller.id,
+        status: 'vendido'
+      };
+      if (startDate || endDate) {
+        salesWhere.updatedAt = {};
+        if (startDate) salesWhere.updatedAt.gte = startDate;
+        if (endDate) salesWhere.updatedAt.lte = endDate;
+      }
+      const salesCount = await prisma.lead.count({ where: salesWhere });
+
+      // 5. Somar o valor total vendido no período
       const salesSum = await prisma.lead.aggregate({
-        where: {
-          sellerId: seller.id,
-          status: 'vendido'
-        },
+        where: salesWhere,
         _sum: {
           estimatedValue: true
         }
       });
       const salesValue = salesSum._sum.estimatedValue || 0;
 
-      // 2. Contar leads ativos (status diferente de vendido, perdido, contato_nao_atualizado)
+      // 6. Contar leads ativos atuais
       const activeLeads = await prisma.lead.count({
         where: {
           sellerId: seller.id,
@@ -93,16 +149,7 @@ export async function GET() {
         }
       });
 
-      // 3. Contar total de leads atribuídos a este vendedor
-      const totalLeads = await prisma.lead.count({
-        where: {
-          sellerId: seller.id
-        }
-      });
-
-      const conversionRate = totalLeads > 0 ? Number(((salesCount / totalLeads) * 100).toFixed(1)) : 0;
-
-      // 4. Contar contatos realizados hoje
+      // 7. Contar contatos realizados hoje (sempre hoje)
       const contactsToday = await prisma.interaction.count({
         where: {
           sellerId: seller.id,
@@ -110,18 +157,29 @@ export async function GET() {
         }
       });
 
+      // 8. Taxa de Conversão no período
+      const conversionRate = leadsLinkedCount > 0 ? Number(((salesCount / leadsLinkedCount) * 100).toFixed(1)) : 0;
+
       return {
         ...seller,
         salesCount,
         salesValue,
         activeLeads,
         conversionRate,
-        contactsToday
+        contactsToday,
+        leadsLinkedCount,
+        leadsCreatedCount,
+        interactionsCount
       };
     }));
 
-    // Ordenar decrescentemente por número de vendas
-    calculatedSellers.sort((a, b) => b.salesCount - a.salesCount);
+    // Ordenar decrescentemente por volume de vendas (valor total ou quantidade? Quantidade de vendas é padrão, mas valor total pode desempatar)
+    calculatedSellers.sort((a, b) => {
+      if (b.salesCount !== a.salesCount) {
+        return b.salesCount - a.salesCount;
+      }
+      return b.salesValue - a.salesValue;
+    });
 
     return NextResponse.json(calculatedSellers);
   } catch (error) {

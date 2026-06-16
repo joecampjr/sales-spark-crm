@@ -2,20 +2,53 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getSession();
     if (!session || (!session.companyId && session.role !== 'SUPERADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Se for SUPERADMIN, ele usa a rota /api/saas/metrics.
-    // Esta rota calcula métricas específicas da empresa logada.
+    const { searchParams } = new URL(request.url);
+    const filterBranchId = searchParams.get('branchId');
+    const filterSellerId = searchParams.get('sellerId');
+    const startDateParam = searchParams.get('startDate');
+    const endDateParam = searchParams.get('endDate');
+    const groupBy = searchParams.get('groupBy') || 'month'; // 'day', 'month', 'year'
+
     const companyId = session.companyId;
 
+    let startDate: Date | undefined;
+    let endDate: Date | undefined;
+
+    if (startDateParam) {
+      startDate = new Date(startDateParam);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    if (endDateParam) {
+      endDate = new Date(endDateParam);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // Base conditions
     const leadWhere: any = { companyId };
+    const salesWhere: any = { companyId, status: 'vendido' };
     const sellerWhere: any = { companyId };
     const interactionWhere: any = { companyId };
+
+    if (startDate || endDate) {
+      leadWhere.createdAt = {};
+      if (startDate) leadWhere.createdAt.gte = startDate;
+      if (endDate) leadWhere.createdAt.lte = endDate;
+
+      salesWhere.updatedAt = {};
+      if (startDate) salesWhere.updatedAt.gte = startDate;
+      if (endDate) salesWhere.updatedAt.lte = endDate;
+
+      interactionWhere.createdAt = {};
+      if (startDate) interactionWhere.createdAt.gte = startDate;
+      if (endDate) interactionWhere.createdAt.lte = endDate;
+    }
 
     let userSeller: any = null;
 
@@ -24,13 +57,14 @@ export async function GET() {
         where: { userId: session.id }
       });
       if (userSeller) {
-        // Vendedor só vê os seus próprios leads e interações nos KPIs principais
+        // Vendedor só vê os seus próprios leads e interações
         leadWhere.sellerId = userSeller.id;
+        salesWhere.sellerId = userSeller.id;
         interactionWhere.sellerId = userSeller.id;
         sellerWhere.id = userSeller.id;
       } else {
-        // Se o usuário vendedor não tem registro de seller associado
         leadWhere.id = 'non-existent-lead-id';
+        salesWhere.id = 'non-existent-lead-id';
         sellerWhere.id = 'non-existent-seller-id';
         interactionWhere.id = 'non-existent-interaction-id';
       }
@@ -41,29 +75,44 @@ export async function GET() {
       });
       if (dbUser && dbUser.branchId) {
         leadWhere.branchId = dbUser.branchId;
+        salesWhere.branchId = dbUser.branchId;
         sellerWhere.branchId = dbUser.branchId;
         interactionWhere.seller = { branchId: dbUser.branchId };
+
+        // Managers can filter by seller within their branch
+        if (filterSellerId && filterSellerId !== 'todos') {
+          leadWhere.sellerId = filterSellerId;
+          salesWhere.sellerId = filterSellerId;
+          interactionWhere.sellerId = filterSellerId;
+        }
       } else {
         leadWhere.branchId = 'non-existent-branch-id';
+        salesWhere.branchId = 'non-existent-branch-id';
         sellerWhere.branchId = 'non-existent-branch-id';
         interactionWhere.id = 'non-existent-interaction-id';
+      }
+    } else {
+      // Supervisors, Admins, Superadmins
+      if (filterBranchId && filterBranchId !== 'todos') {
+        const bId = filterBranchId === 'sem_filial' ? null : filterBranchId;
+        leadWhere.branchId = bId;
+        salesWhere.branchId = bId;
+        sellerWhere.branchId = bId;
+        interactionWhere.seller = { branchId: bId };
+      }
+      if (filterSellerId && filterSellerId !== 'todos') {
+        leadWhere.sellerId = filterSellerId;
+        salesWhere.sellerId = filterSellerId;
+        interactionWhere.sellerId = filterSellerId;
       }
     }
 
     // 1. Total de Leads
     const totalLeads = await prisma.lead.count({ where: leadWhere });
 
-    // 2. Vendas do Mês (soma do estimatedValue dos leads vendidos este mês)
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
-
+    // 2. Vendas do Período (soma do estimatedValue dos leads vendidos)
     const salesSum = await prisma.lead.aggregate({
-      where: {
-        ...leadWhere,
-        status: 'vendido',
-        updatedAt: { gte: startOfMonth }
-      },
+      where: salesWhere,
       _sum: {
         estimatedValue: true
       }
@@ -72,14 +121,11 @@ export async function GET() {
 
     // 3. Taxa de Conversão
     const vendidosLeads = await prisma.lead.count({
-      where: {
-        ...leadWhere,
-        status: 'vendido'
-      }
+      where: salesWhere
     });
     const taxaConversao = totalLeads > 0 ? Number(((vendidosLeads / totalLeads) * 100).toFixed(1)) : 0;
 
-    // 4. Contatos Hoje
+    // 4. Contatos Realizados
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -91,13 +137,15 @@ export async function GET() {
       contatosHoje = userSeller ? await prisma.interaction.count({
         where: {
           sellerId: userSeller.id,
-          createdAt: { gte: startOfToday }
+          createdAt: {
+            gte: startDate || startOfToday,
+            ...(endDate ? { lte: endDate } : {})
+          }
         }
       }) : 0;
       metaDiaria = userSeller?.contactsTarget || 10;
-      metaMes = userSeller?.monthlyGoal || 50000; // meta em valor ou leads
+      metaMes = userSeller?.monthlyGoal || 50000;
     } else {
-      // Para gestores, a meta e contatos acumulam todos os vendedores da filial/empresa
       const sellers = await prisma.seller.findMany({
         where: sellerWhere,
         select: { id: true, contactsTarget: true, monthlyGoal: true }
@@ -107,7 +155,10 @@ export async function GET() {
       contatosHoje = sellerIds.length > 0 ? await prisma.interaction.count({
         where: {
           sellerId: { in: sellerIds },
-          createdAt: { gte: startOfToday }
+          createdAt: {
+            gte: startDate || startOfToday,
+            ...(endDate ? { lte: endDate } : {})
+          }
         }
       }) : 0;
 
@@ -115,58 +166,157 @@ export async function GET() {
       metaMes = sellers.reduce((sum, s) => sum + (s.monthlyGoal || 0), 0) || 200000;
     }
 
-    // 5. Histórico de Leads por Mês (últimos 6 meses)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
-    sixMonthsAgo.setDate(1);
-    sixMonthsAgo.setHours(0, 0, 0, 0);
+    // 5. Histórico e Evolução de Leads (Dinâmico por Dia, Mês ou Ano)
+    let chartStartDate = startDate;
+    let chartEndDate = endDate;
 
+    if (!chartStartDate || !chartEndDate) {
+      const now = new Date();
+      if (groupBy === 'day') {
+        chartStartDate = new Date();
+        chartStartDate.setDate(now.getDate() - 29); // 30 dias incluindo hoje
+        chartStartDate.setHours(0, 0, 0, 0);
+        chartEndDate = new Date();
+        chartEndDate.setHours(23, 59, 59, 999);
+      } else if (groupBy === 'year') {
+        chartStartDate = new Date();
+        chartStartDate.setFullYear(now.getFullYear() - 4); // Últimos 5 anos
+        chartStartDate.setMonth(0);
+        chartStartDate.setDate(1);
+        chartStartDate.setHours(0, 0, 0, 0);
+        chartEndDate = new Date();
+        chartEndDate.setHours(23, 59, 59, 999);
+      } else {
+        // default: 'month'
+        chartStartDate = new Date();
+        chartStartDate.setMonth(now.getMonth() - 5); // 6 meses
+        chartStartDate.setDate(1);
+        chartStartDate.setHours(0, 0, 0, 0);
+        chartEndDate = new Date();
+        chartEndDate.setHours(23, 59, 59, 999);
+      }
+    }
+
+    // Buscar leads e vendas nesse intervalo de tempo
     const leadsForChart = await prisma.lead.findMany({
       where: {
-        ...leadWhere,
-        OR: [
-          { createdAt: { gte: sixMonthsAgo } },
-          { updatedAt: { gte: sixMonthsAgo } }
-        ]
+        companyId,
+        ...(leadWhere.sellerId ? { sellerId: leadWhere.sellerId } : {}),
+        ...(leadWhere.branchId ? { branchId: leadWhere.branchId } : {}),
+        createdAt: { gte: chartStartDate, lte: chartEndDate }
       },
       select: {
-        createdAt: true,
-        status: true,
+        createdAt: true
+      }
+    });
+
+    const salesForChart = await prisma.lead.findMany({
+      where: {
+        companyId,
+        status: 'vendido',
+        ...(leadWhere.sellerId ? { sellerId: leadWhere.sellerId } : {}),
+        ...(leadWhere.branchId ? { branchId: leadWhere.branchId } : {}),
+        updatedAt: { gte: chartStartDate, lte: chartEndDate }
+      },
+      select: {
+        updatedAt: true
+      }
+    });
+
+    const lostForChart = await prisma.lead.findMany({
+      where: {
+        companyId,
+        status: { in: ['perdido', 'contato_nao_atualizado'] },
+        ...(leadWhere.sellerId ? { sellerId: leadWhere.sellerId } : {}),
+        ...(leadWhere.branchId ? { branchId: leadWhere.branchId } : {}),
+        updatedAt: { gte: chartStartDate, lte: chartEndDate }
+      },
+      select: {
         updatedAt: true
       }
     });
 
     const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    const monthlyData: { [key: string]: { mes: string; novos: number; vendidos: number; perdidos: number } } = {};
-    const monthsArray: string[] = [];
+    const timelineData: { [key: string]: { mes: string; novos: number; vendidos: number; perdidos: number } } = {};
+    const timelineKeys: string[] = [];
 
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = monthNames[d.getMonth()];
-      monthlyData[key] = { mes: label, novos: 0, vendidos: 0, perdidos: 0 };
-      monthsArray.push(key);
+    let currentIter = new Date(chartStartDate);
+    while (currentIter <= chartEndDate) {
+      let key = '';
+      let label = '';
+
+      if (groupBy === 'day') {
+        key = `${currentIter.getFullYear()}-${String(currentIter.getMonth() + 1).padStart(2, '0')}-${String(currentIter.getDate()).padStart(2, '0')}`;
+        label = `${currentIter.getDate()}/${monthNames[currentIter.getMonth()]}`;
+        currentIter.setDate(currentIter.getDate() + 1);
+      } else if (groupBy === 'year') {
+        key = `${currentIter.getFullYear()}`;
+        label = key;
+        currentIter.setFullYear(currentIter.getFullYear() + 1);
+      } else {
+        // default: 'month'
+        key = `${currentIter.getFullYear()}-${String(currentIter.getMonth() + 1).padStart(2, '0')}`;
+        label = `${monthNames[currentIter.getMonth()]}/${String(currentIter.getFullYear()).slice(-2)}`;
+        currentIter.setMonth(currentIter.getMonth() + 1);
+      }
+
+      if (!timelineData[key]) {
+        timelineData[key] = { mes: label, novos: 0, vendidos: 0, perdidos: 0 };
+        timelineKeys.push(key);
+      }
+      
+      // Proteção de loop infinito
+      if (timelineKeys.length > 400) break;
     }
 
     leadsForChart.forEach(lead => {
-      const createdKey = `${lead.createdAt.getFullYear()}-${String(lead.createdAt.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlyData[createdKey]) {
-        monthlyData[createdKey].novos += 1;
+      let key = '';
+      const date = lead.createdAt;
+      if (groupBy === 'day') {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      } else if (groupBy === 'year') {
+        key = `${date.getFullYear()}`;
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }
-      
-      const updatedKey = `${lead.updatedAt.getFullYear()}-${String(lead.updatedAt.getMonth() + 1).padStart(2, '0')}`;
-      if (monthlyData[updatedKey]) {
-        if (lead.status === 'vendido') {
-          monthlyData[updatedKey].vendidos += 1;
-        } else if (['perdido', 'contato_nao_atualizado'].includes(lead.status)) {
-          monthlyData[updatedKey].perdidos += 1;
-        }
+      if (timelineData[key]) {
+        timelineData[key].novos += 1;
       }
     });
-    const leadsPorMes = monthsArray.map(key => monthlyData[key]);
 
-    // 6. Motivos de Perda (agrupados de todas as interações)
+    salesForChart.forEach(lead => {
+      let key = '';
+      const date = lead.updatedAt;
+      if (groupBy === 'day') {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      } else if (groupBy === 'year') {
+        key = `${date.getFullYear()}`;
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      if (timelineData[key]) {
+        timelineData[key].vendidos += 1;
+      }
+    });
+
+    lostForChart.forEach(lead => {
+      let key = '';
+      const date = lead.updatedAt;
+      if (groupBy === 'day') {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      } else if (groupBy === 'year') {
+        key = `${date.getFullYear()}`;
+      } else {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      }
+      if (timelineData[key]) {
+        timelineData[key].perdidos += 1;
+      }
+    });
+
+    const leadsPorMes = timelineKeys.map(key => timelineData[key]);
+
+    // 6. Motivos de Perda
     const lostInteractions = await prisma.interaction.findMany({
       where: {
         ...interactionWhere,
@@ -199,7 +349,7 @@ export async function GET() {
       .filter(item => item.quantidade > 0)
       .sort((a, b) => b.quantidade - a.quantidade);
 
-    // 7. Desempenho dos Vendedores (Leaderboard - limitado aos vendedores da filial/empresa)
+    // 7. Desempenho dos Vendedores (Leaderboard)
     const sellersList = await prisma.seller.findMany({
       where: sellerWhere,
       select: {
@@ -216,7 +366,10 @@ export async function GET() {
           where: {
             sellerId: s.id,
             status: 'vendido',
-            updatedAt: { gte: startOfMonth }
+            updatedAt: {
+              gte: startDate || startOfToday,
+              ...(endDate ? { lte: endDate } : {})
+            }
           },
           _sum: {
             estimatedValue: true
@@ -236,10 +389,7 @@ export async function GET() {
 
     // 8. Últimas Vendas
     const ultimasVendasRaw = await prisma.lead.findMany({
-      where: {
-        ...leadWhere,
-        status: 'vendido'
-      },
+      where: salesWhere,
       take: 5,
       orderBy: { updatedAt: 'desc' },
       select: {
@@ -265,7 +415,6 @@ export async function GET() {
     }));
 
     // 9. Alertas Comerciais
-    // Leads sem responsável (filtrados pelo escopo do usuário)
     let unassignedWhere: any = {
       companyId,
       sellerId: null,
@@ -281,7 +430,6 @@ export async function GET() {
     }
     const leadsSemResponsavel = await prisma.lead.count({ where: unassignedWhere });
 
-    // Leads parados segmentados por dias desde a última interação (ou data de criação do lead)
     const activeLeads = await prisma.lead.findMany({
       where: {
         ...leadWhere,
@@ -335,6 +483,12 @@ export async function GET() {
       leadsPorMes,
       motivosPerda,
       vendedoresPerformance,
+      redirectParams: {
+        startDateParam,
+        endDateParam,
+        filterBranchId,
+        filterSellerId
+      },
       ultimasVendas,
       alertas: {
         leadsSemResponsavel,

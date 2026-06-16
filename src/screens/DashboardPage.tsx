@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { 
@@ -31,6 +32,72 @@ const getPaymentModeBadge = (mode: string) => {
 export default function DashboardPage() {
   const { user } = useAuth();
 
+  // Filter States
+  const [branchId, setBranchId] = useState<string>('todos');
+  const [sellerId, setSellerId] = useState<string>('todos');
+  const [period, setPeriod] = useState<string>('thisMonth');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [groupBy, setGroupBy] = useState<string>('month');
+
+  // Compute startDate & endDate from period selection
+  const dateParams = useMemo(() => {
+    let startStr = '';
+    let endStr = '';
+    const now = new Date();
+
+    if (period === 'today') {
+      startStr = now.toISOString().split('T')[0];
+      endStr = now.toISOString().split('T')[0];
+    } else if (period === 'yesterday') {
+      const yesterday = new Date();
+      yesterday.setDate(now.getDate() - 1);
+      startStr = yesterday.toISOString().split('T')[0];
+      endStr = yesterday.toISOString().split('T')[0];
+    } else if (period === '7days') {
+      const d7 = new Date();
+      d7.setDate(now.getDate() - 6);
+      startStr = d7.toISOString().split('T')[0];
+      endStr = now.toISOString().split('T')[0];
+    } else if (period === '30days') {
+      const d30 = new Date();
+      d30.setDate(now.getDate() - 29);
+      startStr = d30.toISOString().split('T')[0];
+      endStr = now.toISOString().split('T')[0];
+    } else if (period === 'thisMonth') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startStr = startOfMonth.toISOString().split('T')[0];
+      endStr = now.toISOString().split('T')[0];
+    } else if (period === 'custom') {
+      startStr = customStartDate;
+      endStr = customEndDate;
+    }
+
+    return { startDate: startStr, endDate: endStr };
+  }, [period, customStartDate, customEndDate]);
+
+  // Load branches (for admin/supervisor/superadmin dropdowns)
+  const { data: branches = [] } = useQuery({
+    queryKey: ['branches-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/branches');
+      if (!res.ok) throw new Error('Falha ao carregar filiais');
+      return res.json();
+    },
+    enabled: !!user && ['ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role)
+  });
+
+  // Load sellers (for manager/admin/supervisor/superadmin dropdowns)
+  const { data: sellers = [] } = useQuery({
+    queryKey: ['sellers-dashboard'],
+    queryFn: async () => {
+      const res = await fetch('/api/sellers');
+      if (!res.ok) throw new Error('Falha ao carregar vendedores');
+      return res.json();
+    },
+    enabled: !!user && ['GERENTE', 'ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role)
+  });
+
   // Query de Métricas do Super Admin (rodada condicionalmente)
   const { data: saasMetrics, isLoading: isSaasLoading } = useQuery({
     queryKey: ['saas-metrics'],
@@ -44,9 +111,16 @@ export default function DashboardPage() {
 
   // Query de Métricas da Operação Comercial (rodada condicionalmente para outros papéis)
   const { data: metrics, isLoading: isMetricsLoading, error } = useQuery({
-    queryKey: ['metrics'],
+    queryKey: ['metrics', branchId, sellerId, dateParams.startDate, dateParams.endDate, groupBy],
     queryFn: async () => {
-      const res = await fetch('/api/metrics');
+      const params = new URLSearchParams();
+      if (branchId && branchId !== 'todos') params.append('branchId', branchId);
+      if (sellerId && sellerId !== 'todos') params.append('sellerId', sellerId);
+      if (dateParams.startDate) params.append('startDate', dateParams.startDate);
+      if (dateParams.endDate) params.append('endDate', dateParams.endDate);
+      params.append('groupBy', groupBy);
+
+      const res = await fetch(`/api/metrics?${params.toString()}`);
       if (!res.ok) throw new Error('Falha ao carregar métricas da operação');
       return res.json();
     },
@@ -258,6 +332,88 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Filter Bar */}
+      <div className="bg-card border border-border/50 rounded-xl p-4 flex flex-wrap items-center gap-4" style={{ boxShadow: 'var(--shadow-sm)' }}>
+        <div className="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-initial">
+          <label className="text-xs font-semibold text-muted-foreground">Período</label>
+          <select 
+            value={period} 
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+          >
+            <option value="today">Hoje</option>
+            <option value="yesterday">Ontem</option>
+            <option value="7days">Últimos 7 dias</option>
+            <option value="30days">Últimos 30 dias</option>
+            <option value="thisMonth">Este Mês</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+
+        {period === 'custom' && (
+          <>
+            <div className="flex flex-col gap-1 min-w-[120px] flex-1 sm:flex-initial">
+              <label className="text-xs font-semibold text-muted-foreground">De</label>
+              <input 
+                type="date" 
+                value={customStartDate} 
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+            </div>
+            <div className="flex flex-col gap-1 min-w-[120px] flex-1 sm:flex-initial">
+              <label className="text-xs font-semibold text-muted-foreground">Até</label>
+              <input 
+                type="date" 
+                value={customEndDate} 
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+            </div>
+          </>
+        )}
+
+        {/* Branch Filter - Only for Roles admin, supervisor, superadmin */}
+        {user && ['ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role) && (
+          <div className="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-initial">
+            <label className="text-xs font-semibold text-muted-foreground">Filial</label>
+            <select 
+              value={branchId} 
+              onChange={(e) => {
+                setBranchId(e.target.value);
+                setSellerId('todos'); // Reset seller selection when branch changes
+              }}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            >
+              <option value="todos">Todas as Filiais</option>
+              <option value="sem_filial">Sem Filial</option>
+              {branches.map((b: any) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Seller Filter - For Manager, Admin, Supervisor, Superadmin */}
+        {user && ['GERENTE', 'ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role) && (
+          <div className="flex flex-col gap-1 min-w-[150px] flex-1 sm:flex-initial">
+            <label className="text-xs font-semibold text-muted-foreground">Vendedor</label>
+            <select 
+              value={sellerId} 
+              onChange={(e) => setSellerId(e.target.value)}
+              className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
+            >
+              <option value="todos">Todos os Vendedores</option>
+              {sellers
+                .filter((s: any) => branchId === 'todos' || branchId === 'sem_filial' || s.branchId === branchId)
+                .map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+            </select>
+          </div>
+        )}
+      </div>
+
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard 
@@ -290,7 +446,29 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Leads por mês */}
         <div className="lg:col-span-2 bg-card border border-border/50 rounded-xl p-6" style={{ boxShadow: 'var(--shadow-sm)' }}>
-          <h3 className="text-sm font-semibold text-foreground mb-4">Evolução Comercial (Últimos 6 Meses)</h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Evolução Comercial</h3>
+            <div className="flex items-center bg-muted p-0.5 rounded-lg border border-border self-start">
+              <button 
+                onClick={() => setGroupBy('day')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${groupBy === 'day' ? 'bg-card text-foreground shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Dia
+              </button>
+              <button 
+                onClick={() => setGroupBy('month')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${groupBy === 'month' ? 'bg-card text-foreground shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Mês
+              </button>
+              <button 
+                onClick={() => setGroupBy('year')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${groupBy === 'year' ? 'bg-card text-foreground shadow-sm font-semibold' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                Ano
+              </button>
+            </div>
+          </div>
           {leadsPorMes.length === 0 ? (
             <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">
               Sem dados de evolução para exibir neste período.

@@ -140,6 +140,7 @@ model Lead {
 
   sellerId     String?
   seller       Seller?           @relation(fields: [sellerId], references: [id])
+  createdById  String?
   interactions Interaction[]
   visits       Visit[]
   actionLeads  SalesActionLead[]
