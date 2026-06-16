@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Trophy, TrendingUp, Target, Phone, Award, DollarSign, Briefcase } from 'lucide-react';
+import { Trophy, TrendingUp, Target, Phone, Award, DollarSign, Briefcase, ChevronUp, ChevronDown } from 'lucide-react';
 
 export default function RankingPage() {
   const { user } = useAuth();
@@ -13,6 +13,20 @@ export default function RankingPage() {
   const [period, setPeriod] = useState<string>('thisMonth');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
+
+  // Ranking Metric State (defines how ranks are calculated)
+  const [rankingMetric, setRankingMetric] = useState<'salesCount' | 'salesValue' | 'conversionRate'>('salesCount');
+
+  // Sorting States
+  const [sortField, setSortField] = useState<string>('salesCount');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleRankingMetricChange = (metric: 'salesCount' | 'salesValue' | 'conversionRate') => {
+    setRankingMetric(metric);
+    // Set table sort to align with the new metric
+    setSortField(metric);
+    setSortDirection('desc');
+  };
 
   // Compute startDate & endDate from period selection
   const dateParams = useMemo(() => {
@@ -75,17 +89,107 @@ export default function RankingPage() {
     }
   });
 
-  const getRankBadge = (index: number) => {
-    switch (index) {
-      case 0:
-        return <span className="text-xl" title="1º Lugar">🥇</span>;
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  // 1. Calculate absolute positions based on selected metric with tie-breaker logic
+  const rankedVendedores = useMemo(() => {
+    const list = [...vendedores];
+    list.sort((a: any, b: any) => {
+      let valA = a[rankingMetric] ?? 0;
+      let valB = b[rankingMetric] ?? 0;
+
+      if (valB !== valA) {
+        return valB - valA; // Descending
+      }
+
+      // Tie-breaker rules
+      if (rankingMetric === 'salesCount') {
+        return (b.salesValue ?? 0) - (a.salesValue ?? 0);
+      } else if (rankingMetric === 'salesValue') {
+        return (b.salesCount ?? 0) - (a.salesCount ?? 0);
+      } else {
+        return (b.salesCount ?? 0) - (a.salesCount ?? 0);
+      }
+    });
+
+    // Assign rankIndex (1-based index)
+    return list.map((item: any, idx: number) => ({
+      ...item,
+      rankIndex: idx + 1,
+    }));
+  }, [vendedores, rankingMetric]);
+
+  const sortedVendedores = useMemo(() => {
+    const list = [...rankedVendedores];
+    list.sort((a: any, b: any) => {
+      let valA = a[sortField];
+      let valB = b[sortField];
+
+      // Handle nested branch sorting
+      if (sortField === 'branch') {
+        valA = a.branch?.name || '';
+        valB = b.branch?.name || '';
+      }
+
+      if (typeof valA === 'string') {
+        return sortDirection === 'asc' 
+          ? valA.localeCompare(valB) 
+          : valB.localeCompare(valA);
+      }
+
+      // Numeric comparison
+      valA = valA ?? 0;
+      valB = valB ?? 0;
+      return sortDirection === 'asc' ? valA - valB : valB - valA;
+    });
+    return list;
+  }, [rankedVendedores, sortField, sortDirection]);
+
+  const getRankBadge = (rank: number) => {
+    switch (rank) {
       case 1:
-        return <span className="text-xl" title="2º Lugar">🥈</span>;
+        return <span className="text-xl" title="1º Lugar">🥇</span>;
       case 2:
+        return <span className="text-xl" title="2º Lugar">🥈</span>;
+      case 3:
         return <span className="text-xl" title="3º Lugar">🥉</span>;
       default:
-        return <span className="text-xs font-semibold text-muted-foreground bg-muted w-6 h-6 rounded-full flex items-center justify-center mx-auto">#{index + 1}</span>;
+        return <span className="text-xs font-semibold text-muted-foreground bg-muted w-6 h-6 rounded-full flex items-center justify-center mx-auto">#{rank}</span>;
     }
+  };
+
+  const renderSortHeader = (label: string, field: string, align: 'center' | 'left' | 'right' = 'left') => {
+    const isSorted = sortField === field;
+    return (
+      <th 
+        onClick={() => handleSort(field)}
+        className={`py-3 px-4 cursor-pointer select-none hover:bg-muted/60 transition-colors ${
+          align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left'
+        }`}
+      >
+        <div className={`flex items-center gap-1 ${
+          align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start'
+        }`}>
+          <span>{label}</span>
+          {isSorted ? (
+            sortDirection === 'asc' ? (
+              <ChevronUp className="w-3.5 h-3.5 text-primary" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-primary" />
+            )
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-muted-foreground" />
+          )}
+        </div>
+      </th>
+    );
   };
 
   return (
@@ -94,6 +198,43 @@ export default function RankingPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Ranking de Vendedores</h1>
           <p className="text-muted-foreground text-sm mt-1">Acompanhe e compare o desempenho comercial da equipe</p>
+        </div>
+
+        {/* Metric Selector Tabs */}
+        <div className="bg-muted p-1 rounded-xl flex items-center gap-1 self-start md:self-auto shadow-inner border border-border/50">
+          <button
+            onClick={() => handleRankingMetricChange('salesCount')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+              rankingMetric === 'salesCount'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Trophy className={`w-3.5 h-3.5 ${rankingMetric === 'salesCount' ? 'text-amber-500' : ''}`} />
+            Vendas
+          </button>
+          <button
+            onClick={() => handleRankingMetricChange('salesValue')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+              rankingMetric === 'salesValue'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <DollarSign className={`w-3.5 h-3.5 ${rankingMetric === 'salesValue' ? 'text-emerald-500' : ''}`} />
+            Faturado
+          </button>
+          <button
+            onClick={() => handleRankingMetricChange('conversionRate')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
+              rankingMetric === 'conversionRate'
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <TrendingUp className={`w-3.5 h-3.5 ${rankingMetric === 'conversionRate' ? 'text-blue-500' : ''}`} />
+            Conversão
+          </button>
         </div>
       </div>
 
@@ -175,20 +316,20 @@ export default function RankingPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
-                <tr className="border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <tr className="border-b border-border bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider select-none">
                   <th className="py-3 px-4 text-center w-16">Posição</th>
-                  <th className="py-3 px-4">Vendedor</th>
-                  <th className="py-3 px-4">Filial</th>
-                  <th className="py-3 px-4 text-center">Leads Adicionados</th>
-                  <th className="py-3 px-4 text-center">Leads Vinculados</th>
-                  <th className="py-3 px-4 text-center">Contatos (Interações)</th>
-                  <th className="py-3 px-4 text-center">Conversão</th>
-                  <th className="py-3 px-4 text-center">Vendas</th>
-                  <th className="py-3 px-4 text-right">Faturado</th>
+                  {renderSortHeader('Vendedor', 'name', 'left')}
+                  {renderSortHeader('Filial', 'branch', 'left')}
+                  {renderSortHeader('Leads Adicionados', 'leadsCreatedCount', 'center')}
+                  {renderSortHeader('Leads Vinculados', 'leadsLinkedCount', 'center')}
+                  {renderSortHeader('Contatos (Interações)', 'interactionsCount', 'center')}
+                  {renderSortHeader('Conversão', 'conversionRate', 'center')}
+                  {renderSortHeader('Vendas', 'salesCount', 'center')}
+                  {renderSortHeader('Faturado', 'salesValue', 'right')}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
-                {vendedores.map((v: any, index: number) => {
+                {sortedVendedores.map((v: any) => {
                   const isCurrentUser = user?.id === v.userId;
                   return (
                     <tr 
@@ -196,7 +337,7 @@ export default function RankingPage() {
                       className={`hover:bg-muted/30 transition-colors duration-150 ${isCurrentUser ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}
                     >
                       <td className="py-3.5 px-4 text-center align-middle">
-                        {getRankBadge(index)}
+                        {getRankBadge(v.rankIndex)}
                       </td>
                       <td className="py-3.5 px-4 align-middle">
                         <div className="flex items-center gap-2">
@@ -221,17 +362,17 @@ export default function RankingPage() {
                       <td className="py-3.5 px-4 text-center align-middle text-sm text-foreground font-semibold">
                         {v.interactionsCount || 0}
                       </td>
-                      <td className="py-3.5 px-4 text-center align-middle">
+                      <td className={`py-3.5 px-4 text-center align-middle transition-colors duration-150 ${rankingMetric === 'conversionRate' ? 'bg-muted/10' : ''}`}>
                         <span className="text-sm font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-full border border-warning/20">
                           {v.conversionRate}%
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center align-middle">
+                      <td className={`py-3.5 px-4 text-center align-middle transition-colors duration-150 ${rankingMetric === 'salesCount' ? 'bg-muted/10' : ''}`}>
                         <span className="text-sm font-bold text-success bg-success/10 px-2.5 py-1 rounded-full border border-success/20">
                           {v.salesCount || 0}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right align-middle text-sm font-bold text-emerald-600">
+                      <td className={`py-3.5 px-4 text-right align-middle text-sm font-bold text-emerald-600 transition-colors duration-150 ${rankingMetric === 'salesValue' ? 'bg-muted/10' : ''}`}>
                         {v.salesValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </td>
                     </tr>
