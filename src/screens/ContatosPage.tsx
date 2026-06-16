@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, 
   Calendar, Trash2, Pencil, RotateCcw, AlertCircle, Plus, Check,
@@ -68,6 +68,14 @@ export default function ContatosPage() {
   const [filterPhone, setFilterPhone] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterProductType, setFilterProductType] = useState('todos');
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Reset page on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, activeTab, filterName, filterPhone, filterStatus, filterProductType]);
 
   // Queries
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
@@ -156,6 +164,12 @@ export default function ContatosPage() {
 
     return matchesSearch && matchesName && matchesPhone && matchesStatus && matchesProductType;
   });
+
+  // Pagination calculation
+  const itemsPerPage = 50;
+  const totalPages = Math.ceil(filteredLeads.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedLeads = filteredLeads.slice(startIndex, startIndex + itemsPerPage);
 
   // Mutações
   const updateLeadStatusMutation = useMutation({
@@ -477,9 +491,9 @@ export default function ContatosPage() {
             <tbody className="divide-y divide-border/30">
               {isLoadingLeads ? (
                 <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Carregando leads vinculados...</td></tr>
-              ) : filteredLeads.length === 0 ? (
+              ) : paginatedLeads.length === 0 ? (
                 <tr><td colSpan={7} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado nesta aba.</td></tr>
-              ) : filteredLeads.map((lead: any) => {
+              ) : paginatedLeads.map((lead: any) => {
                 const lastInteraction = lead.interactions?.[0];
                 
                 return (
@@ -610,6 +624,66 @@ export default function ContatosPage() {
               })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border/50 bg-card/50">
+          <p className="text-xs text-muted-foreground">
+            Mostrando <span className="font-semibold text-foreground">{filteredLeads.length === 0 ? 0 : startIndex + 1}</span> a{' '}
+            <span className="font-semibold text-foreground">
+              {Math.min(startIndex + itemsPerPage, filteredLeads.length)}
+            </span>{' '}
+            de <span className="font-semibold text-foreground">{filteredLeads.length}</span> contatos
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                  let pageNumber = idx + 1;
+                  if (totalPages > 5 && currentPage > 3) {
+                    pageNumber = currentPage + idx - 2;
+                    if (currentPage + 2 > totalPages) {
+                      pageNumber = totalPages - 4 + idx;
+                    }
+                  }
+                  return (
+                    <Button
+                      key={pageNumber}
+                      type="button"
+                      variant={currentPage === pageNumber ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === pageNumber ? 'gradient-primary text-primary-foreground font-semibold' : ''}`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Próximo
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 

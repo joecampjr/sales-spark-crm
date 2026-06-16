@@ -67,6 +67,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   seller    Seller?
+
+  @@index([companyId])
+  @@index([branchId])
 }
 
 model Seller {
@@ -104,6 +107,9 @@ model Seller {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([branchId])
 }
 
 model Lead {
@@ -139,6 +145,13 @@ model Lead {
   actionLeads  SalesActionLead[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+
+  @@index([companyId])
+  @@index([branchId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([phone])
+  @@index([cpf])
 }
 
 model Interaction {
@@ -158,6 +171,10 @@ model Interaction {
   scheduledFor DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([sellerId])
+  @@index([companyId])
 }
 
 model Visit {
@@ -179,6 +196,10 @@ model Visit {
   authorizedAt   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  @@index([leadId])
+  @@index([sellerId])
+  @@index([companyId])
 }
 
 model SalesAction {

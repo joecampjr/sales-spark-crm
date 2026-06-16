@@ -67,6 +67,9 @@ export default function LeadsPage() {
   const [filterCpf, setFilterCpf] = useState('');
   const [filterBranchId, setFilterBranchId] = useState('todos');
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -197,6 +200,10 @@ export default function LeadsPage() {
       }
     }
   }, [user, mySeller]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, filterName, filterPhone, filterCpf, filterBranchId]);
 
   const handleVincular = (leadId: string) => {
     if (!userSeller) {
@@ -523,6 +530,12 @@ export default function LeadsPage() {
         : (bValue > aValue ? 1 : -1);
     }
   });
+
+  // Pagination calculation
+  const itemsPerPage = 50;
+  const totalPages = Math.ceil(sortedLeads.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedLeads = sortedLeads.slice(startIndex, startIndex + itemsPerPage);
 
   const columns = [
     { label: 'Nome', key: 'name' },
@@ -870,12 +883,14 @@ export default function LeadsPage() {
                   <th className="py-3 px-4 w-10">
                     <input 
                       type="checkbox"
-                      checked={leads.length > 0 && selectedLeadIds.length === leads.length}
+                      checked={paginatedLeads.length > 0 && paginatedLeads.every((l: any) => selectedLeadIds.includes(l.id))}
                       onChange={(e) => {
                         if (e.target.checked) {
-                          setSelectedLeadIds(leads.map((l: any) => l.id));
+                          const toAdd = paginatedLeads.map((l: any) => l.id);
+                          setSelectedLeadIds(prev => [...new Set([...prev, ...toAdd])]);
                         } else {
-                          setSelectedLeadIds([]);
+                          const toRemove = paginatedLeads.map((l: any) => l.id);
+                          setSelectedLeadIds(prev => prev.filter(id => !toRemove.includes(id)));
                         }
                       }}
                       className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
@@ -908,9 +923,9 @@ export default function LeadsPage() {
             <tbody>
               {isLoading ? (
                 <tr><td colSpan={canDelete ? 11 : 10} className="py-8 text-center text-muted-foreground">Carregando leads...</td></tr>
-              ) : sortedLeads.length === 0 ? (
+              ) : paginatedLeads.length === 0 ? (
                 <tr><td colSpan={canDelete ? 11 : 10} className="py-8 text-center text-muted-foreground">Nenhum lead encontrado.</td></tr>
-              ) : sortedLeads.map((lead: any) => (
+              ) : paginatedLeads.map((lead: any) => (
                 <tr 
                   key={lead.id} 
                   className={`table-row-hover border-b border-border/30 last:border-0 cursor-pointer ${
@@ -1053,6 +1068,66 @@ export default function LeadsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-border/50 bg-card/50">
+          <p className="text-xs text-muted-foreground">
+            Mostrando <span className="font-semibold text-foreground">{sortedLeads.length === 0 ? 0 : startIndex + 1}</span> a{' '}
+            <span className="font-semibold text-foreground">
+              {Math.min(startIndex + itemsPerPage, sortedLeads.length)}
+            </span>{' '}
+            de <span className="font-semibold text-foreground">{sortedLeads.length}</span> leads
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Anterior
+              </Button>
+              
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, idx) => {
+                  let pageNumber = idx + 1;
+                  if (totalPages > 5 && currentPage > 3) {
+                    pageNumber = currentPage + idx - 2;
+                    if (currentPage + 2 > totalPages) {
+                      pageNumber = totalPages - 4 + idx;
+                    }
+                  }
+                  return (
+                    <Button
+                      key={pageNumber}
+                      type="button"
+                      variant={currentPage === pageNumber ? 'default' : 'outline'}
+                      size="sm"
+                      className={`h-8 w-8 p-0 text-xs ${currentPage === pageNumber ? 'gradient-primary text-primary-foreground font-semibold' : ''}`}
+                      onClick={() => setCurrentPage(pageNumber)}
+                    >
+                      {pageNumber}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages}
+              >
+                Próximo
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
