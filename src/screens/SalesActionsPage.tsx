@@ -467,9 +467,9 @@ export default function SalesActionsPage() {
                 <div className="space-y-2">
                   <Label>Resumo Geral do Resultado</Label>
                   <select name="reportResult" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-                    <option value="Sucesso">Sucesso - Meta Atingida</option>
-                    <option value="Parcial">Parcial - Meta não atingida</option>
                     <option value="Fracasso">Fracasso - Resultados insatisfatórios</option>
+                    <option value="Parcial">Parcial - Meta não atingida</option>
+                    <option value="Sucesso">Sucesso - Meta Atingida</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -496,10 +496,10 @@ export default function SalesActionsPage() {
                       <div className="flex justify-between items-center">
                         <p className="text-sm font-bold">{tl.lead?.name}</p>
                         <select name={`result-${tl.leadId}`} required className="h-8 text-xs rounded-md border px-2">
-                          <option value="Vendido">Vendido</option>
                           <option value="Interessado">Interessado</option>
-                          <option value="Sem Interesse">Sem Interesse</option>
                           <option value="Ninguém no Local">Ninguém no Local</option>
+                          <option value="Sem Interesse">Sem Interesse</option>
+                          <option value="Vendido">Vendido</option>
                         </select>
                       </div>
                       <Input name={`feedback-${tl.leadId}`} placeholder="Feedback específico deste lead..." className="text-xs h-8" />

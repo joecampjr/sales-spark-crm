@@ -301,19 +301,19 @@ export default function VisitasPage() {
                     <Label>Resultado da Visita <span className="text-destructive">*</span></Label>
                     <select name="result" required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                       <option value="">Selecione...</option>
-                      <option value="Interessado">Interessado</option>
-                      <option value="Em negociação">Em negociação</option>
-                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                       <option value="Agendou visita">Agendou visita</option>
-                      <option value="Solicitou orçamento">Solicitou orçamento</option>
-                      <option value="Muito caro">Muito caro</option>
-                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
-                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                       <option value="Comprou do concorrente">Comprou do concorrente</option>
-                      <option value="Não respondeu">Não respondeu</option>
-                      <option value="Não atendeu">Não atendeu</option>
                       <option value="Contato não atualizado">Contato não atualizado</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Interessado">Interessado</option>
+                      <option value="Muito caro">Muito caro</option>
+                      <option value="Não atendeu">Não atendeu</option>
+                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                       <option value="Outros">Outros</option>
+                      <option value="Solicitou orçamento">Solicitou orçamento</option>
+                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                     </select>
                   </div>
                 )}
@@ -476,9 +476,9 @@ export default function VisitasPage() {
                     >
                       <option value="aguardando_autorizacao">Aguardando Autorização</option>
                       <option value="autorizada">Autorizada</option>
+                      <option value="cancelada">Cancelada</option>
                       <option value="realizada">Realizada</option>
                       <option value="recusada">Recusada</option>
-                      <option value="cancelada">Cancelada</option>
                     </select>
                   </div>
                 )}
@@ -487,19 +487,19 @@ export default function VisitasPage() {
                     <Label>Resultado da Visita <span className="text-destructive">*</span></Label>
                     <select name="result" defaultValue={editingVisit.result || ''} required className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                       <option value="">Selecione...</option>
-                      <option value="Interessado">Interessado</option>
-                      <option value="Em negociação">Em negociação</option>
-                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                       <option value="Agendou visita">Agendou visita</option>
-                      <option value="Solicitou orçamento">Solicitou orçamento</option>
-                      <option value="Muito caro">Muito caro</option>
-                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
-                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                       <option value="Comprou do concorrente">Comprou do concorrente</option>
-                      <option value="Não respondeu">Não respondeu</option>
-                      <option value="Não atendeu">Não atendeu</option>
                       <option value="Contato não atualizado">Contato não atualizado</option>
+                      <option value="Em negociação">Em negociação</option>
+                      <option value="Interessado">Interessado</option>
+                      <option value="Muito caro">Muito caro</option>
+                      <option value="Não atendeu">Não atendeu</option>
+                      <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                      <option value="Não respondeu">Não respondeu</option>
+                      <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                       <option value="Outros">Outros</option>
+                      <option value="Solicitou orçamento">Solicitou orçamento</option>
+                      <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                     </select>
                   </div>
                 )}

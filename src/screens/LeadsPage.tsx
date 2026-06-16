@@ -620,21 +620,21 @@ export default function LeadsPage() {
                       onChange={(e) => setNewStatus(e.target.value)}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="novo">Novo</option>
-                      <option value="em_negociacao">Em Negociação</option>
-                      <option value="contato_realizado">Contato Realizado</option>
                       <option value="aguardando_produto">Aguardando Produto Chegar</option>
-                      <option value="vendido">Vendido</option>
-                      <option value="perdido">Perdido</option>
                       <option value="contato_nao_atualizado">Contato Não Atualizado</option>
+                      <option value="contato_realizado">Contato Realizado</option>
+                      <option value="em_negociacao">Em Negociação</option>
+                      <option value="novo">Novo</option>
+                      <option value="perdido">Perdido</option>
+                      <option value="vendido">Vendido</option>
                     </select>
                   </div>
                   <div className="space-y-2">
                     <Label>Prioridade</Label>
                     <select name="priority" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                      <option value="alta">Alta</option>
                       <option value="baixa">Baixa</option>
                       <option value="media">Média</option>
-                      <option value="alta">Alta</option>
                       <option value="urgente">Urgente</option>
                     </select>
                   </div>
@@ -701,13 +701,13 @@ export default function LeadsPage() {
                   <div className="space-y-2">
                     <Label>Origem</Label>
                     <select name="source" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                      <option value="Loja Física">Loja Física</option>
-                      <option value="Visita Externa">Visita Externa</option>
                       <option value="Indicação">Indicação</option>
-                      <option value="Site">Site</option>
-                      <option value="Redes Sociais">Redes Sociais</option>
-                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Loja Física">Loja Física</option>
                       <option value="Outros">Outros</option>
+                      <option value="Redes Sociais">Redes Sociais</option>
+                      <option value="Site">Site</option>
+                      <option value="Visita Externa">Visita Externa</option>
+                      <option value="WhatsApp">WhatsApp</option>
                     </select>
                   </div>
                   <div className="space-y-2">
@@ -1118,21 +1118,21 @@ export default function LeadsPage() {
                     onChange={(e) => setEditStatus(e.target.value)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <option value="novo">Novo</option>
-                    <option value="em_negociacao">Em Negociação</option>
-                    <option value="contato_realizado">Contato Realizado</option>
                     <option value="aguardando_produto">Aguardando Produto Chegar</option>
-                    <option value="vendido">Vendido</option>
-                    <option value="perdido">Perdido</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado</option>
+                    <option value="contato_realizado">Contato Realizado</option>
+                    <option value="em_negociacao">Em Negociação</option>
+                    <option value="novo">Novo</option>
+                    <option value="perdido">Perdido</option>
+                    <option value="vendido">Vendido</option>
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label>Prioridade</Label>
                   <select name="priority" defaultValue={editingLead.priority} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
+                    <option value="alta">Alta</option>
                     <option value="baixa">Baixa</option>
                     <option value="media">Média</option>
-                    <option value="alta">Alta</option>
                     <option value="urgente">Urgente</option>
                   </select>
                 </div>
@@ -1202,13 +1202,13 @@ export default function LeadsPage() {
                 <div className="space-y-2">
                   <Label>Origem</Label>
                   <select name="source" defaultValue={editingLead.source} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50">
-                    <option value="Loja Física">Loja Física</option>
-                    <option value="Visita Externa">Visita Externa</option>
                     <option value="Indicação">Indicação</option>
-                    <option value="Site">Site</option>
-                    <option value="Redes Sociais">Redes Sociais</option>
-                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Loja Física">Loja Física</option>
                     <option value="Outros">Outros</option>
+                    <option value="Redes Sociais">Redes Sociais</option>
+                    <option value="Site">Site</option>
+                    <option value="Visita Externa">Visita Externa</option>
+                    <option value="WhatsApp">WhatsApp</option>
                   </select>
                 </div>
                 <div className="space-y-2">
@@ -1275,21 +1275,21 @@ export default function LeadsPage() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="">Nenhum (Não especificado)</option>
-                    <option value="cama">Cama</option>
-                    <option value="guarda roupas">Guarda Roupas</option>
-                    <option value="armário">Armário</option>
-                    <option value="mesa">Mesa</option>
-                    <option value="estofado">Estofado</option>
-                    <option value="painel">Painel</option>
-                    <option value="home">Home</option>
                     <option value="acessórios">Acessórios</option>
-                    <option value="eletrodoméstico">Eletrodoméstico</option>
                     <option value="antena">Antena</option>
-                    <option value="cadeira">Cadeira</option>
-                    <option value="cabeceira">Cabeceira</option>
+                    <option value="armário">Armário</option>
                     <option value="buffet">Buffet</option>
+                    <option value="cabeceira">Cabeceira</option>
+                    <option value="cadeira">Cadeira</option>
+                    <option value="cama">Cama</option>
                     <option value="colchão">Colchão</option>
+                    <option value="eletrodoméstico">Eletrodoméstico</option>
+                    <option value="estofado">Estofado</option>
+                    <option value="guarda roupas">Guarda Roupas</option>
+                    <option value="home">Home</option>
+                    <option value="mesa">Mesa</option>
                     <option value="outros">Outros</option>
+                    <option value="painel">Painel</option>
                   </select>
                 </div>
               </div>

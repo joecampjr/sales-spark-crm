@@ -418,13 +418,13 @@ export default function ContatosPage() {
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="todos">Todos os Status</option>
-            <option value="novo">Novo</option>
-            <option value="em_negociacao">Em Negociação</option>
-            <option value="contato_realizado">Contato Realizado</option>
             <option value="aguardando_produto">Aguardando Produto Chegar</option>
-            <option value="vendido">Vendido</option>
-            <option value="perdido">Perdido</option>
             <option value="contato_nao_atualizado">Contato Não Atualizado</option>
+            <option value="contato_realizado">Contato Realizado</option>
+            <option value="em_negociacao">Em Negociação</option>
+            <option value="novo">Novo</option>
+            <option value="perdido">Perdido</option>
+            <option value="vendido">Vendido</option>
           </select>
         </div>
         <div className="space-y-1.5">
@@ -436,21 +436,21 @@ export default function ContatosPage() {
           >
             <option value="todos">Todos os Produtos</option>
             <option value="sem_produto">Sem Produto Especificado</option>
-            <option value="cama">Cama</option>
-            <option value="guarda roupas">Guarda Roupas</option>
-            <option value="armário">Armário</option>
-            <option value="mesa">Mesa</option>
-            <option value="estofado">Estofado</option>
-            <option value="painel">Painel</option>
-            <option value="home">Home</option>
             <option value="acessórios">Acessórios</option>
-            <option value="eletrodoméstico">Eletrodoméstico</option>
             <option value="antena">Antena</option>
-            <option value="cadeira">Cadeira</option>
-            <option value="cabeceira">Cabeceira</option>
+            <option value="armário">Armário</option>
             <option value="buffet">Buffet</option>
+            <option value="cabeceira">Cabeceira</option>
+            <option value="cadeira">Cadeira</option>
+            <option value="cama">Cama</option>
             <option value="colchão">Colchão</option>
+            <option value="eletrodoméstico">Eletrodoméstico</option>
+            <option value="estofado">Estofado</option>
+            <option value="guarda roupas">Guarda Roupas</option>
+            <option value="home">Home</option>
+            <option value="mesa">Mesa</option>
             <option value="outros">Outros</option>
+            <option value="painel">Painel</option>
           </select>
         </div>
       </div>
@@ -637,11 +637,11 @@ export default function ContatosPage() {
                     required 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="ligacao">Ligação</option>
-                    <option value="whatsapp">WhatsApp</option>
                     <option value="email">E-mail</option>
-                    <option value="visita">Visita externa</option>
+                    <option value="ligacao">Ligação</option>
                     <option value="loja_fisica">Loja Física</option>
+                    <option value="visita">Visita externa</option>
+                    <option value="whatsapp">WhatsApp</option>
                   </select>
                 </div>
 
@@ -655,20 +655,20 @@ export default function ContatosPage() {
                     required 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="Interessado">Interessado</option>
-                    <option value="Em negociação">Em negociação</option>
-                    <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                     <option value="Aguardando produto chegar">Aguardando produto chegar</option>
                     <option value="Agendou visita">Agendou visita</option>
-                    <option value="Solicitou orçamento">Solicitou orçamento</option>
-                    <option value="Muito caro">Muito caro</option>
-                    <option value="Não gostou da qualidade">Não gostou da qualidade</option>
-                    <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                     <option value="Comprou do concorrente">Comprou do concorrente</option>
-                    <option value="Não respondeu">Não respondeu</option>
-                    <option value="Não atendeu">Não atendeu</option>
                     <option value="Contato não atualizado">Contato não atualizado</option>
+                    <option value="Em negociação">Em negociação</option>
+                    <option value="Interessado">Interessado</option>
+                    <option value="Muito caro">Muito caro</option>
+                    <option value="Não atendeu">Não atendeu</option>
+                    <option value="Não gostou da qualidade">Não gostou da qualidade</option>
+                    <option value="Não respondeu">Não respondeu</option>
+                    <option value="Não tinha o produto desejado">Não tinha o produto desejado</option>
                     <option value="Outros">Outros</option>
+                    <option value="Solicitou orçamento">Solicitou orçamento</option>
+                    <option value="Vendido / Sucesso">Vendido / Sucesso</option>
                   </select>
                 </div>
 
@@ -682,13 +682,13 @@ export default function ContatosPage() {
                     required 
                     className="flex h-10 w-full rounded-md border border-primary bg-primary/5 px-3 py-2 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="novo">Novo</option>
-                    <option value="em_negociacao">Em Negociação</option>
-                    <option value="contato_realizado">Contato Realizado</option>
                     <option value="aguardando_produto">Aguardando Produto Chegar (Não ocupa limite)</option>
-                    <option value="vendido">Vendido (Fecha espaço limite)</option>
-                    <option value="perdido">Perdido (Fecha espaço limite)</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado (Fecha espaço limite)</option>
+                    <option value="contato_realizado">Contato Realizado</option>
+                    <option value="em_negociacao">Em Negociação</option>
+                    <option value="novo">Novo</option>
+                    <option value="perdido">Perdido (Fecha espaço limite)</option>
+                    <option value="vendido">Vendido (Fecha espaço limite)</option>
                   </select>
                 </div>
 
@@ -783,21 +783,21 @@ export default function ContatosPage() {
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="">Selecione o tipo de produto...</option>
-                      <option value="cama">Cama</option>
-                      <option value="guarda roupas">Guarda Roupas</option>
-                      <option value="armário">Armário</option>
-                      <option value="mesa">Mesa</option>
-                      <option value="estofado">Estofado</option>
-                      <option value="painel">Painel</option>
-                      <option value="home">Home</option>
                       <option value="acessórios">Acessórios</option>
-                      <option value="eletrodoméstico">Eletrodoméstico</option>
                       <option value="antena">Antena</option>
-                      <option value="cadeira">Cadeira</option>
-                      <option value="cabeceira">Cabeceira</option>
+                      <option value="armário">Armário</option>
                       <option value="buffet">Buffet</option>
+                      <option value="cabeceira">Cabeceira</option>
+                      <option value="cadeira">Cadeira</option>
+                      <option value="cama">Cama</option>
                       <option value="colchão">Colchão</option>
+                      <option value="eletrodoméstico">Eletrodoméstico</option>
+                      <option value="estofado">Estofado</option>
+                      <option value="guarda roupas">Guarda Roupas</option>
+                      <option value="home">Home</option>
+                      <option value="mesa">Mesa</option>
                       <option value="outros">Outros</option>
+                      <option value="painel">Painel</option>
                     </select>
                   </div>
                 )}
