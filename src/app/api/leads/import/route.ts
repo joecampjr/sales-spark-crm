@@ -43,10 +43,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Nenhum lead encontrado' }, { status: 400 });
     }
 
-    // Upsert para ignorar duplicatas baseado no telefone
+    // 1. Pre-fetch reference data (branches and sellers)
+    const branches = await prisma.branch.findMany({
+      where: companyId ? { companyId } : {}
+    });
+
+    const sellers = await prisma.seller.findMany({
+      where: companyId ? { companyId } : {}
+    });
+
+    // 2. Pre-fetch existing leads based on phone numbers and CPFs to minimize DB queries
+    const phoneNumbers = leads
+      .map(l => l.phone ? l.phone.replace(/\D/g, '') : '')
+      .filter(Boolean);
+    const cpfs = leads
+      .map(l => l.cpf ? l.cpf.replace(/\D/g, '') : '')
+      .filter(Boolean);
+
+    const existingLeads = await prisma.lead.findMany({
+      where: {
+        companyId,
+        OR: [
+          { phone: { in: phoneNumbers } },
+          { cpf: { in: cpfs } }
+        ]
+      }
+    });
+
     let imported = 0;
     let updated = 0;
 
+    // Use a higher timeout of 60 seconds for larger import files
     await prisma.$transaction(async (tx) => {
       for (const lead of leads) {
         if (!lead.phone) continue; // Exige telefone
@@ -64,85 +91,46 @@ export async function POST(request: Request) {
             cleanedCpf = rawCpf;
           }
         }
-        // Resolve branchId (pode vir como UUID ou como Nome da filial, ex: "VN")
+        // Resolve branchId in-memory (pode vir como UUID ou como Nome da filial, ex: "VN")
         let finalBranchId: string | null = null;
         if (lead.branchId) {
           const trimmedBranch = lead.branchId.trim();
           if (trimmedBranch) {
-            // 1. Tenta buscar por ID (UUID)
-            const branchById = await tx.branch.findFirst({
-              where: {
-                id: trimmedBranch,
-                companyId: companyId
-              }
-            });
-            if (branchById) {
-              finalBranchId = branchById.id;
+            const foundBranch = branches.find(b => 
+              b.id === trimmedBranch || 
+              b.name.toLowerCase() === trimmedBranch.toLowerCase()
+            );
+            if (foundBranch) {
+              finalBranchId = foundBranch.id;
             } else {
-              // 2. Tenta buscar por Nome (ex: "VN")
-              const branchByName = await tx.branch.findFirst({
-                where: {
-                  name: {
-                    equals: trimmedBranch,
-                    mode: 'insensitive'
-                  },
-                  companyId: companyId
-                }
-              });
-              if (branchByName) {
-                finalBranchId = branchByName.id;
-              } else {
-                throw new Error(`A filial "${trimmedBranch}" não foi encontrada no sistema.`);
-              }
+              throw new Error(`A filial "${trimmedBranch}" não foi encontrada no sistema.`);
             }
           }
         }
 
-        // Resolve sellerId (pode vir como UUID ou como Nome do vendedor)
+        // Resolve sellerId in-memory (pode vir como UUID ou como Nome do vendedor)
         let finalSellerId: string | null = null;
         if (lead.sellerId) {
           const trimmedSeller = lead.sellerId.trim();
           if (trimmedSeller) {
-            // 1. Tenta buscar por ID (UUID)
-            const sellerById = await tx.seller.findFirst({
-              where: {
-                id: trimmedSeller,
-                companyId: companyId
-              }
-            });
-            if (sellerById) {
-              finalSellerId = sellerById.id;
+            const foundSeller = sellers.find(s => 
+              s.id === trimmedSeller || 
+              s.name.toLowerCase() === trimmedSeller.toLowerCase()
+            );
+            if (foundSeller) {
+              finalSellerId = foundSeller.id;
             } else {
-              // 2. Tenta buscar por Nome
-              const sellerByName = await tx.seller.findFirst({
-                where: {
-                  name: {
-                    equals: trimmedSeller,
-                    mode: 'insensitive'
-                  },
-                  companyId: companyId
-                }
-              });
-              if (sellerByName) {
-                finalSellerId = sellerByName.id;
-              } else {
-                throw new Error(`O vendedor "${trimmedSeller}" não foi encontrado no sistema.`);
-              }
+              throw new Error(`O vendedor "${trimmedSeller}" não foi encontrado no sistema.`);
             }
           }
         }
 
-        // Upsert baseado em Telefone OU CPF (se fornecido) para ignorar/atualizar duplicatas
-        const orConditions: any[] = [{ phone: cleanedPhone }];
-        if (cleanedCpf) {
-          orConditions.push({ cpf: cleanedCpf });
-        }
-        const existing = await tx.lead.findFirst({
-          where: {
-            OR: orConditions,
-            companyId: companyId
-          }
-        });
+        // Find existing lead in-memory (based on Phone or CPF)
+        const existingIndex = existingLeads.findIndex(el => 
+          el.phone === cleanedPhone || 
+          (cleanedCpf !== null && el.cpf === cleanedCpf)
+        );
+        const existing = existingIndex !== -1 ? existingLeads[existingIndex] : null;
         
         let cleanedBirthday: string | null = null;
         if (lead.birthday) {
@@ -181,7 +169,7 @@ export async function POST(request: Request) {
 
         if (existing) {
           // Atualiza dados
-          await tx.lead.update({
+          const updatedLead = await tx.lead.update({
             where: { id: existing.id },
             data: {
               name: lead.name,
@@ -202,9 +190,12 @@ export async function POST(request: Request) {
               lastPurchaseDate: finalLastPurchaseDate !== null ? finalLastPurchaseDate : existing.lastPurchaseDate,
             }
           });
+          
+          // Mapeia atualização no cache em memória para evitar falsos positivos
+          existingLeads[existingIndex] = updatedLead;
           updated++;
         } else {
-          await tx.lead.create({
+          const newLead = await tx.lead.create({
             data: {
               name: lead.name,
               phone: cleanedPhone,
@@ -227,9 +218,15 @@ export async function POST(request: Request) {
               lastPurchaseDate: finalLastPurchaseDate,
             }
           });
+
+          // Adiciona ao cache em memória para caso o CSV tenha múltiplos do mesmo lead
+          existingLeads.push(newLead);
           imported++;
         }
       }
+    }, {
+      maxWait: 10000,
+      timeout: 60000
     });
 
     return NextResponse.json({ message: `Sucesso. Importados: ${imported}, Atualizados: ${updated}` });
