@@ -160,10 +160,14 @@ export default function ContatosPage() {
   // Mutações
   const updateLeadStatusMutation = useMutation({
     mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType, productType }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string; productType?: string | null }) => {
+      const payload: any = { status, estimatedValue, paymentMode, downPayment, saleType };
+      if (productType !== undefined) {
+        payload.productType = productType;
+      }
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, estimatedValue, paymentMode, downPayment, saleType, productType })
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
@@ -265,7 +269,7 @@ export default function ContatosPage() {
         paymentMode,
         downPayment,
         saleType,
-        productType
+        productType: showProductType ? productType : undefined
       });
 
       // 3. Atualiza queries e notifica

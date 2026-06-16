@@ -16,7 +16,7 @@ const UpdateLeadSchema = z.object({
   saleType: z.string().nullable().optional(),
   source: z.string().optional(),
   sellerId: z.string().nullable().optional(),
-  cpf: z.string().optional(),
+  cpf: z.string().nullable().optional(),
   branchId: z.string().nullable().optional(),
   birthday: z.string().nullable().optional(),
   avgDelayDays: z.number().nullable().optional(),
