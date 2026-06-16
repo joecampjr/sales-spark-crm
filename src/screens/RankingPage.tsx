@@ -222,12 +222,12 @@ export default function RankingPage() {
                         {v.interactionsCount || 0}
                       </td>
                       <td className="py-3.5 px-4 text-center align-middle">
-                        <span className="text-sm font-bold text-warning-foreground bg-warning/10 px-2.5 py-1 rounded-full border border-warning/20">
+                        <span className="text-sm font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-full border border-warning/20">
                           {v.conversionRate}%
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center align-middle">
-                        <span className="text-sm font-bold text-success-foreground bg-success/10 px-2.5 py-1 rounded-full border border-success/20">
+                        <span className="text-sm font-bold text-success bg-success/10 px-2.5 py-1 rounded-full border border-success/20">
                           {v.salesCount || 0}
                         </span>
                       </td>
