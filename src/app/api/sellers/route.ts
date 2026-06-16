@@ -86,8 +86,14 @@ export async function GET(request: Request) {
     startOfToday.setHours(0, 0, 0, 0);
 
     const calculatedSellers = await Promise.all(sellers.map(async (seller) => {
-      // 1. Leads Vinculados (leads assigned to the seller in this period)
-      const leadWhere: any = { sellerId: seller.id };
+      // 1. Leads Vinculados (leads assigned to the seller in this period, but NOT created by them)
+      const leadWhere: any = { 
+        sellerId: seller.id,
+        NOT: [
+          { createdById: seller.userId },
+          { createdById: null, source: { notIn: ['CSV Import', 'CSV'] } }
+        ]
+      };
       if (startDate || endDate) {
         leadWhere.createdAt = {};
         if (startDate) leadWhere.createdAt.gte = startDate;
@@ -99,7 +105,11 @@ export async function GET(request: Request) {
       const createdWhere: any = {
         OR: [
           { createdById: seller.userId },
-          { createdById: null, sellerId: seller.id }
+          { 
+            createdById: null, 
+            sellerId: seller.id,
+            source: { notIn: ['CSV Import', 'CSV'] }
+          }
         ]
       };
       if (startDate || endDate) {
