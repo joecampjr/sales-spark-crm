@@ -442,44 +442,38 @@ export default function LeadsPage() {
     e.preventDefault();
     if (!editingLead) return;
     const fd = new FormData(e.currentTarget);
+    const status = fd.get('status');
 
-    if (isVendedor) {
-      const status = fd.get('status');
-      const payload: any = {
-        id: editingLead.id,
-        status,
-      };
-      if (status === 'vendido') {
-        payload.estimatedValue = Number(fd.get('estimatedValue')) || 0;
-        payload.paymentMode = fd.get('paymentMode') || null;
-        payload.downPayment = fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null;
-        payload.saleType = fd.get('saleType') || null;
-      }
-      updateMutation.mutate(payload);
-      return;
-    }
-
-    updateMutation.mutate({
+    const payload: any = {
       id: editingLead.id,
       name: fd.get('name'),
       phone: fd.get('phone'),
       city: fd.get('city'),
       state: fd.get('state'),
-      status: fd.get('status'),
+      status,
       priority: fd.get('priority'),
       estimatedValue: Number(fd.get('estimatedValue')) || 0,
-      paymentMode: fd.get('paymentMode') || null,
-      downPayment: fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null,
-      saleType: fd.get('saleType') || null,
       source: fd.get('source'),
       cpf: fd.get('cpf') || null,
-      branchId: fd.get('branchId') || null,
       sellerId: fd.get('sellerId') || null,
       birthday: fd.get('birthday') || null,
       avgDelayDays: fd.get('avgDelayDays') !== null && fd.get('avgDelayDays') !== '' ? Number(fd.get('avgDelayDays')) : null,
       route: fd.get('route') || null,
       lastPurchaseDate: fd.get('lastPurchaseDate') || null,
-    });
+      productType: fd.get('productType') || null,
+    };
+
+    if (!isVendedor) {
+      payload.branchId = fd.get('branchId') || null;
+    }
+
+    if (status === 'vendido') {
+      payload.paymentMode = fd.get('paymentMode') || null;
+      payload.downPayment = fd.get('downPayment') !== null && fd.get('downPayment') !== '' ? Number(fd.get('downPayment')) : null;
+      payload.saleType = fd.get('saleType') || null;
+    }
+
+    updateMutation.mutate(payload);
   };
 
   const handleDelete = () => {
