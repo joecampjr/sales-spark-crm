@@ -52,12 +52,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex font-sans">
       {/* Left panel - Commercial & Benefits */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-950 to-zinc-900 relative overflow-hidden flex-col justify-between p-16 border-r border-border/10">
+      <div className="dark text-slate-100 hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-slate-950 to-zinc-900 relative overflow-hidden flex-col justify-between p-16 border-r border-border/10">
         
         {/* Top Header */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
+            <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative bg-slate-950 border border-slate-800">
               <Image src="/logo.png" alt="Sales Spark Logo" width={40} height={40} className="object-contain" />
             </div>
             <span className="text-xl font-bold text-foreground tracking-tight">Sales Spark</span>
