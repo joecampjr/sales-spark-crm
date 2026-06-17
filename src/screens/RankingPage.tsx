@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { Trophy, TrendingUp, Target, Phone, Award, DollarSign, Briefcase, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trophy, TrendingUp, Target, Phone, Award, DollarSign, Briefcase, ChevronUp, ChevronDown, List, LayoutGrid, Coins, Users2 } from 'lucide-react';
 
 export default function RankingPage() {
   const { user } = useAuth();
@@ -14,8 +14,32 @@ export default function RankingPage() {
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
+  // View mode State: 'list' (Table) or 'cards' (Cards Scorecard)
+  const [viewMode, setViewMode] = useState<'list' | 'cards'>('list');
+
   // Ranking Metric State (defines how ranks are calculated)
   const [rankingMetric, setRankingMetric] = useState<'salesCount' | 'salesValue' | 'conversionRate'>('salesCount');
+
+  // Calculate the number of days in the active period for dynamic contacts meta
+  const numDays = useMemo(() => {
+    if (period === 'today' || period === 'yesterday') return 1;
+    if (period === '7days') return 7;
+    if (period === '30days') return 30;
+    
+    if (period === 'thisMonth') {
+      const now = new Date();
+      return now.getDate(); // Number of days in the month so far
+    }
+    
+    if (period === 'custom' && customStartDate && customEndDate) {
+      const start = new Date(customStartDate);
+      const end = new Date(customEndDate);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      return Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+    
+    return 30; // Fallback
+  }, [period, customStartDate, customEndDate]);
 
   // Sorting States
   const [sortField, setSortField] = useState<string>('salesCount');
@@ -189,47 +213,75 @@ export default function RankingPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Ranking de Vendedores</h1>
           <p className="text-muted-foreground text-sm mt-1">Acompanhe e compare o desempenho comercial da equipe</p>
         </div>
 
-        {/* Metric Selector Tabs */}
-        <div className="bg-muted p-1 rounded-xl flex items-center gap-1 self-start md:self-auto shadow-inner border border-border/50">
-          <button
-            onClick={() => handleRankingMetricChange('salesCount')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
-              rankingMetric === 'salesCount'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Trophy className={`w-3.5 h-3.5 ${rankingMetric === 'salesCount' ? 'text-amber-500' : ''}`} />
-            Vendas
-          </button>
-          <button
-            onClick={() => handleRankingMetricChange('salesValue')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
-              rankingMetric === 'salesValue'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <DollarSign className={`w-3.5 h-3.5 ${rankingMetric === 'salesValue' ? 'text-emerald-500' : ''}`} />
-            Faturado
-          </button>
-          <button
-            onClick={() => handleRankingMetricChange('conversionRate')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold transition-all duration-200 ${
-              rankingMetric === 'conversionRate'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <TrendingUp className={`w-3.5 h-3.5 ${rankingMetric === 'conversionRate' ? 'text-blue-500' : ''}`} />
-            Conversão
-          </button>
+        <div className="flex flex-wrap items-center gap-3 self-start lg:self-auto">
+          {/* View Mode Switcher (Lista / Cartões) */}
+          <div className="bg-muted p-1 rounded-xl flex items-center gap-1 shadow-inner border border-border/50">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                viewMode === 'list'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+              Lista
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                viewMode === 'cards'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              Cartões
+            </button>
+          </div>
+
+          {/* Metric Selector Tabs */}
+          <div className="bg-muted p-1 rounded-xl flex items-center gap-1 shadow-inner border border-border/50">
+            <button
+              onClick={() => handleRankingMetricChange('salesCount')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                rankingMetric === 'salesCount'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Trophy className={`w-3.5 h-3.5 ${rankingMetric === 'salesCount' ? 'text-amber-500' : ''}`} />
+              Vendas
+            </button>
+            <button
+              onClick={() => handleRankingMetricChange('salesValue')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                rankingMetric === 'salesValue'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <DollarSign className={`w-3.5 h-3.5 ${rankingMetric === 'salesValue' ? 'text-emerald-500' : ''}`} />
+              Faturado
+            </button>
+            <button
+              onClick={() => handleRankingMetricChange('conversionRate')}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                rankingMetric === 'conversionRate'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <TrendingUp className={`w-3.5 h-3.5 ${rankingMetric === 'conversionRate' ? 'text-blue-500' : ''}`} />
+              Conversão
+            </button>
+          </div>
         </div>
       </div>
 
@@ -293,21 +345,21 @@ export default function RankingPage() {
         )}
       </div>
 
-      {/* Leaderboard Table */}
-      <div className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm">
-        {isLoading ? (
-          <div className="text-center text-muted-foreground py-16">
-            <div className="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-primary rounded-full mb-3" role="status">
-              <span className="sr-only">Carregando...</span>
-            </div>
-            <p className="text-sm">Carregando classificação...</p>
+      {/* Leaderboard Table / Cards */}
+      {isLoading ? (
+        <div className="bg-card border border-border/50 rounded-xl p-16 text-center text-muted-foreground">
+          <div className="animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-primary rounded-full mb-3" role="status">
+            <span className="sr-only">Carregando...</span>
           </div>
-        ) : vendedores.length === 0 ? (
-          <div className="text-center text-muted-foreground py-16">
-            <Award className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
-            <p className="text-sm">Nenhum dado encontrado para o filtro selecionado.</p>
-          </div>
-        ) : (
+          <p className="text-sm">Carregando classificação...</p>
+        </div>
+      ) : vendedores.length === 0 ? (
+        <div className="bg-card border border-border/50 rounded-xl p-16 text-center text-muted-foreground">
+          <Award className="w-8 h-8 mx-auto text-muted-foreground/60 mb-2" />
+          <p className="text-sm">Nenhum dado encontrado para o filtro selecionado.</p>
+        </div>
+      ) : viewMode === 'list' ? (
+        <div className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left">
               <thead>
@@ -376,8 +428,182 @@ export default function RankingPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {sortedVendedores.map((v: any, index: number) => {
+            const isCurrentUser = user?.id === v.userId;
+            const metaMensalPercent = v.monthlyGoal > 0 ? (v.salesValue / v.monthlyGoal) * 100 : 0;
+            
+            const periodContactsTarget = (v.contactsTarget || 10) * numDays;
+            const contatosPercent = periodContactsTarget > 0 ? (v.interactionsCount / periodContactsTarget) * 100 : 0;
+            
+            const ticketMedio = v.salesCount > 0 ? v.salesValue / v.salesCount : 0;
+            
+            return (
+              <div
+                key={v.id}
+                className={`relative bg-card border rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${
+                  isCurrentUser 
+                    ? 'border-primary ring-1 ring-primary/20 bg-primary/[0.01]' 
+                    : 'border-border/50'
+                }`}
+                style={{ boxShadow: 'var(--shadow-sm)' }}
+              >
+                {/* Position Medal / Badge */}
+                <div className="absolute top-4 right-4">
+                  {getRankBadge(index + 1)}
+                </div>
+                
+                {/* Header info */}
+                <div className="flex items-start gap-3 mb-5 pr-8">
+                  <div className="bg-muted w-10 h-10 rounded-full flex items-center justify-center font-bold text-foreground text-sm uppercase">
+                    {v.name.slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-foreground text-sm leading-none">{v.name}</h3>
+                      {isCurrentUser && (
+                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                          Você
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">{v.email || 'Sem e-mail'}</p>
+                    <span className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border/30">
+                      {v.branch?.name || <span className="italic">Sem Filial</span>}
+                    </span>
+                  </div>
+                </div>
+
+                {/* KPI Metrics Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-6">
+                  {/* Vendas */}
+                  <div className={`p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3 transition-colors ${rankingMetric === 'salesCount' ? 'bg-amber-500/[0.03] border-amber-500/20' : ''}`}>
+                    <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+                      <Trophy className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-foreground leading-none">{v.salesCount || 0}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Vendas</p>
+                    </div>
+                  </div>
+
+                  {/* Faturado */}
+                  <div className={`p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3 transition-colors ${rankingMetric === 'salesValue' ? 'bg-emerald-500/[0.03] border-emerald-500/20' : ''}`}>
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-extrabold text-emerald-600 leading-none">
+                        {v.salesValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Faturado</p>
+                    </div>
+                  </div>
+
+                  {/* Conversão */}
+                  <div className={`p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3 transition-colors ${rankingMetric === 'conversionRate' ? 'bg-blue-500/[0.03] border-blue-500/20' : ''}`}>
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-foreground leading-none">{v.conversionRate}%</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Conversão</p>
+                    </div>
+                  </div>
+
+                  {/* Ticket Médio */}
+                  <div className="p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-500">
+                      <Coins className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-foreground leading-none">
+                        {ticketMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Tkt. Médio</p>
+                    </div>
+                  </div>
+
+                  {/* Contatos */}
+                  <div className="p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
+                      <Phone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-foreground leading-none">{v.interactionsCount || 0}</p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Contatos</p>
+                    </div>
+                  </div>
+
+                  {/* Leads (Adicionados / Vinculados) */}
+                  <div className="p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500">
+                      <Users2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-foreground leading-none">
+                        {v.leadsCreatedCount || 0} / {v.leadsLinkedCount || 0}
+                      </p>
+                      <p className="text-[9px] text-muted-foreground mt-1 font-semibold uppercase tracking-wider">Adic/Vinc</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Double Goals Progress */}
+                <div className="space-y-4 pt-4 border-t border-border/30">
+                  {/* Faturamento vs Meta Mensal */}
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1.5 font-medium">
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        Meta Mensal:
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {v.salesValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })} / {v.monthlyGoal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                          style={{ width: `${Math.min(metaMensalPercent, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-emerald-600 w-8 text-right">
+                        {metaMensalPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Contatos vs Meta do Período */}
+                  <div>
+                    <div className="flex justify-between text-[11px] mb-1.5 font-medium">
+                      <span className="text-muted-foreground">
+                        Meta Contatos:
+                      </span>
+                      <span className="font-semibold text-foreground">
+                        {v.interactionsCount} de {periodContactsTarget}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                          style={{ width: `${Math.min(contatosPercent, 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-blue-600 w-8 text-right">
+                        {contatosPercent.toFixed(0)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

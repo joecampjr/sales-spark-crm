@@ -35,10 +35,37 @@ export default function DashboardPage() {
   // Filter States
   const [branchId, setBranchId] = useState<string>('todos');
   const [sellerId, setSellerId] = useState<string>('todos');
-  const [period, setPeriod] = useState<string>('thisMonth');
+  const [period, setPeriod] = useState<string>('today');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
-  const [groupBy, setGroupBy] = useState<string>('month');
+  const [groupBy, setGroupBy] = useState<string>('day');
+
+  // Dynamic contacts card labels based on selected period
+  const contactsTitle = useMemo(() => {
+    switch (period) {
+      case 'today':
+        return 'Contatos Hoje';
+      case 'yesterday':
+        return 'Contatos Ontem';
+      case '7days':
+        return 'Contatos (7d)';
+      case '30days':
+        return 'Contatos (30d)';
+      case 'thisMonth':
+        return 'Contatos (Este Mês)';
+      case 'custom':
+        return 'Contatos (Período)';
+      default:
+        return 'Contatos';
+    }
+  }, [period]);
+
+  const contactsLabel = useMemo(() => {
+    if (period === 'today' || period === 'yesterday') {
+      return 'meta diária';
+    }
+    return 'meta do período';
+  }, [period]);
 
   // Compute startDate & endDate from period selection
   const dateParams = useMemo(() => {
@@ -435,9 +462,9 @@ export default function DashboardPage() {
           variant="warning" 
         />
         <KPICard 
-          title="Contatos Hoje" 
+          title={contactsTitle} 
           value={`${kpis.contatosHoje}/${kpis.metaDiaria}`} 
-          changeLabel="meta diária" 
+          changeLabel={contactsLabel} 
           icon={Phone} 
         />
       </div>

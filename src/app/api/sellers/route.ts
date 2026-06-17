@@ -204,8 +204,8 @@ export async function GET(request: Request) {
         }
       });
 
-      // 8. Taxa de Conversão no período
-      const conversionRate = leadsLinkedCount > 0 ? Number(((salesCount / leadsLinkedCount) * 100).toFixed(1)) : 0;
+      // 8. Taxa de Conversão no período (Vendas / Contatos realizados no período)
+      const conversionRate = interactionsCount > 0 ? Number(Math.min(100, (salesCount / interactionsCount) * 100).toFixed(1)) : 0;
 
       return {
         ...seller,

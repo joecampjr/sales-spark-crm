@@ -119,13 +119,7 @@ export async function GET(request: Request) {
     });
     const vendasMes = salesSum._sum.estimatedValue || 0;
 
-    // 3. Taxa de Conversão
-    const vendidosLeads = await prisma.lead.count({
-      where: salesWhere
-    });
-    const taxaConversao = totalLeads > 0 ? Number(((vendidosLeads / totalLeads) * 100).toFixed(1)) : 0;
-
-    // 4. Contatos Realizados
+    // 3. Contatos Realizados & Metas Dinâmicas
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
 
@@ -144,6 +138,12 @@ export async function GET(request: Request) {
       'Não atendeu'
     ];
 
+    let numDays = 1;
+    if (startDate && endDate) {
+      const diffTime = endDate.getTime() - startDate.getTime();
+      numDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    }
+
     if (session.role === 'VENDEDOR') {
       contatosHoje = userSeller ? await prisma.interaction.count({
         where: {
@@ -155,7 +155,7 @@ export async function GET(request: Request) {
           }
         }
       }) : 0;
-      metaDiaria = userSeller?.contactsTarget || 10;
+      metaDiaria = (userSeller?.contactsTarget || 10) * numDays;
       metaMes = userSeller?.monthlyGoal || 50000;
     } else {
       const sellers = await prisma.seller.findMany({
@@ -175,9 +175,17 @@ export async function GET(request: Request) {
         }
       }) : 0;
 
-      metaDiaria = sellers.reduce((sum, s) => sum + (s.contactsTarget || 10), 0) || 10;
+      metaDiaria = (sellers.reduce((sum, s) => sum + (s.contactsTarget || 10), 0) || 10) * numDays;
       metaMes = sellers.reduce((sum, s) => sum + (s.monthlyGoal || 0), 0) || 200000;
     }
+
+    // 4. Vendas do Período (Quantidade)
+    const vendidosLeads = await prisma.lead.count({
+      where: salesWhere
+    });
+
+    // 5. Taxa de Conversão (Vendas / Contatos finalizados)
+    const taxaConversao = contatosHoje > 0 ? Number(Math.min(100, (vendidosLeads / contatosHoje) * 100).toFixed(1)) : 0;
 
     // 5. Histórico e Evolução de Leads (Dinâmico por Dia, Mês ou Ano)
     let chartStartDate = startDate;
