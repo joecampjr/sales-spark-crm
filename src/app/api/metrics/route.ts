@@ -104,6 +104,7 @@ export async function GET(request: Request) {
         leadWhere.sellerId = filterSellerId;
         salesWhere.sellerId = filterSellerId;
         interactionWhere.sellerId = filterSellerId;
+        sellerWhere.id = filterSellerId;
       }
     }
 

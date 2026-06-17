@@ -427,7 +427,18 @@ export default function DashboardPage() {
             <label className="text-xs font-semibold text-muted-foreground">Vendedor</label>
             <select 
               value={sellerId} 
-              onChange={(e) => setSellerId(e.target.value)}
+              onChange={(e) => {
+                const sId = e.target.value;
+                setSellerId(sId);
+                if (sId !== 'todos') {
+                  const selectedSellerObj = sellers.find((s: any) => s.id === sId);
+                  if (selectedSellerObj && selectedSellerObj.branchId) {
+                    setBranchId(selectedSellerObj.branchId);
+                  } else if (selectedSellerObj && !selectedSellerObj.branchId) {
+                    setBranchId('sem_filial');
+                  }
+                }
+              }}
               className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
             >
               <option value="todos">Todos os Vendedores</option>
