@@ -10,7 +10,7 @@ export default function RankingPage() {
 
   // Filter States
   const [branchId, setBranchId] = useState<string>('todos');
-  const [period, setPeriod] = useState<string>('thisMonth');
+  const [period, setPeriod] = useState<string>('today');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
@@ -98,6 +98,10 @@ export default function RankingPage() {
     },
     enabled: !!user && ['ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role)
   });
+
+  const sortedBranches = useMemo(() => {
+    return [...branches].sort((a: any, b: any) => a.name.localeCompare(b.name));
+  }, [branches]);
 
   // Query Sellers ranking metrics
   const { data: vendedores = [], isLoading } = useQuery({
@@ -337,7 +341,7 @@ export default function RankingPage() {
             >
               <option value="todos">Todas as Filiais</option>
               <option value="sem_filial">Sem Filial</option>
-              {branches.map((b: any) => (
+              {sortedBranches.map((b: any) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>

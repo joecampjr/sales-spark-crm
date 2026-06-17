@@ -125,6 +125,14 @@ export default function DashboardPage() {
     enabled: !!user && ['GERENTE', 'ADMIN', 'SUPERVISOR', 'SUPERADMIN'].includes(user.role)
   });
 
+  const sortedBranches = useMemo(() => {
+    return [...branches].sort((a: any, b: any) => a.name.localeCompare(b.name));
+  }, [branches]);
+
+  const sortedSellers = useMemo(() => {
+    return [...sellers].sort((a: any, b: any) => a.name.localeCompare(b.name));
+  }, [sellers]);
+
   // Query de Métricas do Super Admin (rodada condicionalmente)
   const { data: saasMetrics, isLoading: isSaasLoading } = useQuery({
     queryKey: ['saas-metrics'],
@@ -414,7 +422,7 @@ export default function DashboardPage() {
             >
               <option value="todos">Todas as Filiais</option>
               <option value="sem_filial">Sem Filial</option>
-              {branches.map((b: any) => (
+              {sortedBranches.map((b: any) => (
                 <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
@@ -442,7 +450,7 @@ export default function DashboardPage() {
               className="bg-background border border-border rounded-lg px-3 py-1.5 text-xs text-foreground font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer"
             >
               <option value="todos">Todos os Vendedores</option>
-              {sellers
+              {sortedSellers
                 .filter((s: any) => branchId === 'todos' || branchId === 'sem_filial' || s.branchId === branchId)
                 .map((s: any) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
