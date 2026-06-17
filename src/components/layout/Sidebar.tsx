@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Building2, Target, BarChart3,
   Settings, FileText, MapPin, UserCheck, LogOut, ChevronLeft,
-  Briefcase, Phone, Calendar, Award, Shield, ChevronDown, Zap, Coins
+  Phone, Calendar, Award, Shield, ChevronDown, Zap, Coins
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -102,8 +103,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center flex-shrink-0">
-            <Briefcase className="w-5 h-5 text-primary-foreground" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white shadow-sm relative">
+            <Image src="/logo.png" alt="Sales Spark Logo" width={36} height={36} className="object-contain p-0.5" />
           </div>
           {!collapsed && (
             <div className="animate-fade-in">

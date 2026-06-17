@@ -532,7 +532,7 @@ export default function RankingPage() {
 
                   {/* Contatos */}
                   <div className="p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <div className="p-2 rounded-lg bg-sky-500/10 text-sky-500">
                       <Phone className="w-4 h-4" />
                     </div>
                     <div>
@@ -543,7 +543,7 @@ export default function RankingPage() {
 
                   {/* Leads (Adicionados / Vinculados) */}
                   <div className="p-3 rounded-xl border border-border/30 bg-muted/20 flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-violet-500/10 text-violet-500">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
                       <Users2 className="w-4 h-4" />
                     </div>
                     <div>
