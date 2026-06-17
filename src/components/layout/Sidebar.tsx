@@ -103,13 +103,13 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center h-16 px-4 border-b" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 bg-white shadow-sm relative">
-            <Image src="/logo.png" alt="Sales Spark Logo" width={36} height={36} className="object-contain p-0.5" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
+            <Image src="/logo.png" alt="Sales Spark Logo" width={36} height={36} className="object-contain" />
           </div>
           {!collapsed && (
             <div className="animate-fade-in">
-              <h1 className="text-sm font-bold" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>CRM Comercial</h1>
-              <p className="text-[10px]" style={{ color: 'hsl(var(--sidebar-section))' }}>Inteligente</p>
+              <h1 className="text-sm font-bold" style={{ color: 'hsl(var(--sidebar-active-fg))' }}>Sales Spark</h1>
+              <p className="text-[10px]" style={{ color: 'hsl(var(--sidebar-section))' }}>CRM Inteligente</p>
             </div>
           )}
         </div>
