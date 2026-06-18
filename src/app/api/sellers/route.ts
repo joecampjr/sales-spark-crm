@@ -86,34 +86,46 @@ export async function GET(request: Request) {
     startOfToday.setHours(0, 0, 0, 0);
 
     const calculatedSellers = await Promise.all(sellers.map(async (seller) => {
-      // 1. Leads Vinculados (leads assigned to the seller in this period, but NOT created by them OR explicitly linked)
-      const leadWhere: any = { 
+      // 1. Leads Vinculados (leads that had a 'Vinculado' interaction in this period for this seller,
+      // with a fallback to legacy leads created in this period and assigned to the seller but not created by them)
+      const linkedWhere: any = {
         sellerId: seller.id,
-        OR: [
-          // Case A: Assigned to them but not created by them (and not falling into manual create fallback)
-          {
-            NOT: [
-              { createdById: seller.userId },
-              { createdById: null, source: { notIn: ['CSV Import', 'CSV'] } }
-            ]
-          },
-          // Case B: Explicitly linked by the seller (has a "Vinculado" interaction)
-          {
-            interactions: {
-              some: {
-                result: 'Vinculado',
-                sellerId: seller.id
-              }
-            }
-          }
+        result: 'Vinculado'
+      };
+      if (startDate || endDate) {
+        linkedWhere.createdAt = {};
+        if (startDate) linkedWhere.createdAt.gte = startDate;
+        if (endDate) linkedWhere.createdAt.lte = endDate;
+      }
+      const linkedInteractions = await prisma.interaction.findMany({
+        where: linkedWhere,
+        select: {
+          leadId: true
+        }
+      });
+      const linkedLeadIds = new Set(linkedInteractions.map(i => i.leadId));
+
+      const fallbackWhere: any = {
+        sellerId: seller.id,
+        NOT: [
+          { createdById: seller.userId },
+          { createdById: null, source: { notIn: ['CSV Import', 'CSV'] } }
         ]
       };
       if (startDate || endDate) {
-        leadWhere.createdAt = {};
-        if (startDate) leadWhere.createdAt.gte = startDate;
-        if (endDate) leadWhere.createdAt.lte = endDate;
+        fallbackWhere.createdAt = {};
+        if (startDate) fallbackWhere.createdAt.gte = startDate;
+        if (endDate) fallbackWhere.createdAt.lte = endDate;
       }
-      const leadsLinkedCount = await prisma.lead.count({ where: leadWhere });
+      const fallbackLeads = await prisma.lead.findMany({
+        where: fallbackWhere,
+        select: {
+          id: true
+        }
+      });
+      fallbackLeads.forEach(l => linkedLeadIds.add(l.id));
+
+      const leadsLinkedCount = linkedLeadIds.size;
 
       // 2. Leads Adicionados (leads created by the seller in this period)
       // Must NOT have a 'Vinculado' interaction (meaning they did not link it, but created it)

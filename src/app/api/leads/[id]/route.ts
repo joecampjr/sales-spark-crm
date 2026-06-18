@@ -192,15 +192,19 @@ export async function PATCH(
       return NextResponse.json({ error: 'Lead não encontrado ou não autorizado' }, { status: 404 });
     }
 
-    // Se o lead foi vinculado/atribuído pelo próprio vendedor (VENDEDOR), registra a vinculação como interação de sistema
-    if (session.role === 'VENDEDOR' && data.sellerId && data.sellerId !== lead.sellerId) {
+    // Se o lead foi vinculado/atribuído a um vendedor, registra a vinculação como interação de sistema
+    if (data.sellerId && data.sellerId !== lead.sellerId) {
+      const notes = session.role === 'VENDEDOR'
+        ? 'Lead vinculado pelo vendedor.'
+        : `Lead vinculado pelo ${session.role.toLowerCase()}.`;
       await prisma.interaction.create({
         data: {
           leadId: id,
           sellerId: data.sellerId,
           type: 'sistema',
           result: 'Vinculado',
-          notes: 'Lead vinculado pelo vendedor.'
+          notes: notes,
+          companyId: session.companyId || null
         }
       });
     }

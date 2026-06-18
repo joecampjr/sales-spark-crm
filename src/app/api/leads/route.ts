@@ -340,6 +340,20 @@ export async function POST(request: Request) {
       }
     });
 
+    // Se o lead foi criado já com um vendedor atribuído por um supervisor/gerente/admin, registra a vinculação
+    if (data.sellerId && session.role !== 'VENDEDOR') {
+      await prisma.interaction.create({
+        data: {
+          leadId: newLead.id,
+          sellerId: data.sellerId,
+          type: 'sistema',
+          result: 'Vinculado',
+          notes: `Lead cadastrado e vinculado pelo ${session.role.toLowerCase()}.`,
+          companyId: session.companyId || null
+        }
+      });
+    }
+
     return NextResponse.json(newLead, { status: 201 });
   } catch (error) {
     console.error('Error creating lead:', error);

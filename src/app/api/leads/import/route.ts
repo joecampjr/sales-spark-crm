@@ -168,6 +168,8 @@ export async function POST(request: Request) {
         }
 
         if (existing) {
+          const isSellerChanging = finalSellerId !== null && finalSellerId !== existing.sellerId;
+
           // Atualiza dados
           const updatedLead = await tx.lead.update({
             where: { id: existing.id },
@@ -190,6 +192,19 @@ export async function POST(request: Request) {
               lastPurchaseDate: finalLastPurchaseDate !== null ? finalLastPurchaseDate : existing.lastPurchaseDate,
             }
           });
+
+          if (isSellerChanging && finalSellerId) {
+            await tx.interaction.create({
+              data: {
+                leadId: existing.id,
+                sellerId: finalSellerId,
+                type: 'sistema',
+                result: 'Vinculado',
+                notes: 'Lead reatribuído via importação de CSV.',
+                companyId: companyId
+              }
+            });
+          }
           
           // Mapeia atualização no cache em memória para evitar falsos positivos
           existingLeads[existingIndex] = updatedLead;
@@ -219,6 +234,19 @@ export async function POST(request: Request) {
               lastPurchaseDate: finalLastPurchaseDate,
             }
           });
+
+          if (finalSellerId) {
+            await tx.interaction.create({
+              data: {
+                leadId: newLead.id,
+                sellerId: finalSellerId,
+                type: 'sistema',
+                result: 'Vinculado',
+                notes: 'Lead importado e vinculado via CSV.',
+                companyId: companyId
+              }
+            });
+          }
 
           // Adiciona ao cache em memória para caso o CSV tenha múltiplos do mesmo lead
           existingLeads.push(newLead);
