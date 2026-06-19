@@ -68,6 +68,7 @@ export default function ContatosPage() {
   const [filterPhone, setFilterPhone] = useState('');
   const [filterStatus, setFilterStatus] = useState('todos');
   const [filterProductType, setFilterProductType] = useState('todos');
+  const [filterSellerId, setFilterSellerId] = useState('todos');
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -75,7 +76,7 @@ export default function ContatosPage() {
   // Reset page on filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, activeTab, filterName, filterPhone, filterStatus, filterProductType]);
+  }, [search, activeTab, filterName, filterPhone, filterStatus, filterProductType, filterSellerId]);
 
   // Queries
   const { data: leads = [], isLoading: isLoadingLeads } = useQuery({
@@ -121,6 +122,14 @@ export default function ContatosPage() {
   const isVendedor = user?.role === 'VENDEDOR';
   const userSeller = mySeller;
 
+  const assignableSellers = isVendedor
+    ? (userSeller ? [userSeller] : [])
+    : sellers;
+
+  const sortedSellers = [...assignableSellers].sort((a: any, b: any) =>
+    (a.name || '').localeCompare(b.name || '')
+  );
+
   // Filtra apenas leads atribuídos (com algum vendedor responsável)
   // Como a própria API de Leads já filtra por filial e visibilidade correta, apenas filtramos por sellerId !== null
   const assignedLeads = Array.isArray(leads) 
@@ -141,10 +150,10 @@ export default function ContatosPage() {
 
   const filteredLeads = displayedLeads.filter((l: any) => {
     // 1. General search
+    const cleanSearchPhone = search.replace(/\D/g, '');
     const matchesSearch = !search || 
       (l.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (l.seller?.name?.toLowerCase() || '').includes(search.toLowerCase()) ||
-      (l.phone || '').includes(search.replace(/\D/g, ''));
+      (cleanSearchPhone !== '' && (l.phone || '').includes(cleanSearchPhone));
 
     // 2. Filter by name
     const matchesName = !filterName || 
@@ -157,12 +166,15 @@ export default function ContatosPage() {
     // 4. Filter by status
     const matchesStatus = filterStatus === 'todos' || l.status === filterStatus;
 
-    // 5. Filter by product type
+    // 5. Filter by seller select dropdown
+    const matchesSeller = filterSellerId === 'todos' || l.sellerId === filterSellerId;
+
+    // 6. Filter by product type
     const matchesProductType = filterProductType === 'todos' || 
       l.productType === filterProductType || 
       (filterProductType === 'sem_produto' && !l.productType);
 
-    return matchesSearch && matchesName && matchesPhone && matchesStatus && matchesProductType;
+    return matchesSearch && matchesName && matchesPhone && matchesStatus && matchesSeller && matchesProductType;
   });
 
   // Pagination calculation
@@ -409,7 +421,7 @@ export default function ContatosPage() {
       </div>
 
       {/* Advanced Filters */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-card border border-border/40 p-4 rounded-xl shadow-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 bg-card border border-border/40 p-4 rounded-xl shadow-sm">
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-muted-foreground">Nome do Cliente</Label>
           <Input
@@ -443,6 +455,28 @@ export default function ContatosPage() {
             <option value="novo">Novo</option>
             <option value="perdido">Perdido</option>
             <option value="vendido">Vendido</option>
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-semibold text-muted-foreground">Vendedor</Label>
+          <select
+            value={filterSellerId}
+            onChange={(e) => setFilterSellerId(e.target.value)}
+            disabled={isVendedor}
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isVendedor ? (
+              <option value={userSeller?.id || 'sem_vendedor'}>
+                {userSeller?.name || 'Sem Vendedor'}
+              </option>
+            ) : (
+              <>
+                <option value="todos">Todos os Vendedores</option>
+                {sortedSellers.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </>
+            )}
           </select>
         </div>
         <div className="space-y-1.5">
