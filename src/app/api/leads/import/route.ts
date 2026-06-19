@@ -120,8 +120,16 @@ export async function POST(request: Request) {
             if (foundSeller) {
               finalSellerId = foundSeller.id;
             } else {
-              throw new Error(`O vendedor "${trimmedSeller}" não foi encontrado no sistema.`);
+              throw new Error(`O vendedor "${trimmedSeller}" não foi encontrada no sistema.`);
             }
+          }
+        }
+
+        // Se não encontrou filial mas encontrou vendedor, herda a filial do vendedor
+        if (!finalBranchId && finalSellerId) {
+          const foundSeller = sellers.find(s => s.id === finalSellerId);
+          if (foundSeller && foundSeller.branchId) {
+            finalBranchId = foundSeller.branchId;
           }
         }
 

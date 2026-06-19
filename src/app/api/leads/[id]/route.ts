@@ -183,6 +183,17 @@ export async function PATCH(
       updateData.lastPurchaseDate = new Date();
     }
 
+    // Se mudou o vendedor e não informou filial, herda a filial do novo vendedor
+    if (data.sellerId && data.sellerId !== lead.sellerId && !data.branchId) {
+      const seller = await prisma.seller.findUnique({
+        where: { id: data.sellerId },
+        select: { branchId: true }
+      });
+      if (seller && seller.branchId) {
+        updateData.branchId = seller.branchId;
+      }
+    }
+
     const updatedLead = await prisma.lead.updateMany({
       where: whereClause,
       data: updateData,

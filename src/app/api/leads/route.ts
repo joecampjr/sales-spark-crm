@@ -167,9 +167,19 @@ export async function GET(request: Request) {
 
     if (filterBranchId && filterBranchId !== 'todos') {
       if (filterBranchId === 'sem_filial') {
-        where.AND.push({ branchId: null });
+        where.AND.push({
+          AND: [
+            { branchId: null },
+            { OR: [{ sellerId: null }, { seller: { branchId: null } }] }
+          ]
+        });
       } else {
-        where.AND.push({ branchId: filterBranchId });
+        where.AND.push({
+          OR: [
+            { branchId: filterBranchId },
+            { seller: { branchId: filterBranchId } }
+          ]
+        });
       }
     }
 
@@ -277,6 +287,17 @@ export async function POST(request: Request) {
       }
       if (userSeller) {
         finalBranchId = userSeller.branchId;
+      }
+    }
+
+    // Se não informou filial mas atribuiu vendedor, herda a filial do vendedor
+    if (!finalBranchId && data.sellerId) {
+      const seller = await prisma.seller.findUnique({
+        where: { id: data.sellerId },
+        select: { branchId: true }
+      });
+      if (seller && seller.branchId) {
+        finalBranchId = seller.branchId;
       }
     }
     // CPF/CNPJ validação de duplicidade (se fornecido)
