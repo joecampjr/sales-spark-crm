@@ -104,7 +104,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       <div className="flex items-center h-16 px-4 border-b" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
         <div className="flex items-center gap-3 overflow-hidden">
           <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 relative">
-            <Image src="/logo.png?v=4" alt="Sales Spark Logo" width={36} height={36} className="object-contain" />
+            <Image src="/logo.png?v=4" alt="Sales Spark Logo" width={36} height={36} className="object-contain" unoptimized />
           </div>
           {!collapsed && (
             <div className="animate-fade-in">
