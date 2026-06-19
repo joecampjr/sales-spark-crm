@@ -158,7 +158,7 @@ export function Topbar({ onMenuClick, title }: TopbarProps) {
   return (
     <header className="h-16 border-b border-border bg-card/80 backdrop-blur-xl flex items-center justify-between px-6 sticky top-0 z-30">
       <div className="flex items-center gap-4">
-        <button onClick={onMenuClick} className="lg:hidden p-2 rounded-md hover:bg-muted">
+        <button onClick={onMenuClick} className="hidden p-2 rounded-md hover:bg-muted">
           <Menu className="w-5 h-5 text-muted-foreground" />
         </button>
         {title && <h2 className="text-lg font-semibold text-foreground">{title}</h2>}
