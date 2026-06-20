@@ -627,7 +627,7 @@ export default function LeadsPage() {
                       onChange={(e) => setNewStatus(e.target.value)}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="aguardando_produto">Aguardando Produto Chegar</option>
+                      <option value="aguardando_transferencia">Aguardando Transferência</option>
                       <option value="contato_nao_atualizado">Contato Não Atualizado</option>
                       <option value="contato_realizado">Contato Realizado</option>
                       <option value="em_negociacao">Em Negociação</option>
@@ -803,7 +803,7 @@ export default function LeadsPage() {
           />
         </div>
         <div className="flex gap-2 flex-wrap">
-          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'aguardando_produto', 'vendido', 'perdido', 'contato_nao_atualizado'].map((s) => (
+          {['todos', 'novo', 'em_negociacao', 'contato_realizado', 'aguardando_transferencia', 'vendido', 'perdido', 'contato_nao_atualizado'].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -1187,7 +1187,7 @@ export default function LeadsPage() {
                     onChange={(e) => setEditStatus(e.target.value)}
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <option value="aguardando_produto">Aguardando Produto Chegar</option>
+                    <option value="aguardando_transferencia">Aguardando Transferência</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado</option>
                     <option value="contato_realizado">Contato Realizado</option>
                     <option value="em_negociacao">Em Negociação</option>
@@ -1597,7 +1597,7 @@ export default function LeadsPage() {
                     if (r.includes('agend') || r.includes('interessa')) {
                       return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] hover:bg-blue-500/15">{result}</Badge>;
                     }
-                    if (r.includes('aguardando') || r.includes('produto')) {
+                     if (r.includes('aguardando') || r.includes('transfer') || r.includes('produto')) {
                       return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] hover:bg-amber-500/15">{result}</Badge>;
                     }
                     return <Badge variant="outline" className="text-muted-foreground text-[10px]">{result}</Badge>;

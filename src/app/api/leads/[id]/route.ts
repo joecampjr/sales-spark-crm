@@ -171,7 +171,7 @@ export async function PATCH(
         where: {
           sellerId: data.sellerId,
           status: {
-            notIn: ['vendido', 'perdido', 'contato_nao_atualizado', 'aguardando_produto']
+            notIn: ['vendido', 'perdido', 'contato_nao_atualizado', 'aguardando_transferencia']
           },
           source: {
             in: ['CSV', 'CSV Import']

@@ -146,7 +146,7 @@ export default function ContatosPage() {
 
   const displayedLeads = activeTab === 'ativos' ? activeLeads : finalizedLeads;
 
-  const showProductType = formResult === 'Aguardando produto chegar' || formResult === 'Não tinha o produto desejado';
+  const showProductType = formResult === 'Aguardando transferência' || formResult === 'Não tinha o produto desejado';
 
   const filteredLeads = displayedLeads.filter((l: any) => {
     // 1. General search
@@ -226,8 +226,8 @@ export default function ContatosPage() {
     // Mapeamento Inteligente
     if (resultVal === 'Vendido / Sucesso') {
       setFormStatus('vendido');
-    } else if (resultVal === 'Aguardando produto chegar') {
-      setFormStatus('aguardando_produto');
+    } else if (resultVal === 'Aguardando transferência') {
+      setFormStatus('aguardando_transferencia');
     } else if (['Muito caro', 'Não gostou da qualidade', 'Não tinha o produto desejado', 'Comprou do concorrente', 'Não respondeu', 'Não atendeu'].includes(resultVal)) {
       setFormStatus('perdido');
     } else if (resultVal === 'Contato não atualizado') {
@@ -272,7 +272,7 @@ export default function ContatosPage() {
     const downPayment = downPaymentInput !== null && downPaymentInput !== undefined && downPaymentInput !== '' ? Number(downPaymentInput) : undefined;
     const saleType = fd.get('saleType') as string || undefined;
 
-    const showProductType = formResult === 'Aguardando produto chegar' || formResult === 'Não tinha o produto desejado';
+    const showProductType = formResult === 'Aguardando transferência' || formResult === 'Não tinha o produto desejado';
     const productType = showProductType ? (fd.get('productType') as string) : null;
 
     try {
@@ -448,7 +448,7 @@ export default function ContatosPage() {
             className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
           >
             <option value="todos">Todos os Status</option>
-            <option value="aguardando_produto">Aguardando Produto Chegar</option>
+            <option value="aguardando_transferencia">Aguardando Transferência</option>
             <option value="contato_nao_atualizado">Contato Não Atualizado</option>
             <option value="contato_realizado">Contato Realizado</option>
             <option value="em_negociacao">Em Negociação</option>
@@ -767,7 +767,7 @@ export default function ContatosPage() {
                     required 
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="Aguardando produto chegar">Aguardando produto chegar</option>
+                    <option value="Aguardando transferência">Aguardando transferência</option>
                     <option value="Agendou visita">Agendou visita</option>
                     <option value="Comprou do concorrente">Comprou do concorrente</option>
                     <option value="Contato não atualizado">Contato não atualizado</option>
@@ -794,7 +794,7 @@ export default function ContatosPage() {
                     required 
                     className="flex h-10 w-full rounded-md border border-primary bg-primary/5 px-3 py-2 text-sm font-semibold text-primary focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <option value="aguardando_produto">Aguardando Produto Chegar (Não ocupa limite)</option>
+                    <option value="aguardando_transferencia">Aguardando Transferência (Não ocupa limite)</option>
                     <option value="contato_nao_atualizado">Contato Não Atualizado (Fecha espaço limite)</option>
                     <option value="contato_realizado">Contato Realizado</option>
                     <option value="em_negociacao">Em Negociação</option>
@@ -1039,7 +1039,7 @@ export default function ContatosPage() {
                     if (r.includes('agend') || r.includes('interessa')) {
                       return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] hover:bg-blue-500/15">{result}</Badge>;
                     }
-                    if (r.includes('aguardando') || r.includes('produto')) {
+                    if (r.includes('aguardando') || r.includes('transfer') || r.includes('produto')) {
                       return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-[10px] hover:bg-amber-500/15">{result}</Badge>;
                     }
                     return <Badge variant="outline" className="text-muted-foreground text-[10px]">{result}</Badge>;
