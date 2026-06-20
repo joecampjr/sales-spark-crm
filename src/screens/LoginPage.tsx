@@ -61,7 +61,7 @@ export default function LoginPage() {
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative bg-slate-950 border border-slate-800/80 shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-              <Image src="/logo.png?v=4" alt="Sales Spark Logo" width={40} height={40} className="object-contain" unoptimized />
+              <Image src="/logo.png?v=5" alt="Sales Spark Logo" width={40} height={40} className="object-contain" unoptimized />
             </div>
             <span className="text-xl font-bold text-slate-100 tracking-tight">Sales Spark</span>
           </div>
@@ -148,7 +148,7 @@ export default function LoginPage() {
           {/* Logo visible only on Mobile */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-slate-950 border border-slate-800 shadow relative">
-              <Image src="/logo.png?v=4" alt="Sales Spark Logo" width={40} height={40} className="object-contain" unoptimized />
+              <Image src="/logo.png?v=5" alt="Sales Spark Logo" width={40} height={40} className="object-contain" unoptimized />
             </div>
             <span className="text-xl font-bold text-slate-100">Sales Spark CRM</span>
           </div>

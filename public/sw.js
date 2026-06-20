@@ -1,10 +1,10 @@
-const CACHE_NAME = 'sales-spark-cache-v2';
+const CACHE_NAME = 'sales-spark-cache-v3';
 
 const PRECACHE_ASSETS = [
-  '/logo.png?v=4',
-  '/favicon.ico?v=4',
-  '/icon-192.png?v=4',
-  '/icon-512.png?v=4'
+  '/logo.png?v=5',
+  '/favicon.ico?v=5',
+  '/icon-192.png?v=5',
+  '/icon-512.png?v=5'
 ];
 
 self.addEventListener('install', (event) => {

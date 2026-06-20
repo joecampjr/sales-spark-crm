@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   title: "Sales Spark CRM",
   description: "CRM Comercial Inteligente",
   icons: {
-    icon: "/logo.png?v=4",
-    shortcut: "/favicon.ico?v=4",
-    apple: "/apple-touch-icon.png?v=4",
+    icon: "/logo.png?v=5",
+    shortcut: "/favicon.ico?v=5",
+    apple: "/apple-touch-icon.png?v=5",
   },
   appleWebApp: {
     capable: true,
