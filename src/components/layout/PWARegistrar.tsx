@@ -5,7 +5,7 @@ import { useEffect } from "react";
 export function PWARegistrar() {
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
+      const registerSW = () => {
         navigator.serviceWorker
           .register("/sw.js")
           .then((registration) => {
@@ -14,7 +14,14 @@ export function PWARegistrar() {
           .catch((error) => {
             console.error("Falha ao registrar o Service Worker:", error);
           });
-      });
+      };
+
+      if (document.readyState === "complete") {
+        registerSW();
+      } else {
+        window.addEventListener("load", registerSW);
+        return () => window.removeEventListener("load", registerSW);
+      }
     }
   }, []);
 
