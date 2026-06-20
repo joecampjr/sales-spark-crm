@@ -8,6 +8,23 @@ export async function middleware(request: NextRequest) {
   const session = request.cookies.get('session')?.value;
   const { pathname } = request.nextUrl;
 
+  // Ignorar arquivos estáticos da pasta public
+  const publicFiles = [
+    '/sw.js',
+    '/manifest.webmanifest',
+    '/favicon.ico',
+    '/apple-touch-icon.png',
+    '/logo.png',
+    '/icon-192.png',
+    '/icon-512.png',
+    '/placeholder.svg',
+    '/robots.txt'
+  ];
+
+  if (publicFiles.includes(pathname)) {
+    return NextResponse.next();
+  }
+
   // Rotas públicas
   if (
     pathname.startsWith('/login') ||
@@ -96,8 +113,10 @@ export const config = {
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
+     * - favicon.ico, manifest.webmanifest, sw.js (PWA files)
+     * - apple-touch-icon.png, logo.png, icon-192.png, icon-512.png, placeholder.svg (static assets)
+     * - robots.txt
      */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|apple-touch-icon.png|logo.png|icon-192.png|icon-512.png|placeholder.svg|robots.txt).*)',
   ],
 };
