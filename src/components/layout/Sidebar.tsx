@@ -47,8 +47,8 @@ const navSections = [
     label: 'Gestão',
     items: [
       { label: 'Vendedores', path: '/vendedores', icon: UserCheck, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE'] },
-      { label: 'Filiais', path: '/filiais', icon: MapPin, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'] },
-      { label: 'Usuários', path: '/usuarios', icon: Users, roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'] },
+      { label: 'Filiais', path: '/filiais', icon: MapPin, roles: ['SUPERADMIN', 'ADMIN'] },
+      { label: 'Usuários', path: '/usuarios', icon: Users, roles: ['SUPERADMIN', 'ADMIN'] },
     ],
     roles: ['SUPERADMIN', 'ADMIN', 'SUPERVISOR', 'GERENTE']
   },

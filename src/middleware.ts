@@ -67,6 +67,7 @@ export async function middleware(request: NextRequest) {
     const isSellersRoute = (pathname.startsWith('/vendedores') || pathname.startsWith('/api/sellers')) && pathname !== '/api/sellers/me';
     const isBranchesRoute = pathname.startsWith('/filiais') || pathname.startsWith('/api/branches');
     const isUsersRoute = pathname.startsWith('/usuarios') || pathname.startsWith('/api/users');
+    const isCompaniesRoute = pathname.startsWith('/empresas') || pathname.startsWith('/api/companies');
 
     if (isSellersRoute) {
       // Vendedor é permitido APENAS para ler (GET) via API. A página UI /vendedores e mutações via API continuam bloqueadas.
@@ -83,8 +84,8 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    if (isBranchesRoute || isUsersRoute) {
-      const allowed = ['SUPERADMIN', 'ADMIN', 'SUPERVISOR'];
+    if (isBranchesRoute || isUsersRoute || isCompaniesRoute) {
+      const allowed = ['SUPERADMIN', 'ADMIN'];
       if (!allowed.includes(role)) {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
