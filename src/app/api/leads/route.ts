@@ -94,14 +94,9 @@ export async function GET(request: Request) {
       const userSeller = await prisma.seller.findUnique({
         where: { userId: session.id }
       });
-      if (userSeller) {
+      if (userSeller && userSeller.branchId) {
         where.AND = [
-          {
-            OR: [
-              { branchId: userSeller.branchId },
-              { branchId: null }
-            ]
-          },
+          { branchId: userSeller.branchId },
           {
             OR: [
               { sellerId: userSeller.id },
@@ -120,15 +115,8 @@ export async function GET(request: Request) {
         where: { id: session.id },
         select: { branchId: true }
       });
-      if (dbUser) {
-        where.AND = [
-          {
-            OR: [
-              { branchId: dbUser.branchId },
-              { branchId: null }
-            ]
-          }
-        ];
+      if (dbUser && dbUser.branchId) {
+        where.branchId = dbUser.branchId;
       } else {
         where.branchId = 'non-existent-branch-id';
       }
@@ -276,6 +264,17 @@ export async function POST(request: Request) {
     }
 
     let finalBranchId = data.branchId || null;
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (!dbUser || !dbUser.branchId || data.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode cadastrar leads para sua própria filial.' }, { status: 403 });
+      }
+      finalBranchId = dbUser.branchId;
+    }
 
     // Se for VENDEDOR, restringe atribuição apenas a si mesmo ou nulo, e herda a filial dele
     if (session.role === 'VENDEDOR') {

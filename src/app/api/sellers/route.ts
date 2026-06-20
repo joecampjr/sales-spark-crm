@@ -273,7 +273,10 @@ export async function POST(request: Request) {
         where: { id: session.id },
         select: { branchId: true }
       });
-      finalBranchId = dbUser?.branchId || null;
+      if (!dbUser || !dbUser.branchId || data.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode cadastrar vendedores para sua própria filial.' }, { status: 403 });
+      }
+      finalBranchId = dbUser.branchId;
     }
 
     const newSeller = await prisma.$transaction(async (tx) => {

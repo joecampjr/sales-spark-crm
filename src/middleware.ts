@@ -85,7 +85,11 @@ export async function middleware(request: NextRequest) {
     }
 
     if (isBranchesRoute || isUsersRoute || isCompaniesRoute) {
-      const allowed = ['SUPERADMIN', 'ADMIN'];
+      const isBranchesGet = isBranchesRoute && pathname.startsWith('/api/branches') && request.method === 'GET';
+      const allowed = isBranchesGet
+        ? ['SUPERADMIN', 'ADMIN', 'SUPERVISOR']
+        : ['SUPERADMIN', 'ADMIN'];
+
       if (!allowed.includes(role)) {
         if (pathname.startsWith('/api/')) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

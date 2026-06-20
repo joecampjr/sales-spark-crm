@@ -76,6 +76,32 @@ export async function POST(request: Request) {
     const body = await request.json();
     const data = VisitSchema.parse(body);
 
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (!dbUser || !dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. Gerente sem filial vinculada.' }, { status: 403 });
+      }
+
+      // Validar vendedor
+      const targetSeller = await prisma.seller.findUnique({
+        where: { id: data.sellerId }
+      });
+      if (!targetSeller || targetSeller.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode agendar visitas para vendedores da sua própria filial.' }, { status: 403 });
+      }
+
+      // Validar lead
+      const targetLead = await prisma.lead.findUnique({
+        where: { id: data.leadId }
+      });
+      if (!targetLead || targetLead.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode agendar visitas para leads da sua própria filial.' }, { status: 403 });
+      }
+    }
+
     const newVisit = await prisma.visit.create({
       data: {
         leadId: data.leadId,

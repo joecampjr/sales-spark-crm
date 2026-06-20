@@ -99,6 +99,28 @@ export async function PATCH(
       return NextResponse.json({ error: 'Lead não encontrado' }, { status: 404 });
     }
 
+    // Restrições para o papel de GERENTE
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (!dbUser || !dbUser.branchId || lead.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode editar leads da sua própria filial.' }, { status: 403 });
+      }
+      if (data.branchId !== undefined && data.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode mover leads para sua própria filial.' }, { status: 403 });
+      }
+      if (data.sellerId) {
+        const targetSeller = await prisma.seller.findUnique({
+          where: { id: data.sellerId }
+        });
+        if (!targetSeller || targetSeller.branchId !== dbUser.branchId) {
+          return NextResponse.json({ error: 'Não autorizado. O gerente só pode atribuir leads a vendedores da sua própria filial.' }, { status: 403 });
+        }
+      }
+    }
+
     // Restrições para o papel de VENDEDOR
     if (session.role === 'VENDEDOR') {
       const userSeller = await prisma.seller.findUnique({

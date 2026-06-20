@@ -43,16 +43,6 @@ export async function PATCH(
 
     const data = UpdateSellerSchema.parse(body);
 
-    let finalBranchId = data.branchId;
-
-    if (session.role === 'GERENTE') {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: session.id },
-        select: { branchId: true }
-      });
-      finalBranchId = dbUser?.branchId || null;
-    }
-
     // 1. Busca o vendedor garantindo a empresa do tenant
     const seller = await prisma.seller.findFirst({
       where: {
@@ -63,6 +53,22 @@ export async function PATCH(
 
     if (!seller) {
       return NextResponse.json({ error: 'Vendedor não encontrado ou não autorizado' }, { status: 404 });
+    }
+
+    let finalBranchId = data.branchId;
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (!dbUser || !dbUser.branchId || seller.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode editar vendedores da sua própria filial.' }, { status: 403 });
+      }
+      if (data.branchId !== undefined && data.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode mover vendedores para sua própria filial.' }, { status: 403 });
+      }
+      finalBranchId = dbUser.branchId;
     }
 
     const updatedSeller = await prisma.$transaction(async (tx) => {
@@ -151,6 +157,16 @@ export async function DELETE(
 
     if (!seller) {
       return NextResponse.json({ error: 'Vendedor não encontrado ou não autorizado' }, { status: 404 });
+    }
+
+    if (session.role === 'GERENTE') {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.id },
+        select: { branchId: true }
+      });
+      if (!dbUser || !dbUser.branchId || seller.branchId !== dbUser.branchId) {
+        return NextResponse.json({ error: 'Não autorizado. O gerente só pode remover vendedores da sua própria filial.' }, { status: 403 });
+      }
     }
 
     // 2. Se tiver userId, deleta o User correspondente (causando deleção em cascata do Seller)
