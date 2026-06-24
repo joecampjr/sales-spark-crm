@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { maskPhone } from '@/lib/utils';
 import { 
   Search, Phone, MessageSquare, Mail, UserPlus, Filter, MoreHorizontal, 
   Calendar, Trash2, Pencil, RotateCcw, AlertCircle, Plus, Check,
@@ -56,6 +57,11 @@ export default function ContatosPage() {
   // Modals state
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  // States for lead reactivation with contact update
+  const [leadToReactivate, setLeadToReactivate] = useState<any>(null);
+  const [isReactivateModalOpen, setIsReactivateModalOpen] = useState(false);
+  const [reactivatePhone, setReactivatePhone] = useState('');
 
   // States for automatic status mapping in update form
   const [formResult, setFormResult] = useState('Interessado');
@@ -185,10 +191,13 @@ export default function ContatosPage() {
 
   // Mutações
   const updateLeadStatusMutation = useMutation({
-    mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType, productType }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string; productType?: string | null }) => {
+    mutationFn: async ({ leadId, status, estimatedValue, paymentMode, downPayment, saleType, productType, phone }: { leadId: string; status: string; estimatedValue?: number; paymentMode?: string; downPayment?: number; saleType?: string; productType?: string | null; phone?: string }) => {
       const payload: any = { status, estimatedValue, paymentMode, downPayment, saleType };
       if (productType !== undefined) {
         payload.productType = productType;
+      }
+      if (phone !== undefined) {
+        payload.phone = phone;
       }
       const res = await fetch(`/api/leads/${leadId}`, {
         method: 'PATCH',
@@ -308,7 +317,7 @@ export default function ContatosPage() {
   };
 
   // Reativação do Lead
-  const handleReativarLead = async (lead: any) => {
+  const handleReativarLead = async (lead: any, newPhone?: string) => {
     const sellerIdToUse = lead.sellerId || (isVendedor && userSeller ? userSeller.id : null);
     
     if (!sellerIdToUse) {
@@ -317,24 +326,31 @@ export default function ContatosPage() {
     }
 
     try {
+      const notes = newPhone 
+        ? `Lead reativado pelo vendedor para nova tentativa de venda. Telefone atualizado de "${lead.phone ? maskPhone(lead.phone) : 'não informado'}" para "${newPhone}".`
+        : 'Lead reativado pelo vendedor para nova tentativa de venda.';
+
       // 1. Cria interação do sistema registrando a reativação sem perder dados
       await createInteractionMutation.mutateAsync({
         leadId: lead.id,
         sellerId: sellerIdToUse,
         type: 'sistema',
         result: 'Reativado',
-        notes: 'Lead reativado pelo vendedor para nova tentativa de venda.',
+        notes: notes,
         scheduledFor: null
       });
 
       // 2. Muda o status do lead na base de dados para em_negociacao
       await updateLeadStatusMutation.mutateAsync({
         leadId: lead.id,
-        status: 'em_negociacao'
+        status: 'em_negociacao',
+        phone: newPhone || undefined
       });
 
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       toast.success('Lead reativado com sucesso para nova tentativa de venda!');
+      setIsReactivateModalOpen(false);
+      setLeadToReactivate(null);
     } catch (err: any) {
       toast.error(err.message || 'Falha ao reativar o lead.');
     }
@@ -638,13 +654,19 @@ export default function ContatosPage() {
                             <Pencil className="w-3 h-3 mr-1.5" /> Atualizar
                           </Button>
                         ) : (
-                          ['vendido', 'perdido'].includes(lead.status) && (
+                          ['vendido', 'perdido', 'contato_nao_atualizado'].includes(lead.status) && (
                             <Button 
                               size="sm" 
                               className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleReativarLead(lead);
+                                if (lead.status === 'contato_nao_atualizado') {
+                                  setLeadToReactivate(lead);
+                                  setReactivatePhone(lead.phone ? maskPhone(lead.phone) : '');
+                                  setIsReactivateModalOpen(true);
+                                } else {
+                                  handleReativarLead(lead);
+                                }
                               }}
                             >
                               <RotateCcw className="w-3 h-3 mr-1.5" /> Reativar
@@ -945,6 +967,72 @@ export default function ContatosPage() {
                 </Button>
               </div>
             </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Reativação de Lead com Contato Desatualizado */}
+      <Dialog open={isReactivateModalOpen} onOpenChange={setIsReactivateModalOpen}>
+        <DialogContent className="sm:max-w-[450px] bg-card border border-border">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">Reativar Lead - Atualizar Cadastro</DialogTitle>
+          </DialogHeader>
+          {leadToReactivate && (
+            <div className="space-y-4 pt-2">
+              <div className="bg-amber-500/10 text-amber-600 border border-amber-500/10 p-3 rounded-lg flex gap-2">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold text-amber-600">Lead marcado como &quot;Contato Não Atualizado&quot;.</p>
+                  <p className="text-amber-600/90">Para reativá-lo, você deve atualizar o número de telefone do cliente.</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-foreground">Nome do Lead</Label>
+                <Input value={leadToReactivate.name} disabled className="bg-muted text-muted-foreground" />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reactivatePhone" className="text-sm font-semibold text-foreground">Novo Telefone de Contato <span className="text-destructive">*</span></Label>
+                <Input 
+                  id="reactivatePhone"
+                  value={reactivatePhone}
+                  onChange={(e) => setReactivatePhone(maskPhone(e.target.value))}
+                  placeholder="(00) 00000-0000"
+                  required
+                  className="bg-background"
+                />
+                <p className="text-[10px] text-muted-foreground italic">
+                  O telefone atual é {leadToReactivate.phone ? maskPhone(leadToReactivate.phone) : 'não informado'}.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border/30">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsReactivateModalOpen(false);
+                    setLeadToReactivate(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="button" 
+                  disabled={
+                    updateLeadStatusMutation.isPending || 
+                    createInteractionMutation.isPending || 
+                    reactivatePhone.replace(/\D/g, '') === leadToReactivate.phone.replace(/\D/g, '') ||
+                    reactivatePhone.replace(/\D/g, '').length < 8
+                  }
+                  onClick={() => handleReativarLead(leadToReactivate, reactivatePhone)}
+                  className="bg-primary text-primary-foreground font-bold hover:bg-primary/90"
+                >
+                  {updateLeadStatusMutation.isPending ? 'Salvando...' : 'Salvar e Reativar'}
+                </Button>
+              </div>
+            </div>
           )}
         </DialogContent>
       </Dialog>
