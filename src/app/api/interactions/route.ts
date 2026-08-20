@@ -11,6 +11,10 @@ const InteractionSchema = z.object({
   notes: z.string().nullable().optional(),
   scheduledFor: z.string().nullable().optional(), // ISO string
   productType: z.string().nullable().optional(),
+  estimatedValue: z.number().nullable().optional(),
+  paymentMode: z.string().nullable().optional(),
+  downPayment: z.number().nullable().optional(),
+  saleType: z.string().nullable().optional(),
 });
 
 export async function GET(request: Request) {
@@ -99,6 +103,10 @@ export async function POST(request: Request) {
         scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
         companyId: session.companyId || null,
         productType: data.productType || null,
+        estimatedValue: data.estimatedValue !== undefined ? data.estimatedValue : null,
+        paymentMode: data.paymentMode || null,
+        downPayment: data.downPayment !== undefined ? data.downPayment : null,
+        saleType: data.saleType || null,
       }
     });
 

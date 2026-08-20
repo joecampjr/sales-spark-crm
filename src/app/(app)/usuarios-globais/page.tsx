@@ -350,6 +350,7 @@ export default function UsuariosGlobaisPage() {
                   placeholder="000.000.000-00" 
                   value={newCpf} 
                   onChange={(e) => setNewCpf(maskCpf(e.target.value))} 
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-2 col-span-2">
@@ -358,7 +359,7 @@ export default function UsuariosGlobaisPage() {
               </div>
               <div className="space-y-2 col-span-2">
                 <Label htmlFor="newPassword">Senha Provisória <span className="text-destructive">*</span></Label>
-                <Input id="newPassword" name="password" type="password" required placeholder="Min. 6 caracteres" minLength={6} />
+                <Input id="newPassword" name="password" type="password" required placeholder="Min. 6 caracteres" minLength={6} autoComplete="new-password" />
               </div>
 
               <div className="space-y-2">
@@ -438,6 +439,7 @@ export default function UsuariosGlobaisPage() {
                     placeholder="000.000.000-00" 
                     value={editCpf} 
                     onChange={(e) => setEditCpf(maskCpf(e.target.value))} 
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2 col-span-2">
@@ -446,7 +448,7 @@ export default function UsuariosGlobaisPage() {
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label htmlFor="editPassword">Nova Senha (deixe em branco para manter)</Label>
-                  <Input id="editPassword" name="password" type="password" placeholder="••••••••" />
+                  <Input id="editPassword" name="password" type="password" placeholder="••••••••" autoComplete="new-password" />
                 </div>
 
                 <div className="space-y-2">

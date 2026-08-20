@@ -293,7 +293,11 @@ export default function ContatosPage() {
         result: formResult,
         notes: notes || undefined,
         scheduledFor: scheduledFor || undefined,
-        productType
+        productType,
+        estimatedValue: formStatus === 'vendido' ? estimatedValue : undefined,
+        paymentMode: formStatus === 'vendido' ? paymentMode : undefined,
+        downPayment: formStatus === 'vendido' && paymentMode === 'carne' ? downPayment : undefined,
+        saleType: formStatus === 'vendido' ? saleType : undefined
       });
 
       // 2. Atualiza o status do Lead
@@ -1158,6 +1162,53 @@ export default function ContatosPage() {
                         {item.notes && (
                           <div className="text-xs text-muted-foreground bg-card/60 p-2.5 rounded-lg border border-border/20 leading-relaxed font-normal italic">
                             &ldquo;{item.notes}&rdquo;
+                          </div>
+                        )}
+
+                        {item.estimatedValue && (
+                          <div className="text-xs bg-emerald-500/5 text-emerald-700 border border-emerald-500/10 p-3 rounded-lg space-y-1">
+                            <div className="font-semibold text-emerald-800 flex items-center gap-1">
+                              💰 Detalhes da Compra
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[11px]">
+                              <div>
+                                <span className="text-muted-foreground">Valor:</span>{" "}
+                                <span className="font-semibold text-emerald-950">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.estimatedValue)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Pagamento:</span>{" "}
+                                <span className="font-medium capitalize text-emerald-950">
+                                  {item.paymentMode === 'a_vista' ? 'À Vista' : 
+                                   item.paymentMode === 'carne' ? 'Carnê' : 
+                                   item.paymentMode === 'cartao' ? 'Cartão' : 
+                                   item.paymentMode === 'pix' ? 'Pix' : item.paymentMode}
+                                </span>
+                              </div>
+                              {item.paymentMode === 'carne' && item.downPayment !== undefined && item.downPayment !== null && (
+                                <div>
+                                  <span className="text-muted-foreground">Entrada:</span>{" "}
+                                  <span className="font-semibold text-emerald-950">
+                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.downPayment)}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="text-muted-foreground">Tipo de Venda:</span>{" "}
+                                <span className="font-medium capitalize text-emerald-950">
+                                  {item.saleType || 'Interna'}
+                                </span>
+                              </div>
+                              {item.productType && (
+                                <div className="col-span-2">
+                                  <span className="text-muted-foreground">Produto:</span>{" "}
+                                  <span className="font-medium text-emerald-950 capitalize">
+                                    {item.productType}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>

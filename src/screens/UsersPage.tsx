@@ -269,11 +269,12 @@ export default function UsersPage() {
                     placeholder="000.000.000-00" 
                     value={newCpf}
                     onChange={(e) => setNewCpf(maskCpf(e.target.value))}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Senha Temporária</Label>
-                  <Input name="password" type="password" required placeholder="••••••••" />
+                  <Input name="password" type="password" required placeholder="••••••••" autoComplete="new-password" />
                 </div>
                 <div className="space-y-2">
                   <Label>Perfil de Acesso</Label>
@@ -468,11 +469,12 @@ export default function UsersPage() {
                     placeholder="000.000.000-00" 
                     value={editCpf}
                     onChange={(e) => setEditCpf(maskCpf(e.target.value))}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2 col-span-2">
                   <Label>Nova Senha (Deixe em branco para manter)</Label>
-                  <Input name="password" type="password" placeholder="••••••••" />
+                  <Input name="password" type="password" placeholder="••••••••" autoComplete="new-password" />
                 </div>
                 <div className="space-y-2">
                   <Label>Perfil</Label>

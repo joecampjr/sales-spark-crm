@@ -165,13 +165,17 @@ model Interaction {
   companyId String?
   company   Company? @relation(fields: [companyId], references: [id])
 
-  type         String
-  result       String
-  productType  String?
-  notes        String?
-  scheduledFor DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  type           String
+  result         String
+  productType    String?
+  notes          String?
+  scheduledFor   DateTime?
+  estimatedValue Float?
+  paymentMode    String?
+  downPayment    Float?
+  saleType       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([leadId])
   @@index([sellerId])
