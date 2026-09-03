@@ -32,17 +32,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Libera leads finalizados há mais de 30 dias (status perdido, contato_nao_atualizado)
-    // Apenas se nunca foram reativados e o status não for vendido (que fica fixo)
+    // Libera leads finalizados há mais de 30 dias com status 'perdido'
+    // Status 'contato_nao_atualizado' e 'vendido' nunca são liberados automaticamente
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     if (session.companyId) {
       const leadsToRelease = await prisma.lead.findMany({
         where: {
           companyId: session.companyId,
-          status: {
-            in: ['perdido', 'contato_nao_atualizado']
-          },
+          status: 'perdido',
           updatedAt: {
             lte: thirtyDaysAgo
           },
